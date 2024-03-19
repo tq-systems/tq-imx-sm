@@ -18,7 +18,7 @@ compile:
   stage: build
   parallel:
     matrix:
-      - MACHINE: [ mx95evk ]
+      - MACHINE: [ mx95evk, tqma95xxsa ]
         CONFIG: ["t=all m=0", "m=1", "m=0 c=1", "m=0 c=0" ]
   script:
     - echo "Building ${MACHINE} with ${CONFIG}"
