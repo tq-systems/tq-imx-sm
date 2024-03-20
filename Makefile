@@ -71,6 +71,17 @@ ifeq ($(M),1)
 	FLAGS += -DMONITOR
 	INC_LIBC = 1
 endif
+
+# Configure Console output
+ifdef c
+    C := $(c)
+endif
+C ?= 0
+ifeq ($(C),1)
+	FLAGS += -DCONSOLE
+	INC_LIBC = 1
+endif
+
 INC_LIBC ?= 0
 
 # Configure RDC

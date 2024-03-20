@@ -71,7 +71,7 @@ int main(int argc, const char * const argv[])
     /* Store boot start time */
     g_bootTime[SM_BT_START] = DEV_SM_Usec64Get();
 
-#if defined(MONITOR) || defined(RUN_TEST)
+#if defined(MONITOR) || defined(RUN_TEST) || defined(CONSOLE)
     /* Configure stdio for no buffering */
     (void) setvbuf(stdin, NULL, _IONBF, 0);
     (void) setvbuf(stdout, NULL, _IONBF, 0);
