@@ -79,6 +79,7 @@ int main(int argc, const char * const argv[])
 
     /* Init the system hardware */
     status = BRD_SM_Init(argc, argv, &mSel);
+    printf("BRD_SM_Init: %d)\n", status);
 
     /* Save start banner time */
     delta = DEV_SM_Usec64Get();
@@ -94,6 +95,7 @@ int main(int argc, const char * const argv[])
     if (status == SM_ERR_SUCCESS)
     {
         status = LMM_Init();
+        printf("LMM_Init: %d)\n", status);
     }
 
     /* Boot LMs */
@@ -101,6 +103,7 @@ int main(int argc, const char * const argv[])
     {
         /* mSel from BRD_SM_Init(), LMM_INIT_FLAGS from Makefile */
         status = LMM_Boot(mSel, LMM_INIT_FLAGS);
+        printf("LMM_Boot: %d)\n", status);
     }
 
 #ifdef RUN_TEST
@@ -108,6 +111,7 @@ int main(int argc, const char * const argv[])
     if (status == SM_ERR_SUCCESS)
     {
         status = TEST_Config();
+        printf("TEST_Config: %d)\n", status);
     }
 #endif
 
@@ -121,16 +125,18 @@ int main(int argc, const char * const argv[])
     /* Run test */
     if (status == SM_ERR_SUCCESS)
     {
+        printf("\n*** SM Test Mode - no further booting ***\n");
         TEST();
     }
 #endif
 
 #ifdef MONITOR
     /* Call monitor */
-    MONITOR_Cmd("\n*** SM Debug Monitor ***\n");
+    MONITOR_Cmd("\n*** SM Debug Monitor - no further booting ***\n");
 #endif
 
 #if !defined(RUN_TEST) && !defined(MONITOR)
+    printf("\n*** SM Main Loop ***\n");
     /* Loop - services handled via interrupts */
     while(true)
     {
