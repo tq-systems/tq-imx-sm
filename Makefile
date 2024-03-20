@@ -141,7 +141,10 @@ endif
 
 img : $(TARGETS)
 
-all: clean img
+# prevent clean and img running in parallel
+all:
+	$(AT)+$(MAKE) clean
+	$(AT)+$(MAKE) img
 
 .SUFFIXES :
 
