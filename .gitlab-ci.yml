@@ -19,7 +19,7 @@ compile:
   parallel:
     matrix:
       - MACHINE: [ mx95evk ]
-        CONFIG: ["t=all m=0", "m=1", "m=0" ]
+        CONFIG: ["t=all m=0", "m=1", "m=0 c=1", "m=0 c=0" ]
   script:
     - echo "Building ${MACHINE} with ${CONFIG}"
     - make -j$(nproc) config=${MACHINE} ${CONFIG} all
