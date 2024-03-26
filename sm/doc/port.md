@@ -173,6 +173,13 @@ board port.
 
 These can have multiple [configurations](@ref CONFIGURATION) linked to them.
 
+This SM fork contains the following TQ-Systems ports that can be used as source/reference for new designs using a i.MX95
+based SoM from TQ-Systems GmbH.
+
+| Board Port                         | Description                                                                         |
+|------------------------------------|-------------------------------------------------------------------------------------|
+| [tqma95xxsa](@ref PORT_TQMA95XXSA) | TQMa95xxSA on MB-SMARC2, PF09/53 PMICs, added controls, voltages, sensor            |
+
 NXP i.MX95 EVK  {#PORT_MX95_EVK}
 --------------
 
@@ -250,6 +257,80 @@ The port makes use of no additional drivers. It adds no additional voltage domai
 It does declare redefinition macros to redirect DEV_SM_SystemReset(), DEV_SM_SystemStageReset(), and
 DEV_SM_SystemShutdown() to functions that just print a message and loop forever. This is to aid in bring-up
 and debug and **should not be copied to a real board port**.
+
+TQ Systems TQMa95xxSA  {#PORT_TQMA95XXSA}
+---------------------
+
+This port supports TQMa95xxSA SMARC2 SoM on MB-SMARC-2. The SoM features LPDDR5, e-MMC, two GiG-E Phy
+and the following optionally assembled features:
+
+- RTC
+- SPI-NOR
+- EEPROM
+- Secure Element
+- IMU
+
+The board design allocates following IP as interfaces to be managed exclusively by SM running on CM33:
+
+- LPI2C2,
+- GPIO1
+- LPUART1
+
+Connected to LPI2C2 are a PF09 PMIC, 2x PF53 PMICs. The interrupts from the PMIC goes to the CM33. LPUART1
+is connected to SMARC SER0 Pins and is available on X39 on MB-SMARC-2.
+
+The port makes use of the following additional drivers:
+
+* [RGPIO](@ref rgpio),
+* [PF09](@ref pf09),
+* [PF53](@ref pf53).
+
+In addition it adds voltage domains, a sensor, and controls. These are implemented in corresponding
+
+[brd_sm_voltage.h/c](@ref tqma95xxsa/sm/brd_sm_voltage.h),
+[brd_sm_sensor.h/c](@ref tqma95xxsa/sm/brd_sm_sensor.h),
+[brd_sm_control.h/c](@ref tqma95xxsa/sm/brd_sm_control.h)
+
+files. These define redirection macros to route the LMM function calls for these type of resources
+to these files. They then append the following resources to the existing device resources:
+
+| Resource                  | Protocol | Description                      |
+|---------------------------|----------|----------------------------------|
+| DEV_SM_VOLT_SOC           | Voltage  | i.MX95 VDD_SOC via PF53          |
+| DEV_SM_VOLT_ARM           | Voltage  | i.MX95 VDD_ARM via PF53          |
+| BRD_SM_VOLT_VDD_GPIO_3P3  | Voltage  | i.MX95 VDD_GPIO_3P3 via PF09 SW1 |
+| BRD_SM_VOLT_VDD_ANA_0P8   | Voltage  | i.MX95 VDD_ANA_0P8 via PF09 SW2  |
+| BRD_SM_VOLT_VDD_GPIO_1P8  | Voltage  | i.MX95 VDD_GPIO_1P8 via PF09 SW3 |
+| BRD_SM_VOLT_VDDQ_DDR      | Voltage  | i.MX95 VDDQ_DDR via PF09 SW4     |
+| BRD_SM_VOLT_VDD2_DDR      | Voltage  | i.MX95 VDD2_DDR via PF09 SW5     |
+| BRD_SM_VOLT_SD_CARD       | Voltage  | i.MX95 SD_CARD via PF09 LDO1     |
+| BRD_SM_VOLT_NVCC_SD2      | Voltage  | i.MX95 NVCC_SD2 via PF09 LDO2    |
+| BRD_SM_SENSOR_TEMP_PF09   | Sensor   | PF09 temp sensor                 |
+| BRD_SM_SENSOR_TEMP_PF5301 | Sensor   | PF5301 temp sensor               |
+| BRD_SM_SENSOR_TEMP_PF5302 | Sensor   | PF5302 temp sensor               |
+
+Voltages can be enabled/disabled and their level can be read and written. The sensor can be read (limited
+discrete temps 110C, 125C, 140C, 155C. Temps below 110C are reported as 105C. A trip point can be used
+to generate a notification. The controls can be read and can generate notifications (also generate a wake up)
+on state change.
+
+Board interrupt support is implementd in [brd_sm_handlers.h/c](@ref tqma95xxsa/sm/brd_sm_handlers.h). This
+makes used of GPIO1 signal 14 to get an interrupt from PF09.
+
+The BRD_SM_ShutdownRecordLoad() and BRD_SM_ShutdownRecordSave() functions record information in the BBNSM
+persistent storage. They makes use of GPR0-3. Access to these should not be granted to other agents in the
+configuration files.
+
+The default configuration for this board is [tqma95xxsa](@ref CONFIG_TQMa95xxSA). It defines the following boot
+mode select (mSel) options which can be specified using the MSEL=\<mSel\> option with mkimage.
+
+| mSel        | Description                                                                             |
+|-------------|-----------------------------------------------------------------------------------------|
+| 0 (default) | Boot LM1 (M7) and/or LM2 (AP) if images found in container, no errors if images missing |
+| 1           | Boot LM1 (M7), error if no image in container                                           |
+| 2           | Boot nothing                                                                            |
+
+*Attention*: Features may be incomplete or not fully tested / documented.
 
 Reset Record Output  {#PORT_NXP_PRINT}
 -------------------
