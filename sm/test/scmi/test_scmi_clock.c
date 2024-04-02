@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-** Copyright 2023 NXP
+** Copyright 2023-2024 NXP
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -129,7 +129,7 @@ void TEST_ScmiClock(void)
             flags, rate), SCMI_ERR_INVALID_PARAMETERS);
     }
 
-    /* Test coverage of exceeding max amount of sensors in
+    /* Test coverage of exceeding max amount of clocks in
         ClockConfigSet and invalid channel*/
     {
         uint32_t attr = SCMI_CLOCK_CONFIG_SET_ENABLE(1U);
@@ -141,7 +141,7 @@ void TEST_ScmiClock(void)
             attr, 0U), SCMI_ERR_INVALID_PARAMETERS);
     }
 
-    /* Test coverage of exceeding max amount of sensors in
+    /* Test coverage of exceeding max amount of clocks in
         ClockConfigGet */
     {
         uint32_t flags = SCMI_CLOCK_CONFIG_SET_ENABLE(1U);
@@ -157,7 +157,7 @@ void TEST_ScmiClock(void)
             SM_ERR_INVALID_PARAMETERS);
     }
 
-    /* Test coverage of exceeding max amount of sensors in
+    /* Test coverage of exceeding max amount of clocks in
         ClockDescribeRates */
     {
         scmi_clock_rate_t rates[SCMI_CLOCK_MAX_RATES];
@@ -168,7 +168,7 @@ void TEST_ScmiClock(void)
     }
 
 
-    /* Test coverage of exceeding max amount of sensors in
+    /* Test coverage of exceeding max amount of clocks in
         ClockRateGet and invalid channel*/
     {
         scmi_clock_rate_t rates[SCMI_CLOCK_MAX_RATES];
@@ -177,7 +177,7 @@ void TEST_ScmiClock(void)
             rates), SCMI_ERR_INVALID_PARAMETERS);
     }
 
-    /* Test coverage of exceeding max amount of sensors in
+    /* Test coverage of exceeding max amount of clocks in
         ClockParentSet and invalid channel*/
     {
         uint32_t parentId = 0U;
@@ -189,7 +189,7 @@ void TEST_ScmiClock(void)
             parentId), SM_ERR_INVALID_PARAMETERS);
     }
 
-    /* Test coverage of exceeding max amount of sensors in
+    /* Test coverage of exceeding max amount of clocks in
         ClockParentGet and invalid channel*/
     {
         uint32_t parentId = 0U;
@@ -201,7 +201,7 @@ void TEST_ScmiClock(void)
             &parentId), SM_ERR_INVALID_PARAMETERS);
     }
 
-    /* Test coverage of exceeding max amount of sensors in
+    /* Test coverage of exceeding max amount of clocks in
         ClockPossibleParentGet */
     {
         uint32_t numParent = 0;
@@ -249,7 +249,7 @@ static void TEST_ScmiClockNone(uint32_t channel, uint32_t clockId)
     uint32_t attributes = 0U;
     uint8_t name[SCMI_CLOCK_MAX_NAME];
     uint32_t numRatesFlags = 0U;
-    scmi_clock_rate_t rates[SCMI_CLOCK_MAX_RATES] = {};
+    scmi_clock_rate_t rates[SCMI_CLOCK_MAX_RATES] = { 0 };
 
     printf("SCMI_ClockAttributes(%u, %u)\n", channel, clockId);
     name[0] = 0U;
@@ -294,16 +294,16 @@ static void TEST_ScmiClockNone(uint32_t channel, uint32_t clockId)
         uint32_t attributesConfigGet = 0U;
         uint32_t flagConfigGet = 0U;
         uint32_t config = 0U;
-        uint32_t oemConfigVal = 0U;
+        uint32_t extendedConfigVal = 0U;
 
         printf("SCMI_ClockConfigGet(%u, %u)\n", channel, clockId);
         CHECK(SCMI_ClockConfigGet(channel, clockId, flagConfigGet,
-            &attributesConfigGet, &config, &oemConfigVal));
+            &attributesConfigGet, &config, &extendedConfigVal));
 
         printf("  enabled=%u\n",
             SCMI_CLOCK_CONFIG_GET_ENABLE(config));
-        printf("  OEM=%u\n",
-            SCMI_CLOCK_CONFIG_FLAGS_OEM(oemConfigVal));
+        printf("  ext=%u\n",
+            SCMI_CLOCK_CONFIG_FLAGS_EXT_CONFIG(extendedConfigVal));
 
         CHECK(SCMI_ClockConfigGet(channel, clockId, flagConfigGet,
             NULL, NULL, NULL));
@@ -311,8 +311,8 @@ static void TEST_ScmiClockNone(uint32_t channel, uint32_t clockId)
         /* Invalid parameter check for ConfigGet*/
         printf("SCMI_ClockConfigGet(%u, %u)\n", channel, clockId);
         NECHECK(SCMI_ClockConfigGet(channel, clockId,
-            SCMI_CLOCK_CONFIG_FLAGS_OEM(2U),
-            &attributesConfigGet, &config, &oemConfigVal),
+            SCMI_CLOCK_CONFIG_FLAGS_EXT_CONFIG(2U),
+            &attributesConfigGet, &config, &extendedConfigVal),
             SCMI_ERR_INVALID_PARAMETERS);
     }
 
@@ -320,7 +320,7 @@ static void TEST_ScmiClockNone(uint32_t channel, uint32_t clockId)
         uint32_t skipParents = 0U;
         uint32_t numParentsFlags = 0U;
         uint32_t attributesParent = 0U;
-        uint32_t parents[SCMI_CLOCK_MAX_PARENTS] = {};
+        uint32_t parents[SCMI_CLOCK_MAX_PARENTS] = { 0 };
 
         CHECK(SCMI_ClockAttributes(channel, clockId, &attributesParent,
             name));

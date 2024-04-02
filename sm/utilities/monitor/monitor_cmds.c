@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-** Copyright 2023 NXP
+** Copyright 2023-2024 NXP
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -567,7 +567,7 @@ static int32_t MONITOR_CmdEleInfo(int32_t argc, const char * const argv[])
     bool rom = true;
     uint32_t commit = 0U;
     bool dirty = false;
-    ele_info_t info = {};
+    ele_info_t info = { 0 };
 
     ELE_FwStatusGet(&stat);
 
@@ -930,7 +930,8 @@ static int32_t MONITOR_CmdWdog(int32_t argc, const char * const argv[])
         "cold",
         "irq",
         "off",
-        "trigger"
+        "trigger",
+        "fccu"
     };
 
     /* Parse argument */
@@ -956,6 +957,11 @@ static int32_t MONITOR_CmdWdog(int32_t argc, const char * const argv[])
             case 4:  /* trigger */
                 BOARD_WdogModeSet(BOARD_WDOG_MODE_TRIGGER);
                 break;
+#ifdef BOARD_WDOG_MODE_FCCU
+            case 5:  /* fccu */
+                BOARD_WdogModeSet(BOARD_WDOG_MODE_FCCU);
+                break;
+#endif
             default:
                 status = SM_ERR_INVALID_PARAMETERS;
                 break;
@@ -2288,7 +2294,7 @@ static int32_t MONITOR_CmdCtrl(int32_t argc, const char * const argv[],
                 {
                     uint32_t ctrl;
                     uint32_t numVal = 0U;
-                    uint32_t val[24] = {};
+                    uint32_t val[24] = { 0 };
 
                     status = MONITOR_ConvU32(argv[0], &ctrl);
 

@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-**     Copyright 2022 NXP
+**     Copyright 2022-2024 NXP
 **
 **     Redistribution and use in source and binary forms, with or without modification,
 **     are permitted provided that the following conditions are met:
@@ -98,12 +98,12 @@
 
 /* Supply voltage setpoints */
 #define ES_SUSPEND_UV_VDD_SOC       650000U
-#define ES_LOW_UV_VDD_SOC           750000U
-#define ES_NOM_UV_VDD_SOC           800000U
+#define ES_LOW_UV_VDD_SOC           800000U
+#define ES_NOM_UV_VDD_SOC           850000U
 #define ES_ODV_UV_VDD_SOC           900000U
 
-#define ES_LOW_UV_VDD_ARM           750000U
-#define ES_NOM_UV_VDD_ARM           800000U
+#define ES_LOW_UV_VDD_ARM           800000U
+#define ES_NOM_UV_VDD_ARM           850000U
 #define ES_ODV_UV_VDD_ARM           900000U
 #define ES_SOD_UV_VDD_ARM           1000000U
 
@@ -174,6 +174,10 @@
 #define ES_LOW_KHZ_DISP             ES_400000KHZ
 #define ES_NOM_KHZ_DISP             ES_666667KHZ
 #define ES_ODV_KHZ_DISP             ES_800000KHZ
+
+/* PLL time limits */
+#define ES_MAX_USEC_PLL_LOCK        100U
+#define ES_MAX_USEC_PLL_PREP        5U
 
 /* PLL frequency limits */
 #define ES_MIN_HZ_PLLVCO            2520000000ULL   /* 2.5GHz rounded to 24M */

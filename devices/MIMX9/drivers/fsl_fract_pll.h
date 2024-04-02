@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 NXP
+ * Copyright 2023-2024 NXP
  *
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
@@ -43,6 +43,13 @@
 /* Defines */
 
 /* Types */
+typedef struct {
+    uint32_t CTRL;
+    uint32_t SPREAD_SPECTRUM;
+    uint32_t NUMERATOR;
+    uint32_t DENOMINATOR;
+    uint32_t DIV;
+} fracpll_context_t;
 
 /* Functions */
 bool FRACTPLL_GetEnable(uint32_t pllIdx, uint32_t enMask);
@@ -58,6 +65,8 @@ uint64_t FRACTPLL_GetDfsRate(uint32_t pllIdx, uint8_t dfsIdx, bool div2);
 bool FRACTPLL_UpdateDfsRate(uint32_t pllIdx, uint8_t dfsIdx, uint32_t mfi,
     uint32_t mfn);
 bool FRACTPLL_SetDfsRate(uint32_t pllIdx, uint8_t dfsIdx, uint64_t rate);
+bool FRACTPLL_SetContext(uint32_t pllIdx, const fracpll_context_t *pllContext);
+bool FRACTPLL_GetContext(uint32_t pllIdx, fracpll_context_t *pllContext);
 
 /* Externs */
 

@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 ## ###################################################################
 ##
-## Copyright 2023 NXP
+## Copyright 2023-2024 NXP
 ##
 ## Redistribution and use in source and binary forms, with or without modification,
 ## are permitted provided that the following conditions are met:
@@ -73,8 +73,8 @@ sub error_line;
 sub get_define;
 
 my @protocols = ('base', 'pd', 'sys', 'perf', 'clk', 'sensor',
-    'rst', 'volt', 'lmm', 'gpr', 'rtc', 'button', 'cpu', 'pin',
-    'daisy', 'ctrl', 'fault', 'crc', 'fusa');
+    'rst', 'volt', 'lmm', 'gpr', 'rtc', 'button', 'cpu', 'perlpi',
+    'pin', 'daisy', 'ctrl', 'fault', 'crc', 'fusa');
 my @mbTypes = ('MU', 'LOOPBACK');
 my @xportTypes = ('SMT');
 	my @permTypes = ('none', 'get', 'notify', 'set', 'priv',
@@ -1670,6 +1670,12 @@ sub generate_board
 		print $out sprintf("#define %*s %sU\n", -$w,
 			'BOARD_DEBUG_UART_INSTANCE', $def);
 	}
+	else
+	{
+		print $out '/*! Config for UART instance */' . "\n";
+		print $out sprintf("#define %*s %sU\n", -$w,
+			'BOARD_DEBUG_UART_INSTANCE', 0);
+	}
 
     # UART baudrate
 	if (my $def = &get_define('DEBUG_UART_BAUDRATE', $cfgRef))
@@ -1677,6 +1683,12 @@ sub generate_board
 		print $out '/*! Config for UART baudrate */' . "\n";
 		print $out sprintf("#define %*s %sU\n", -$w,
 			'BOARD_DEBUG_UART_BAUDRATE', $def);
+	}
+	else
+	{
+		print $out '/*! Config for UART baudrate */' . "\n";
+		print $out sprintf("#define %*s %sU\n", -$w,
+			'BOARD_DEBUG_UART_BAUDRATE', 115200);
 	}
 
 	print $out "\n";
@@ -1688,6 +1700,12 @@ sub generate_board
 		print $out sprintf("#define %*s %sU\n", -$w,
 			'BOARD_I2C_INSTANCE', $def);
 	}
+	else
+	{
+		print $out '/*! Config for PMIC I2C instance */' . "\n";
+		print $out sprintf("#define %*s %sU\n", -$w,
+			'BOARD_I2C_INSTANCE', 0);
+	}
 
     # I2C baudrate
 	if (my $def = &get_define('PMIC_I2C_BAUDRATE', $cfgRef))
@@ -1695,6 +1713,12 @@ sub generate_board
 		print $out '/*! Config for PMIC I2C baudrate */' . "\n";
 		print $out sprintf("#define %*s %sU\n", -$w,
 			'BOARD_I2C_BAUDRATE', $def);
+	}
+	else
+	{
+		print $out '/*! Config for PMIC I2C baudrate */' . "\n";
+		print $out sprintf("#define %*s %sU\n", -$w,
+			'BOARD_I2C_BAUDRATE', 100000);
 	}
 
     # Output footer
@@ -3380,7 +3404,7 @@ sub copyright
     $rtn .= '/*' . "\n";
     $rtn .= '** ###################################################################' . "\n";
     $rtn .= '**' . "\n";
-    $rtn .= '** Copyright 2023 NXP' . "\n";
+    $rtn .= '** Copyright 2023-2024 NXP' . "\n";
     $rtn .= '**' . "\n";
     $rtn .= '** Redistribution and use in source and binary forms, with or without modification,' . "\n";
     $rtn .= '** are permitted provided that the following conditions are met:' . "\n";

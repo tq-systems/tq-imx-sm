@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-**     Copyright 2023 NXP
+**     Copyright 2023-2024 NXP
 **
 **     Redistribution and use in source and binary forms, with or without modification,
 **     are permitted provided that the following conditions are met:
@@ -199,7 +199,7 @@ int32_t DEV_SM_CpuResetVectorSet(uint32_t cpuId, uint64_t resetVector);
  *
  * @param[in]     cpuId      Identifier for the CPU
  * @param[in]     sleepMode  Target sleep mode
- * @param[in]     irqMuxGic  True if GIC wakeup source
+ * @param[in]     sleepFlags Sleep mode flags
  *
  * This function sets the sleep mode of a CPU. The CPU will transition to
  * this mode on its next WFI.
@@ -211,7 +211,7 @@ int32_t DEV_SM_CpuResetVectorSet(uint32_t cpuId, uint64_t resetVector);
  * - ::SM_ERR_INVALID_PARAMETERS: if \a sleepMode is invalid.
  */
 int32_t DEV_SM_CpuSleepModeSet(uint32_t cpuId, uint32_t sleepMode,
-    bool irqMuxGic);
+    uint32_t sleepFlags);
 
 /*!
  * Set a CPU IRQ wake mask.
@@ -273,25 +273,55 @@ int32_t DEV_SM_CpuPdLpmConfigSet(uint32_t cpuId, uint32_t domainId,
     uint32_t lpmSetting, uint32_t retMask);
 
 /*!
- * Set a CPU LPM config for a clock.
+ * Set a CPU LPM config for a peripheral.
  *
  * @param[in]     cpuId       Identifier for the CPU
- * @param[in]     clockId     clock ID
+ * @param[in]     perId       peripheral ID
  * @param[in]     lpmSetting  LPM setting
  *
- * This function configures the LPM setting a clock applied when a CPU
- * enters a sleep mode. The LPM setting determines which range of CPU
- * sleep modes will leave the clock on. Note each CPU can have different
+ * This function configures the LPM setting for a peripheral applied when
+ * a CPU enters a sleep mode. The LPM setting determines which range of CPU
+ * sleep modes will leave the peripheral on. Note each CPU can have different
  * settings and the hardware aggregates these settings to determine the
- * domain state.
+ * peripheral state.
  *
  * @return Returns the status (::SM_ERR_SUCCESS = success).
  *
  * Return errors (see @ref STATUS "SM error codes"):
- * - ::SM_ERR_NOT_FOUND: if \a cpuId or \a clockId do not exist.
+ * - ::SM_ERR_NOT_FOUND: if \a cpuId or \a perId do not exist.
  */
-int32_t DEV_SM_CpuClkLpmConfigSet(uint32_t cpuId, uint32_t clockId,
+int32_t DEV_SM_CpuPerLpmConfigSet(uint32_t cpuId, uint32_t perId,
     uint32_t lpmSetting);
+
+/*!
+ * Get the wake list for a CPU.
+ *
+ * @param[in]     cpuId        CPU name to get
+ * @param[out]    cpuWakeList  Return pointer to CPU wake list
+ *
+ * This function allows the caller to get the wake list for a CPU.
+ *
+ * @return Returns the status (::SM_ERR_SUCCESS = success).
+ *
+ * Return errors (see @ref STATUS "SM error codes"):
+ * - ::SM_ERR_NOT_FOUND: if \a cpuId is invalid.
+ */
+int32_t DEV_SM_CpuWakeListGet(uint32_t cpuId, uint32_t *cpuWakeList);
+
+/*!
+ * Set the wake list for a CPU.
+ *
+ * @param[in]     cpuId        CPU name to get
+ * @param[in]     cpuWakeList  CPU wake list
+ *
+ * This function allows the caller to set the wake list for a CPU.
+ *
+ * @return Returns the status (::SM_ERR_SUCCESS = success).
+ *
+ * Return errors (see @ref STATUS "SM error codes"):
+ * - ::SM_ERR_NOT_FOUND: if \a cpuId is invalid.
+ */
+int32_t DEV_SM_CpuWakeListSet(uint32_t cpuId, uint32_t cpuWakeList);
 
 #endif /* DEV_SM_CPU_API_H */
 

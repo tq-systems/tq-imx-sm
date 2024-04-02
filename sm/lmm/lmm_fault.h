@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-** Copyright 2023 NXP
+** Copyright 2023-2024 NXP
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -91,8 +91,39 @@ int32_t LMM_FaultComplete(dev_sm_rst_rec_t resetRec);
 int32_t LMM_FaultReactionGet(dev_sm_rst_rec_t resetRec,
     uint32_t *reaction, uint32_t *lm);
 
+/*!
+ * Get fault state.
+ *
+ * @param[in]     faultId       Fault ID
+ * @param[out]    state         State, true if asserted
+ *
+ * Gets the state of a fault.
+ *
+ * @return Returns the status (::SM_ERR_SUCCESS = success).
+ *
+ * Return errors (see @ref STATUS "SM error codes"):
+ * - others returned by ::SM_FAULTGET
+ */
 int32_t LMM_FaultGet(uint32_t faultId, bool *state);
 
+/*!
+ * Set fault state.
+ *
+ * @param[in]     lmId          LM requesting
+ * @param[in]     faultId       Fault ID
+ * @param[in]     set           True to set, false to clear
+ *
+ * Sets the state of a fault. If \a set is true, will assert the fault
+ * if possible. This is the case for SCP SW faults. May be true for
+ * faults that can be triggered with fault injection. If \a set is false,
+ * will deassert the fault if manually set. Will clear a fault if the
+ * state is latched.
+ *
+ * @return Returns the status (::SM_ERR_SUCCESS = success).
+ *
+ * Return errors (see @ref STATUS "SM error codes"):
+ * - others returned by ::SM_FAULTSET
+ */
 int32_t LMM_FaultSet(uint32_t lmId, uint32_t faultId, bool set);
 
 #endif /* LMM_FAULT_H */

@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-** Copyright 2023 NXP
+** Copyright 2023-2024 NXP
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -106,7 +106,7 @@ int32_t RPC_SCMI_BbmDispatchCommand(scmi_caller_t *caller,
  * - others returned by queuing functions
  */
 int32_t RPC_SCMI_BbmDispatchNotification(scmi_msg_id_t msgId,
-    lmm_rpc_trigger_t trigger);
+    const lmm_rpc_trigger_t *trigger);
 
 /*!
  * Dispatch SCMI bbm protocol reset.

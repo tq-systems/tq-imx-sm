@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-** Copyright 2023 NXP
+** Copyright 2023-2024 NXP
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -88,6 +88,16 @@
 #define SCMI_PROTOCOL_FUSA         0x83U
 /*! Misc protocol */
 #define SCMI_PROTOCOL_MISC         0x84U
+/** @} */
+
+/*!
+ * @name SCMI version access
+ */
+/** @{ */
+/*! Extract SCMI major version */
+#define SCMI_VER_MAJOR(x)  (((x) & 0xFFFF0000U) >> 16U)
+/*!  Extract SCMI minor version */
+#define SCMI_VER_MINOR(x)  (((x) & 0xFFFFU) >> 0U)
 /** @} */
 
 /*!
@@ -267,7 +277,7 @@ int32_t RPC_SCMI_Reset(uint8_t scmiInst);
  *
  * @return Returns the status (::SM_ERR_SUCCESS = success).
  */
-int32_t RPC_SCMI_Trigger(lmm_rpc_trigger_t trigger);
+int32_t RPC_SCMI_Trigger(const lmm_rpc_trigger_t *trigger);
 
 /*!
  * Dump collected SCMI errors.

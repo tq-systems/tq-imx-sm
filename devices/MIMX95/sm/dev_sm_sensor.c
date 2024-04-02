@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-**     Copyright 2023 NXP
+**     Copyright 2023-2024 NXP
 **
 **     Redistribution and use in source and binary forms, with or without modification,
 **     are permitted provided that the following conditions are met:
@@ -90,7 +90,7 @@ static const dev_sm_sensor_t s_tmpsns[DEV_SM_NUM_SENSOR] =
 /* Panic temps */
 static const int64_t s_panicTemp[4] =
 {
-     9700,  /* 00 - Consumer 0C to 95C */
+    9700,   /* 00 - Consumer 0C to 95C */
     10700,  /* 01 - Ext. Consumer -20C to 105C */
     10700,  /* 10 - Industrial -40C to 105C */
     12700   /* 11 - Automotive -40C to 125C */
@@ -447,6 +447,9 @@ void DEV_SM_SensorHandler(uint32_t idx, uint8_t threshold)
 {
     TMPSNS_Type *base = s_tmpsnsBases[s_tmpsns[idx].idx];
     uint8_t tripPoint = threshold - s_tmpsns[idx].firstThreshold;
+
+    /* Workaround ERR052128 */
+    SystemTimeDelay(1U);
 
     /* Clear interrupt */
     TMPSNS_ClearStatusFlags(base, ((uint32_t) kTMPSNS_Thr0If)

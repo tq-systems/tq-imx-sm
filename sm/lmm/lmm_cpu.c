@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-** Copyright 2023 NXP
+** Copyright 2023-2024 NXP
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -255,9 +255,9 @@ int32_t LMM_CpuResetVectorReset(uint32_t lmId, uint32_t cpuId)
 /* Set CPU sleep mode                                                       */
 /*--------------------------------------------------------------------------*/
 int32_t LMM_CpuSleepModeSet(uint32_t lmId, uint32_t cpuId,
-    uint32_t sleepMode, bool irqMuxGic)
+    uint32_t sleepMode, uint32_t sleepFlags)
 {
-    return SM_CPUSLEEPMODESET(cpuId, sleepMode, irqMuxGic);
+    return SM_CPUSLEEPMODESET(cpuId, sleepMode, sleepFlags);
 }
 
 /*--------------------------------------------------------------------------*/
@@ -329,11 +329,11 @@ int32_t LMM_CpuPdLpmConfigSet(uint32_t lmId, uint32_t cpuId,
 }
 
 /*--------------------------------------------------------------------------*/
-/* Set CPU clock LPM config                                                 */
+/* Set CPU peripheral LPM config                                            */
 /*--------------------------------------------------------------------------*/
-int32_t LMM_CpuClkLpmConfigSet(uint32_t lmId, uint32_t cpuId,
-    uint32_t clockId, uint32_t lpmSetting)
+int32_t LMM_CpuPerLpmConfigSet(uint32_t lmId, uint32_t cpuId,
+    uint32_t perId, uint32_t lpmSetting)
 {
-    return SM_CPUCLKLPMCONFIGSET(cpuId, clockId, lpmSetting);
+    return SM_CPUPERLPMCONFIGSET(cpuId, perId, lpmSetting);
 }
 

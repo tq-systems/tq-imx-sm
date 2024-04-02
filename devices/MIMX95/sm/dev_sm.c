@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-**     Copyright 2023 NXP
+**     Copyright 2023-2024 NXP
 **
 **     Redistribution and use in source and binary forms, with or without modification,
 **     are permitted provided that the following conditions are met:
@@ -317,14 +317,27 @@ int32_t DEV_SM_PowerDownPre(uint32_t domainId)
 {
     int32_t status = SM_ERR_SUCCESS;
 
-    switch (domainId)
+    /* Call power-down preable if domain is currently powered */
+    if (SRC_MixIsPwrSwitchOn(domainId))
     {
-        case DEV_SM_PD_A55P:
-            status = DEV_SM_A55pPowerDownPre();
-            break;
-        default:
-            status = SM_ERR_NOT_FOUND;
-            break;
+        switch (domainId)
+        {
+            case DEV_SM_PD_A55P:
+                status = DEV_SM_A55pPowerDownPre();
+                break;
+            case DEV_SM_PD_DISPLAY:
+                status = DEV_SM_DisplayPowerDownPre();
+                break;
+            case DEV_SM_PD_HSIO_TOP:
+                status = DEV_SM_HsioTopPowerDownPre();
+                break;
+            case DEV_SM_PD_M7:
+                status = DEV_SM_M7PowerDownPre();
+                break;
+            default:
+                status = SM_ERR_NOT_FOUND;
+                break;
+        }
     }
 
     /* Return status */

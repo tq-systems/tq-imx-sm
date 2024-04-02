@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-** Copyright 2023 NXP
+** Copyright 2023-2024 NXP
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -60,12 +60,12 @@ void TEST_DevSmControl(void)
     printf("**** Device SM Control API Tests ***\n\n");
 
     /* Test API bounds */
-    printf("\n**** Device SM Control API Error Tests ***\n\n");
+    printf("\n**** Device SM Control API Err Tests ***\n\n");
 
     /* Test invalid ctrlId */
     {
         uint32_t numRtn = 0U;
-        uint32_t rtn[1] = {};
+        uint32_t rtn[1] = { 0 };
 
         printf("DEV_SM_ControlGet(DEV_SM_NUM_CTRL)\n");
         NECHECK(DEV_SM_ControlGet(DEV_SM_NUM_CTRL, &numRtn, rtn),
@@ -78,7 +78,7 @@ void TEST_DevSmControl(void)
 
     /* Test Invalid Parameters */
     {
-        const uint32_t val[2] = {};
+        const uint32_t val[2] = { 0 };
 
         printf("DEV_SM_ControlSet(DEV_SM_NUM_CTRL)\n");
         NECHECK(DEV_SM_ControlSet(0U, 2U, val),

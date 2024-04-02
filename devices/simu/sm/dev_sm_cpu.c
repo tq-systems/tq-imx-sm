@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-**     Copyright 2023 NXP
+**     Copyright 2023-2024 NXP
 **
 **     Redistribution and use in source and binary forms, with or without modification,
 **     are permitted provided that the following conditions are met:
@@ -189,7 +189,7 @@ int32_t DEV_SM_CpuResetVectorSet(uint32_t cpuId, uint64_t resetVector)
 /* Set CPU sleep mode                                                       */
 /*--------------------------------------------------------------------------*/
 int32_t DEV_SM_CpuSleepModeSet(uint32_t cpuId, uint32_t sleepMode,
-    bool irqMuxGic)
+    uint32_t sleepFlags)
 {
     int32_t status = SM_ERR_SUCCESS;
 
@@ -264,9 +264,9 @@ int32_t DEV_SM_CpuPdLpmConfigSet(uint32_t cpuId, uint32_t domainId,
 }
 
 /*--------------------------------------------------------------------------*/
-/* Set CPU clock LPM config                                                 */
+/* Set CPU peripheral LPM config                                            */
 /*--------------------------------------------------------------------------*/
-int32_t DEV_SM_CpuClkLpmConfigSet(uint32_t cpuId, uint32_t clockId,
+int32_t DEV_SM_CpuPerLpmConfigSet(uint32_t cpuId, uint32_t perId,
     uint32_t lpmSetting)
 {
     int32_t status = SM_ERR_SUCCESS;

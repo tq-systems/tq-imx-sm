@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-**     Copyright 2023 NXP
+**     Copyright 2023-2024 NXP
 **
 **     Redistribution and use in source and binary forms, with or without modification,
 **     are permitted provided that the following conditions are met:
@@ -46,6 +46,7 @@
 /* Local types */
 
 /* Local variables */
+static uint32_t s_cpuWakeListA55 = 0U;
 
 /*--------------------------------------------------------------------------*/
 /* Initialize CPUs                                                          */
@@ -232,7 +233,7 @@ int32_t DEV_SM_CpuResetVectorSet(uint32_t cpuId, uint64_t resetVector)
 /* Set CPU sleep mode                                                       */
 /*--------------------------------------------------------------------------*/
 int32_t DEV_SM_CpuSleepModeSet(uint32_t cpuId, uint32_t sleepMode,
-    bool irqMuxGic)
+    uint32_t sleepFlags)
 {
     int32_t status = SM_ERR_SUCCESS;
 
@@ -243,10 +244,19 @@ int32_t DEV_SM_CpuSleepModeSet(uint32_t cpuId, uint32_t sleepMode,
     }
     else
     {
+        bool irqMuxGic = (sleepFlags & DEV_SM_CPU_SLEEP_FLAG_IRQ_MUX) != 0U;
+
         /* Set wake mux to GPC/GIC */
         if (!CPU_WakeMuxSet(cpuId, irqMuxGic))
         {
             status = SM_ERR_NOT_FOUND;
+        }
+        else
+        {
+            if ((sleepFlags & DEV_SM_CPU_SLEEP_FLAG_A55P_WAKE) != 0U)
+            {
+                s_cpuWakeListA55 |= (1UL << cpuId);
+            }
         }
     }
 
@@ -321,12 +331,60 @@ int32_t DEV_SM_CpuPdLpmConfigSet(uint32_t cpuId, uint32_t domainId,
 }
 
 /*--------------------------------------------------------------------------*/
-/* Set CPU clock LPM config                                                 */
+/* Set CPU peripheral LPM config                                            */
 /*--------------------------------------------------------------------------*/
-int32_t DEV_SM_CpuClkLpmConfigSet(uint32_t cpuId, uint32_t clockId,
+int32_t DEV_SM_CpuPerLpmConfigSet(uint32_t cpuId, uint32_t perId,
     uint32_t lpmSetting)
 {
     int32_t status = SM_ERR_SUCCESS;
+
+    /* Configure CPU LPM response for the peripheral low-power interface */
+    if (!CPU_PerLpiConfigSet(cpuId, perId, lpmSetting))
+    {
+        status = SM_ERR_NOT_FOUND;
+    }
+
+    /* Return status */
+    return status;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Get the wake list for a CPU                                              */
+/*--------------------------------------------------------------------------*/
+int32_t DEV_SM_CpuWakeListGet(uint32_t cpuId, uint32_t *cpuWakeList)
+{
+    int32_t status = SM_ERR_SUCCESS;
+
+    /* Check CPU */
+    if (cpuId == DEV_SM_CPU_A55P)
+    {
+        *cpuWakeList = s_cpuWakeListA55;
+    }
+    else
+    {
+        status = SM_ERR_NOT_FOUND;
+    }
+
+    /* Return status */
+    return status;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Set the wake list for a CPU                                              */
+/*--------------------------------------------------------------------------*/
+int32_t DEV_SM_CpuWakeListSet(uint32_t cpuId, uint32_t cpuWakeList)
+{
+    int32_t status = SM_ERR_SUCCESS;
+
+    /* Check CPU */
+    if (cpuId == DEV_SM_CPU_A55P)
+    {
+        s_cpuWakeListA55 = cpuWakeList;
+    }
+    else
+    {
+        status = SM_ERR_NOT_FOUND;
+    }
 
     /* Return status */
     return status;

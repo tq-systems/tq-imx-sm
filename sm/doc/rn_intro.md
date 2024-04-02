@@ -29,8 +29,7 @@ The table below lists the release information:
 \htmlonly
 <font color="red">\endhtmlonly
 
-This is an engineering release (ER)! It is not production quality and has no guarantee
-of functionality.
+This is an alpha release! It is not production quality.
 
 \htmlonly
 </font>\endhtmlonly
@@ -38,6 +37,8 @@ of functionality.
 Highlights {#RN_HIGH}
 ==========
 
+- Added support for the FCCU (via an eMcem component)
+- Added peripheral low-power management
 - Misc. improvements and bug fixes
 
 Note these are highlights of the original release. These do not cover changes

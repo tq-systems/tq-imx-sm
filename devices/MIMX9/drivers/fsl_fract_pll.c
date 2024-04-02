@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 NXP
+ * Copyright 2023-2024 NXP
  *
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
@@ -34,6 +34,7 @@
 #include "fsl_device_registers.h"
 
 /* Local Defines */
+#define FRACPLL_CTRL_CONTEXT_MASK   PLL_CTRL_SPREADCTL_MASK
 
 /* Local Types */
 
@@ -80,20 +81,53 @@ bool FRACTPLL_SetEnable(uint32_t pllIdx, uint32_t enMask, bool enable)
         {
 #if (defined(FSL_FEATURE_FRAC_PLL_HAS_ERRATA_628654) && FSL_FEATURE_FRAC_PLL_HAS_ERRATA_628654)
             /* If fractional PLL, rewrite MFN (not retained during PLL disable) */
-            if ((enMask == PLL_CTRL_POWERUP_MASK) && (g_pllAttrs[pllIdx].isFrac))
+            if (((enMask & PLL_CTRL_POWERUP_MASK) != 0U) &&
+                (g_pllAttrs[pllIdx].isFrac))
             {
                 uint32_t pllNum = pll->NUMERATOR.RW;
                 pll->NUMERATOR.RW = pllNum;
+
+                /* Wait before POWERUP */
+                SystemTimeDelay(ES_MAX_USEC_PLL_PREP);
             }
 #endif
             pll->CTRL.SET = enMask;
+
+            /* If powering up, wait for lock */
+            if ((enMask & PLL_CTRL_POWERUP_MASK) != 0U)
+            {
+                uint32_t pllLockUsec = 0U;
+                while (((pll->PLL_STATUS & PLL_PLL_STATUS_PLL_LOCK_MASK) == 0U) &&
+                    (pllLockUsec < ES_MAX_USEC_PLL_LOCK))
+                {
+                    SystemTimeDelay(1U);
+                    pllLockUsec++;
+                }
+            }
+
+            if ((pll->PLL_STATUS & PLL_PLL_STATUS_PLL_LOCK_MASK) != 0U)
+            {
+                /* If enabling PLL output, disable bypass */
+                if ((enMask & PLL_CTRL_CLKMUX_EN_MASK) != 0U)
+                {
+                    pll->CTRL.CLR = PLL_CTRL_CLKMUX_BYPASS_MASK;
+                }
+
+                enableUpdate = true;
+            }
         }
         else
         {
+            /* If disabling PLL output, enable bypass */
+            if ((enMask & PLL_CTRL_CLKMUX_EN_MASK) != 0U)
+            {
+                pll->CTRL.SET = PLL_CTRL_CLKMUX_BYPASS_MASK;
+            }
             pll->CTRL.CLR = enMask;
+
+            enableUpdate = true;
         }
 
-        enableUpdate = true;
     }
 
     return enableUpdate;
@@ -194,18 +228,27 @@ bool FRACTPLL_UpdateRate(uint32_t pllIdx, uint32_t mfi, uint32_t mfn,
             pll->DENOMINATOR.RW = PLL_DENOMINATOR_MFD(CLOCK_PLL_MFD);
         }
 
+        /* Wait before POWERUP */
+        SystemTimeDelay(ES_MAX_USEC_PLL_PREP);
+
         /* Power up for locking */
         pll->CTRL.SET = PLL_CTRL_POWERUP_MASK;
-        while ((pll->PLL_STATUS & PLL_PLL_STATUS_PLL_LOCK_MASK) == 0U)
+        uint32_t pllLockUsec = 0U;
+        while (((pll->PLL_STATUS & PLL_PLL_STATUS_PLL_LOCK_MASK) == 0U) &&
+            (pllLockUsec < ES_MAX_USEC_PLL_LOCK))
         {
-            ; /* Intentional empty default */
+            SystemTimeDelay(1U);
+            pllLockUsec++;
         }
 
-        /* Enable PLL and clean bypass*/
-        pll->CTRL.SET = PLL_CTRL_CLKMUX_EN_MASK;
-        pll->CTRL.CLR = PLL_CTRL_CLKMUX_BYPASS_MASK;
+        if ((pll->PLL_STATUS & PLL_PLL_STATUS_PLL_LOCK_MASK) != 0U)
+        {
+            /* Enable PLL and clean bypass*/
+            pll->CTRL.SET = PLL_CTRL_CLKMUX_EN_MASK;
+            pll->CTRL.CLR = PLL_CTRL_CLKMUX_BYPASS_MASK;
 
-        updateRate = true;
+            updateRate = true;
+        }
     }
 
     return updateRate;
@@ -512,3 +555,54 @@ bool FRACTPLL_SetDfsRate(uint32_t pllIdx, uint8_t dfsIdx,
     return updateRate;
 }
 
+/*--------------------------------------------------------------------------*/
+/* Set PLL context                                                          */
+/*--------------------------------------------------------------------------*/
+bool FRACTPLL_SetContext(uint32_t pllIdx, const fracpll_context_t *pllContext)
+{
+    bool rc = false;
+
+    if (pllIdx < CLOCK_NUM_PLL)
+    {
+        PLL_Type *pll = s_pllPtrs[pllIdx];
+
+        pll->CTRL.RW = pllContext->CTRL & FRACPLL_CTRL_CONTEXT_MASK;
+        pll->SPREAD_SPECTRUM.RW = pllContext->SPREAD_SPECTRUM;
+        pll->DIV.RW = pllContext->DIV;
+        if (g_pllAttrs[pllIdx].isFrac)
+        {
+            pll->NUMERATOR.RW = pllContext->NUMERATOR;
+            pll->DENOMINATOR.RW = pllContext->DENOMINATOR;
+        }
+
+        rc = true;
+    }
+
+    return rc;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Get PLL context                                                          */
+/*--------------------------------------------------------------------------*/
+bool FRACTPLL_GetContext(uint32_t pllIdx, fracpll_context_t *pllContext)
+{
+    bool rc = false;
+
+    if (pllIdx < CLOCK_NUM_PLL)
+    {
+        const PLL_Type *pll = s_pllPtrs[pllIdx];
+
+        pllContext->CTRL = pll->CTRL.RW & FRACPLL_CTRL_CONTEXT_MASK;
+        pllContext->SPREAD_SPECTRUM = pll->SPREAD_SPECTRUM.RW;
+        pllContext->DIV = pll->DIV.RW;
+        if (g_pllAttrs[pllIdx].isFrac)
+        {
+            pllContext->NUMERATOR = pll->NUMERATOR.RW;
+            pllContext->DENOMINATOR = pll->DENOMINATOR.RW;
+        }
+
+        rc = true;
+    }
+
+    return rc;
+}
