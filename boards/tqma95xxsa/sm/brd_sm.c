@@ -142,6 +142,12 @@ int32_t BRD_SM_Init(int argc, const char * const argv[], uint32_t *mSel)
         printf("DEV_SM_Init: %d)\n", status);
     }
 
+    if (status == SM_ERR_SUCCESS)
+    {
+        /* Switch WDOG to FCCU mode */
+        BOARD_WdogModeSet(BOARD_WDOG_MODE_FCCU);
+    }
+
     /* Configure ISO controls based on feature fuses */
     uint32_t ipIsoMask = 0U;
 
