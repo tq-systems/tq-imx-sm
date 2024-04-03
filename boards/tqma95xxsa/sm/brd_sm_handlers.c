@@ -154,11 +154,10 @@ int32_t BRD_SM_SerialDevicesInit(void)
 
     if (status == SM_ERR_SUCCESS)
     {
-
         rgpio_pin_config_t gpioConfig =
         {
             kRGPIO_DigitalInput,
-            0
+            0U
         };
 
         /* Init GPIO1-14 - PMIC IRQ*/
@@ -209,7 +208,7 @@ void BRD_SM_Gpio1Handler(void)
 /*--------------------------------------------------------------------------*/
 static void BRD_SM_Pf09Handler(void)
 {
-    uint8_t stat[PF09_MASK_LEN] = {};
+    uint8_t stat[PF09_MASK_LEN] = { 0 };
 
     /* Read status of interrupts */
     (void) PF09_IntStatus(&pf09Dev, stat);
