@@ -1,7 +1,7 @@
+// SPDX-License-Identifier: BSD-3-Clause
 /*
- * Copyright 2023 NXP
- *
- * SPDX-License-Identifier: BSD-3-Clause
+ * Copyright 2023-2024 NXP
+ * Copyright (c) 2024 TQ-Systems GmbH <oss@tq-group.com>, D-82229 Seefeld, Germany.
  */
 
 #include "sm.h"
@@ -16,6 +16,7 @@
 #include "fsl_systick.h"
 #include "fsl_wdog32.h"
 #include "fsl_cache.h"
+#include "fsl_iomuxc.h"
 
 /*******************************************************************************
  * Definitions
@@ -29,13 +30,14 @@
 #define BOARD_SYSTICK_CLK_ROOT  CLOCK_ROOT_M33SYSTICK   /* Dedicated CCM root */
 
 /* SM WDOG */
-#define BOARD_WDOG_BASE_PTR         WDOG1
-#define BOARD_WDOG_IRQn             WDOG1_IRQn
+#define BOARD_WDOG_BASE_PTR         WDOG2
+#define BOARD_WDOG_IRQn             WDOG2_IRQn
 #define BOARD_WDOG_CLK_SRC          kWDOG32_ClockSource1  /* lpo_clk @ 32K */
 #define BOARD_WDOG_TIMEOUT          0xFFFFU  /* 65535 ticks @ 32K = 2 sec */
-#define BOARD_WDOG_SRMASK           (1UL << RST_REASON_WDOG1)
-#define BOARD_WDOG_ANY_MASK         BLK_CTRL_S_AONMIX_WDOG_ANY_MASK_WDOG1_MASK
-#define BOARD_WDOG_IPG_DEBUG        BLK_CTRL_NS_AONMIX_IPG_DEBUG_CM33_WDOG1_MASK
+#define BOARD_WDOG_SRMASK           (1UL << RST_REASON_WDOG2)
+#define BOARD_WDOG_ANY_INIT         ~(BLK_CTRL_S_AONMIX_WDOG_ANY_MASK_WDOG2_MASK)
+#define BOARD_WDOG_ANY_MASK         BLK_CTRL_S_AONMIX_WDOG_ANY_MASK_WDOG2_MASK
+#define BOARD_WDOG_IPG_DEBUG        BLK_CTRL_NS_AONMIX_IPG_DEBUG_CM33_WDOG2_MASK
 
 /* SM handlers configuration */
 #define BOARD_HANDLER_PRIO_PREEMPT_CRITICAL         0U    // Highest premptive
@@ -71,6 +73,36 @@
 /*******************************************************************************
  * Variables
  ******************************************************************************/
+
+/* Debug UART base pointer list */
+static LPUART_Type *const s_uartBases[] = LPUART_BASE_PTRS;
+
+/* Debug UART base pointer list */
+static IRQn_Type const s_uartIrqs[] = LPUART_RX_TX_IRQS;
+
+/* Debug UART clock list */
+static uint32_t const s_uartClks[] =
+{
+    0U,
+    CLOCK_ROOT_LPUART1,
+    CLOCK_ROOT_LPUART2,
+    CLOCK_ROOT_LPUART3,
+    CLOCK_ROOT_LPUART4,
+    CLOCK_ROOT_LPUART5,
+    CLOCK_ROOT_LPUART6,
+    CLOCK_ROOT_LPUART7,
+    CLOCK_ROOT_LPUART8
+};
+
+/* Debug UART configuration info */
+static board_uart_config_t const s_uartConfig =
+{
+    .base = s_uartBases[BOARD_DEBUG_UART_INSTANCE],
+    .irq = s_uartIrqs[BOARD_DEBUG_UART_INSTANCE],
+    .clockId = s_uartClks[BOARD_DEBUG_UART_INSTANCE],
+    .baud = BOARD_DEBUG_UART_BAUDRATE,
+    .inst = BOARD_DEBUG_UART_INSTANCE
+};
 
 /*******************************************************************************
  * Code
@@ -222,38 +254,9 @@ void BOARD_InitClocks(void)
 /*--------------------------------------------------------------------------*/
 /* Return the debug UART info                                               */
 /*--------------------------------------------------------------------------*/
-LPUART_Type *BOARD_GetDebugUart(uint8_t *inst, uint32_t *baud,
-    uint32_t *clockId)
+const board_uart_config_t *BOARD_GetDebugUart(void)
 {
-    static LPUART_Type *const s_uartBases[] = LPUART_BASE_PTRS;
-    static uint32_t const s_uartClks[] =
-    {
-        0U,
-        CLOCK_ROOT_LPUART1,
-        CLOCK_ROOT_LPUART2,
-        CLOCK_ROOT_LPUART3,
-        CLOCK_ROOT_LPUART4,
-        CLOCK_ROOT_LPUART5,
-        CLOCK_ROOT_LPUART6,
-        CLOCK_ROOT_LPUART7,
-        CLOCK_ROOT_LPUART8
-    };
-
-    /* Return data */
-    if (inst != NULL)
-    {
-        *inst = BOARD_DEBUG_UART_INSTANCE;
-    }
-    if (baud != NULL)
-    {
-        *baud = BOARD_DEBUG_UART_BAUDRATE;
-    }
-    if (clockId != NULL)
-    {
-        *clockId = s_uartClks[BOARD_DEBUG_UART_INSTANCE];
-    }
-
-    return s_uartBases[BOARD_DEBUG_UART_INSTANCE];
+    return &s_uartConfig;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -261,23 +264,23 @@ LPUART_Type *BOARD_GetDebugUart(uint8_t *inst, uint32_t *baud,
 /*--------------------------------------------------------------------------*/
 void BOARD_InitDebugConsole(void)
 {
-    uint32_t baud;
-    uint32_t clockId;
-    LPUART_Type *base = BOARD_GetDebugUart(NULL, &baud, &clockId);
-    uint64_t rate = CCM_RootGetRate(clockId);
+    if (s_uartConfig.base != NULL)
+    {
+        uint64_t rate = CCM_RootGetRate(s_uartConfig.clockId);
 
-    /* Configure debug UART */
-    lpuart_config_t lpuart_config;
-    LPUART_GetDefaultConfig(&lpuart_config);
-    lpuart_config.baudRate_Bps = baud;
-    lpuart_config.rxFifoWatermark = ((uint8_t)
-        FSL_FEATURE_LPUART_FIFO_SIZEn(base)) - 1U;
-    lpuart_config.txFifoWatermark = ((uint8_t)
-        FSL_FEATURE_LPUART_FIFO_SIZEn(base)) - 1U;
-    lpuart_config.enableTx = true;
-    lpuart_config.enableRx = true;
-    (void) LPUART_Init(base, &lpuart_config,
-        (uint32_t) rate & 0xFFFFFFFFU);
+        /* Configure debug UART */
+        lpuart_config_t lpuart_config;
+        LPUART_GetDefaultConfig(&lpuart_config);
+        lpuart_config.baudRate_Bps = s_uartConfig.baud;
+        lpuart_config.rxFifoWatermark = ((uint8_t)
+            FSL_FEATURE_LPUART_FIFO_SIZEn(s_uartConfig.base)) - 1U;
+        lpuart_config.txFifoWatermark = ((uint8_t)
+            FSL_FEATURE_LPUART_FIFO_SIZEn(s_uartConfig.base)) - 1U;
+        lpuart_config.enableTx = true;
+        lpuart_config.enableRx = true;
+        (void) LPUART_Init(s_uartConfig.base, &lpuart_config,
+            (uint32_t) rate & 0xFFFFFFFFU);
+    }
 }
 
 /*--------------------------------------------------------------------------*/
@@ -310,6 +313,11 @@ void BOARD_InitHandlers(void)
     NVIC_EnableIRQ(ELE_Group1_IRQn);
     NVIC_EnableIRQ(ELE_Group2_IRQn);
     NVIC_EnableIRQ(ELE_Group3_IRQn);
+
+    /* Enable FCCU handler */
+    NVIC_EnableIRQ(FCCU0_IRQn);
+    NVIC_EnableIRQ(FCCU1_IRQn);
+    NVIC_EnableIRQ(FCCU2_IRQn);
 
     /* Enable GPIO1 handler */
     NVIC_EnableIRQ(GPIO1_0_IRQn);
@@ -344,10 +352,12 @@ void BOARD_InitTimers(void)
     wdogConfig.enableInterrupt = true;
     WDOG32_Init(BOARD_WDOG_BASE_PTR, &wdogConfig);
     NVIC_SetPriority(BOARD_WDOG_IRQn, BOARD_HANDLER_PRIO_PREEMPT_CRITICAL);
-    NVIC_EnableIRQ(BOARD_WDOG_IRQn);
 
     /* Configure to just non-FCCU SM watchdogs */
-    BLK_CTRL_S_AONMIX->WDOG_ANY_MASK = BOARD_WDOG_ANY_MASK;
+    BLK_CTRL_S_AONMIX->WDOG_ANY_MASK = BOARD_WDOG_ANY_INIT;
+
+    /* Switch WDOG to COLD mode */
+    BOARD_WdogModeSet(BOARD_WDOG_MODE_COLD);
 
     /* Halt SM WDOG on M33 debug entry */
     BLK_CTRL_NS_AONMIX->IPG_DEBUG_CM33 = (BOARD_WDOG_IPG_DEBUG);
@@ -368,28 +378,56 @@ void BOARD_WdogModeSet(uint32_t mode)
             /* Allow WDOG to generate internal warm reset */
             SRC_GEN->SRMASK &= (~BOARD_WDOG_SRMASK);
 
+            /* Enable WDOG interrupt */
+            NVIC_EnableIRQ(BOARD_WDOG_IRQn);
+
             /* Disable WDOG_ANY */
-            BLK_CTRL_S_AONMIX->WDOG_ANY_MASK = 0U;
+            BLK_CTRL_S_AONMIX->WDOG_ANY_MASK |= BOARD_WDOG_ANY_MASK;
+
+            /* Drive WDOG_ANY from WDOG */
+            IOMUXC_SetPinMux(IOMUXC_PAD_WDOG_ANY__WDOG_ANY, 0U);
             break;
         case BOARD_WDOG_MODE_COLD: /* cold */
             /* Allow WDOG to generate internal warm reset */
             SRC_GEN->SRMASK &= (~BOARD_WDOG_SRMASK);
 
+            /* Enable WDOG interrupt */
+            NVIC_EnableIRQ(BOARD_WDOG_IRQn);
+
             /* Enable WDOG_ANY */
-            BLK_CTRL_S_AONMIX->WDOG_ANY_MASK = BOARD_WDOG_ANY_MASK;
+            BLK_CTRL_S_AONMIX->WDOG_ANY_MASK &= ~BOARD_WDOG_ANY_MASK;
+
+            /* Drive WDOG_ANY from WDOG */
+            IOMUXC_SetPinMux(IOMUXC_PAD_WDOG_ANY__WDOG_ANY, 0U);
             break;
         case BOARD_WDOG_MODE_IRQ: /* irq */
+            /* Enable WDOG interrupt */
+            NVIC_EnableIRQ(BOARD_WDOG_IRQn);
+
             /* Disallow WDOG to generate internal warm reset */
             SRC_GEN->SRMASK |= BOARD_WDOG_SRMASK;
 
             /* Disable WDOG_ANY */
-            BLK_CTRL_S_AONMIX->WDOG_ANY_MASK = 0U;
+            BLK_CTRL_S_AONMIX->WDOG_ANY_MASK |= BOARD_WDOG_ANY_MASK;
+
+            /* Drive WDOG_ANY from WDOG */
+            IOMUXC_SetPinMux(IOMUXC_PAD_WDOG_ANY__WDOG_ANY, 0U);
             break;
         case BOARD_WDOG_MODE_OFF:  /* off */
             WDOG32_Deinit(BOARD_WDOG_BASE_PTR);
             break;
         case BOARD_WDOG_MODE_TRIGGER: /* trigger */
             BOARD_WDOG_BASE_PTR->CNT = 0U;
+            break;
+        case BOARD_WDOG_MODE_FCCU: /* fccu */
+            /* Drive WDOG_ANY from FCCU */
+            IOMUXC_SetPinMux(IOMUXC_PAD_WDOG_ANY__FCCU_EOUT1, 0U);
+
+            /* Disallow WDOG to generate internal warm reset */
+            SRC_GEN->SRMASK |= BOARD_WDOG_SRMASK;
+
+            /* Disable WDOG interrupt */
+            NVIC_DisableIRQ(BOARD_WDOG_IRQn);
             break;
         default:
             ; /* Intentional empty default */

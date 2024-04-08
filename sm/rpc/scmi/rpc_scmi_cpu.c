@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-** Copyright 2023 NXP
+** Copyright 2023-2024 NXP
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -59,14 +59,15 @@
 #define COMMAND_CPU_IRQ_WAKE_SET             0x8U
 #define COMMAND_CPU_NON_IRQ_WAKE_SET         0x9U
 #define COMMAND_CPU_PD_LPM_CONFIG_SET        0xAU
-#define COMMAND_CPU_CLK_LPM_CONFIG_SET       0xBU
-#define COMMAND_SUPPORTED_MASK               0xFFFUL
+#define COMMAND_CPU_PER_LPM_CONFIG_SET       0xBU
+#define COMMAND_NEGOTIATE_PROTOCOL_VERSION   0x10U
+#define COMMAND_SUPPORTED_MASK               0x10FFFUL
 
 /* SCMI max cpu argument lengths */
 #define CPU_MAX_NAME          16U
 #define CPU_MAX_MASK_T        SCMI_ARRAY(12U, uint32_t)
 #define CPU_MAX_PDCONFIGS_T   SCMI_ARRAY(8U, pd_lpm_config_t)
-#define CPU_MAX_CLKCONFIGS_T  SCMI_ARRAY(8U, clk_lpm_config_t)
+#define CPU_MAX_PERCONFIGS_T  SCMI_ARRAY(8U, per_lpm_config_t)
 
 /* SCMI CPU sleep modes */
 #define CPU_SLEEP_RUN      0U
@@ -93,7 +94,8 @@
 #define CPU_VEC_FLAGS_TABLE(x)   (((x) & 0x1U) >> 0U)
 
 /* SCMI CPU sleep mode flags */
-#define CPU_FLAGS_IRQ_MUX(x)  (((x) & 0x1U) >> 0U)
+#define CPU_FLAGS_IRQ_MUX(x)    (((x) & 0x1U) >> 0U)
+#define CPU_FLAGS_PLAT_WAKE(x)  (((x) & 0x2U) >> 1U)
 
 /* Local types */
 
@@ -108,14 +110,14 @@ typedef struct
     uint32_t retMask;
 } pd_lpm_config_t;
 
-/* SCMI CPU clock LPM configuration */
+/* SCMI CPU peripheral LPM configuration */
 typedef struct
 {
-    /* Clock ID */
-    uint32_t clockId;
+    /* Peripheral ID */
+    uint32_t perId;
     /* LPM setting */
     uint32_t lpmSetting;
-} clk_lpm_config_t;
+} per_lpm_config_t;
 
 /* Response type for ProtocolVersion() */
 typedef struct
@@ -270,18 +272,27 @@ typedef struct
     pd_lpm_config_t pdConfigs[CPU_MAX_PDCONFIGS_T];
 } msg_rcpu10_t;
 
-/* Request type for CpuClkLpmConfigSet() */
+/* Request type for CpuPerLpmConfigSet() */
 typedef struct
 {
     /* Header word */
     uint32_t header;
     /* Identifier for the CPU */
     uint32_t cpuId;
-    /* Number of power domains to configure */
+    /* Number of peripherals to configure */
     uint32_t numConfigs;
     /* LPM configuration data array */
-    clk_lpm_config_t clkConfigs[CPU_MAX_CLKCONFIGS_T];
+    per_lpm_config_t perConfigs[CPU_MAX_PERCONFIGS_T];
 } msg_rcpu11_t;
+
+/* Request type for NegotiateProtocolVersion() */
+typedef struct
+{
+    /* Header word */
+    uint32_t header;
+    /* The negotiated protocol version the agent intends to use */
+    uint32_t version;
+} msg_rcpu16_t;
 
 /* Local functions */
 
@@ -307,8 +318,10 @@ static int32_t CpuNonIrqWakeSet(const scmi_caller_t *caller,
     const msg_rcpu9_t *in, const scmi_msg_status_t *out);
 static int32_t CpuPdLpmConfigSet(const scmi_caller_t *caller,
     const msg_rcpu10_t *in, const scmi_msg_status_t *out);
-static int32_t CpuClkLpmConfigSet(const scmi_caller_t *caller,
+static int32_t CpuPerLpmConfigSet(const scmi_caller_t *caller,
     const msg_rcpu11_t *in, const scmi_msg_status_t *out);
+static int32_t CpuNegotiateProtocolVersion(const scmi_caller_t *caller,
+    const msg_rcpu16_t *in, const scmi_msg_status_t *out);
 static int32_t CpuResetAgentConfig(uint32_t lmId, uint32_t agentId,
     bool permissionsReset);
 
@@ -385,10 +398,15 @@ int32_t RPC_SCMI_CpuDispatchCommand(scmi_caller_t *caller,
             status = CpuPdLpmConfigSet(caller, (const msg_rcpu10_t*) in,
                 (const scmi_msg_status_t*) out);
             break;
-        case COMMAND_CPU_CLK_LPM_CONFIG_SET:
+        case COMMAND_CPU_PER_LPM_CONFIG_SET:
             lenOut = sizeof(const scmi_msg_status_t);
-            status = CpuClkLpmConfigSet(caller, (const msg_rcpu11_t*) in,
+            status = CpuPerLpmConfigSet(caller, (const msg_rcpu11_t*) in,
                 (const scmi_msg_status_t*) out);
+            break;
+        case COMMAND_NEGOTIATE_PROTOCOL_VERSION:
+            lenOut = sizeof(const scmi_msg_status_t);
+            status = CpuNegotiateProtocolVersion(caller,
+                (const msg_rcpu16_t*) in, (const scmi_msg_status_t*) out);
             break;
         default:
             status = SM_ERR_NOT_SUPPORTED;
@@ -820,12 +838,13 @@ static int32_t CpuResetVectorSet(const scmi_caller_t *caller,
 /* EXCLUSIVE.                                                               */
 /*                                                                          */
 /*  Access macros:                                                          */
-/* - CPU_FLAGS_IRQ_MUX() - IRQ Mux                                          */
+/* - CPU_FLAGS_IRQ_MUX() - IRQ mux                                          */
+/* - CPU_FLAGS_PLAT_WAKE() - Platform wake                                  */
 /*                                                                          */
 /* Return errors:                                                           */
 /* - SM_ERR_SUCCESS: if the CPU is started successfully.                    */
 /* - SM_ERR_NOT_FOUND: if cpuId does not point to a valid CPU.              */
-/* - SM_ERR_INVALID_PARAMETERS: if sleepMode is invalid.                    */
+/* - SM_ERR_INVALID_PARAMETERS: if sleepMode or flags is invalid.           */
 /* - SM_ERR_DENIED: if the calling agent is not allowed to configure        */
 /*   this CPU.                                                              */
 /* - SM_ERR_PROTOCOL_ERROR: if the incoming payload is too small.           */
@@ -882,11 +901,9 @@ static int32_t CpuSleepModeSet(const scmi_caller_t *caller,
     /* Set CPU sleep mode */
     if (status == SM_ERR_SUCCESS)
     {
-        bool irqMuxGic = CPU_FLAGS_IRQ_MUX(in->flags) != 0U;
-
         /* Set sleep mode */
         status = LMM_CpuSleepModeSet(caller->lmId, in->cpuId, sleepMode,
-            irqMuxGic);
+            in->flags);
     }
 
     /* Return status */
@@ -1093,28 +1110,28 @@ static int32_t CpuPdLpmConfigSet(const scmi_caller_t *caller,
 }
 
 /*--------------------------------------------------------------------------*/
-/* Configure a list of clock LPM configs                                    */
+/* Configure a list of peripheral LPM configs                               */
 /*                                                                          */
 /* Parameters:                                                              */
 /* - caller: Caller info                                                    */
 /* - in->cpuId: Identifier for the CPU                                      */
-/* - in->numConfigs: Number of power domains to configure                   */
-/* - in->clkConfigs: LPM configuration data array                           */
+/* - in->numConfigs: Number of peripherals to configure                     */
+/* - in->perConfigs: LPM configuration data array                           */
 /*                                                                          */
-/* Process the CPU_CLK_LPM_CONFIG_SET message. Platform handler for         */
-/* SCMI_CpuClkLpmConfigSet(). Requires access greater than or equal to      */
+/* Process the CPU_PER_LPM_CONFIG_SET message. Platform handler for         */
+/* SCMI_CpuPerLpmConfigSet(). Requires access greater than or equal to      */
 /* EXCLUSIVE.                                                               */
 /*                                                                          */
 /* Return errors:                                                           */
 /* - SM_ERR_SUCCESS: if the CPU is started successfully.                    */
-/* - SM_ERR_NOT_FOUND: if cpuId or a power domain does not exist.           */
+/* - SM_ERR_NOT_FOUND: if cpuId or a pereipheral ID does not exist.         */
 /* - SM_ERR_INVALID_PARAMETERS: if numConfigs or an LPM setting is          */
 /*   invalid.                                                               */
 /* - SM_ERR_DENIED: if the calling agent is not allowed to configure        */
 /*   this CPU.                                                              */
 /* - SM_ERR_PROTOCOL_ERROR: if the incoming payload is too small.           */
 /*--------------------------------------------------------------------------*/
-static int32_t CpuClkLpmConfigSet(const scmi_caller_t *caller,
+static int32_t CpuPerLpmConfigSet(const scmi_caller_t *caller,
     const msg_rcpu11_t *in, const scmi_msg_status_t *out)
 {
     int32_t status = SM_ERR_SUCCESS;
@@ -1122,7 +1139,7 @@ static int32_t CpuClkLpmConfigSet(const scmi_caller_t *caller,
 
     /* Check request length */
     if (caller->lenCopy < ((3U * sizeof(uint32_t))
-        + (numConfigs * sizeof(clk_lpm_config_t))))
+        + (numConfigs * sizeof(per_lpm_config_t))))
     {
         status = SM_ERR_PROTOCOL_ERROR;
     }
@@ -1144,7 +1161,7 @@ static int32_t CpuClkLpmConfigSet(const scmi_caller_t *caller,
     /* Write all the configs */
     for (uint32_t idx = 0U; idx < numConfigs; idx++)
     {
-        const clk_lpm_config_t *config = &in->clkConfigs[idx];
+        const per_lpm_config_t *config = &in->perConfigs[idx];
 
         /* Check status */
         if (status != SM_ERR_SUCCESS)
@@ -1152,9 +1169,74 @@ static int32_t CpuClkLpmConfigSet(const scmi_caller_t *caller,
             break;
         }
 
+        /* Check peripheral LPI */
+        if (config->perId >= SM_NUM_PERLPI)
+        {
+            status = SM_ERR_NOT_FOUND;
+        }
+
+        /* Check permissions */
+        if ((status == SM_ERR_SUCCESS)
+            && (g_scmiAgentConfig[caller->agentId].perlpiPerms[config->perId]
+            < SM_SCMI_PERM_EXCLUSIVE))
+        {
+            status = SM_ERR_DENIED;
+        }
+
         /* Set config */
-        status = LMM_CpuClkLpmConfigSet(caller->lmId, in->cpuId,
-            config->clockId, config->lpmSetting);
+        if (status == SM_ERR_SUCCESS)
+        {
+            status = LMM_CpuPerLpmConfigSet(caller->lmId, in->cpuId,
+                config->perId, config->lpmSetting);
+        }
+    }
+
+    /* Return status */
+    return status;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Negotiate the protocol version                                           */
+/*                                                                          */
+/* Parameters:                                                              */
+/* - caller: Caller info                                                    */
+/* - in->version: The negotiated protocol version the agent intends to use  */
+/*                                                                          */
+/* Process the NEGOTIATE_PROTOCOL_VERSION message. Platform handler for     */
+/* SCMI_CpuNegotiateProtocolVersion().                                      */
+/*                                                                          */
+/* Return errors:                                                           */
+/* - SM_ERR_SUCCESS: if the negotiated protocol version is supported by     */
+/*   the platform. All commands, responses, and notifications post          */
+/*   successful return of this command must comply with the negotiated      */
+/*   version.                                                               */
+/* - SM_ERR_NOT_SUPPORTED: if the protocol version is not supported.        */
+/* - SM_ERR_PROTOCOL_ERROR: if the incoming payload is too small.           */
+/*--------------------------------------------------------------------------*/
+static int32_t CpuNegotiateProtocolVersion(const scmi_caller_t *caller,
+    const msg_rcpu16_t *in, const scmi_msg_status_t *out)
+{
+    int32_t status = SM_ERR_SUCCESS;
+
+    /* Check request length */
+    if (caller->lenCopy < sizeof(*in))
+    {
+        status = SM_ERR_PROTOCOL_ERROR;
+    }
+
+    /* Check major version */
+    if ((status == SM_ERR_SUCCESS) && (SCMI_VER_MAJOR(in->version)
+        == SCMI_VER_MAJOR(PROTOCOL_VERSION)))
+    {
+        /* Check minor version */
+        if (SCMI_VER_MINOR(in->version) > SCMI_VER_MINOR(PROTOCOL_VERSION))
+        {
+            status = SM_ERR_NOT_SUPPORTED;
+        }
+    }
+    else
+    {
+        status = SM_ERR_NOT_SUPPORTED;
     }
 
     /* Return status */

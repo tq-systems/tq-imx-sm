@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-** Copyright 2023 NXP
+** Copyright 2023-2024 NXP
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -111,19 +111,36 @@ int32_t BRD_SM_SerialDevicesInit(void)
         {
             status = SM_ERR_HARDWARE_ERROR;
         }
-        else
+
+        /* Disable voltage monitor 1 */
+        if (status == SM_ERR_SUCCESS)
         {
-            /* Disable voltage monitors 1 & 2 */
             if (!PF09_MonitorEnable(&pf09Dev, PF09_VMON1, false))
             {
                 status = SM_ERR_HARDWARE_ERROR;
             }
-            else
+        }
+
+        /* Disable voltage monitor 2 */
+        if (status == SM_ERR_SUCCESS)
+        {
+            if (!PF09_MonitorEnable(&pf09Dev, PF09_VMON2, false))
             {
-                if (!PF09_MonitorEnable(&pf09Dev, PF09_VMON2, false))
-                {
-                    status = SM_ERR_HARDWARE_ERROR;
-                }
+                status = SM_ERR_HARDWARE_ERROR;
+            }
+        }
+
+        /* Disable the PWRUP interrupt */
+        if (status == SM_ERR_SUCCESS)
+        {
+            const uint8_t mask[PF09_MASK_LEN] =
+            {
+                [PF09_MASK_IDX_STATUS1] = 0x08U
+            };
+
+            if (!PF09_IntEnable(&pf09Dev, mask, false))
+            {
+                status = SM_ERR_HARDWARE_ERROR;
             }
         }
 
@@ -163,11 +180,10 @@ int32_t BRD_SM_SerialDevicesInit(void)
 
     if (status == SM_ERR_SUCCESS)
     {
-
         rgpio_pin_config_t gpioConfig =
         {
             kRGPIO_DigitalInput,
-            0
+            0U
         };
 
         /* Init GPIO1-10 */
@@ -224,7 +240,7 @@ void BRD_SM_Gpio1Handler(void)
 /*--------------------------------------------------------------------------*/
 static void BRD_SM_Pf09Handler(void)
 {
-    uint8_t stat[PF09_MASK_LEN] = {};
+    uint8_t stat[PF09_MASK_LEN] = { 0 };
 
     /* Read status of interrupts */
     (void) PF09_IntStatus(&pf09Dev, stat);

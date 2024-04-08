@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-**     Copyright 2023 NXP
+**     Copyright 2023-2024 NXP
 **
 **     Redistribution and use in source and binary forms, with or without modification,
 **     are permitted provided that the following conditions are met:
@@ -43,6 +43,7 @@
 #include "dev_sm.h"
 #include "config_dev.h"
 #include "config_bctrl.h"
+#include "fsl_fract_pll.h"
 
 /* Local defines */
 
@@ -50,6 +51,10 @@
 
 /* Local variables */
 static bool s_tempSensorA55Enabled = false;
+static fracpll_context_t s_pllContextHsio;
+static fracpll_context_t s_pllContextLdb;
+static bool s_pllContextValidHsio = false;
+static bool s_pllContextValidLdb = false;
 
 /* Local functions */
 
@@ -110,6 +115,30 @@ int32_t DEV_SM_A55pConfigLoad(void)
         DEV_SM_SensorPowerUp(DEV_SM_SENSOR_TEMP_A55);
         s_tempSensorA55Enabled = true;
     }
+
+    /* Query A55 CPU wake list */
+    uint32_t cpuWakeListA55;
+    if (DEV_SM_CpuWakeListGet(DEV_SM_CPU_A55P, &cpuWakeListA55)
+        == SM_ERR_SUCCESS)
+    {
+        /* Wake A55 CPUs recorded during sleep mode entry */
+        while (cpuWakeListA55 != 0U)
+        {
+            /* Convert mask into index */
+            uint8_t cpuIdx = 31U - __CLZ(cpuWakeListA55);
+
+            (void) CPU_SwWakeup(cpuIdx);
+
+            /* Clear wake list mask to mark done */
+            cpuWakeListA55 &= (~(1UL << (cpuIdx)));
+        }
+    }
+
+    /* Clear A55 wake list */
+    DEV_SM_CpuWakeListSet(DEV_SM_CPU_A55P, 0U);
+
+    /* Process perpheral low-power interfaces */
+    CPU_PerLpiProcess(DEV_SM_CPU_A55P, CPU_SLEEP_MODE_RUN);
 
     /* Return status */
     return status;
@@ -301,6 +330,18 @@ int32_t DEV_SM_DisplayConfigLoad(void)
     }
 #endif
 
+    /* Restore PLL context */
+    if (status == SM_ERR_SUCCESS)
+    {
+        if (s_pllContextValidLdb)
+        {
+            if (!FRACTPLL_SetContext(CLOCK_PLL_LDB, &s_pllContextLdb))
+            {
+                status = SM_ERR_HARDWARE_ERROR;
+            }
+        }
+    }
+
     /* Return status */
     return status;
 }
@@ -359,6 +400,18 @@ int32_t DEV_SM_HsioTopConfigLoad(void)
     }
 #endif
 
+    /* Restore PLL context */
+    if (status == SM_ERR_SUCCESS)
+    {
+        if (s_pllContextValidHsio)
+        {
+            if (!FRACTPLL_SetContext(CLOCK_PLL_HSIO, &s_pllContextHsio))
+            {
+                status = SM_ERR_HARDWARE_ERROR;
+            }
+        }
+    }
+
     /* Return status */
     return status;
 }
@@ -404,6 +457,9 @@ int32_t DEV_SM_M7ConfigLoad(void)
         status = SM_M7_CONFIG_FUNC();
     }
 #endif
+
+    /* Process perpheral low-power interfaces */
+    CPU_PerLpiProcess(DEV_SM_CPU_M7P, CPU_SLEEP_MODE_RUN);
 
     /* Return status */
     return status;
@@ -454,6 +510,11 @@ int32_t DEV_SM_NocConfigLoad(void)
     {
         status = CONFIG_Load(NULL, s_configData);
     }
+
+#if (defined(FSL_FEATURE_BLK_CTRL_NOC_HAS_ERRATA_52127) && FSL_FEATURE_BLK_CTRL_NOC_HAS_ERRATA_52127)
+    /* Issue read access to force sync of default values */
+    BLK_CTRL_NOCMIX->TIE_VALUE;
+#endif
 
 #ifdef SM_NOC_CONFIG_FUNC
     /* Run device config function */
@@ -696,7 +757,73 @@ int32_t DEV_SM_A55pPowerDownPre(void)
     /* Reflect that A55 temp sensor is going down */
     s_tempSensorA55Enabled = false;
 
+    /* Process perpheral low-power interfaces */
+    uint32_t sleepMode;
+    if (CPU_SleepModeGet(DEV_SM_CPU_A55P, &sleepMode))
+    {
+        CPU_PerLpiProcess(DEV_SM_CPU_A55P, sleepMode);
+    }
+
     /* Move A55 perf level to a setpoint that does not require ARM_PLL */
     return DEV_SM_PerfLevelSet(DEV_SM_PERF_A55, DEV_SM_PERF_LVL_PRK);
+}
+
+/*--------------------------------------------------------------------------*/
+/* Display power domain power down configuration                            */
+/*--------------------------------------------------------------------------*/
+int32_t DEV_SM_DisplayPowerDownPre(void)
+{
+    int32_t status;
+
+    if (FRACTPLL_GetContext(CLOCK_PLL_LDB, &s_pllContextLdb))
+    {
+        s_pllContextValidLdb = true;
+        status = SM_ERR_SUCCESS;
+    }
+    else
+    {
+        s_pllContextValidLdb = false;
+        status = SM_ERR_HARDWARE_ERROR;
+    }
+
+    return status;
+}
+
+/*--------------------------------------------------------------------------*/
+/* HSIO TOP power domain power down configuration                           */
+/*--------------------------------------------------------------------------*/
+int32_t DEV_SM_HsioTopPowerDownPre(void)
+{
+    int32_t status;
+
+    if (FRACTPLL_GetContext(CLOCK_PLL_HSIO, &s_pllContextHsio))
+    {
+        s_pllContextValidHsio = true;
+        status = SM_ERR_SUCCESS;
+    }
+    else
+    {
+        s_pllContextValidHsio = false;
+        status = SM_ERR_HARDWARE_ERROR;
+    }
+
+    return status;
+}
+
+/*--------------------------------------------------------------------------*/
+/* M7 power domain power down configuration                                 */
+/*--------------------------------------------------------------------------*/
+int32_t DEV_SM_M7PowerDownPre(void)
+{
+    int32_t status = SM_ERR_SUCCESS;
+
+    /* Process perpheral low-power interfaces */
+    uint32_t sleepMode;
+    if (CPU_SleepModeGet(DEV_SM_CPU_M7P, &sleepMode))
+    {
+        CPU_PerLpiProcess(DEV_SM_CPU_M7P, sleepMode);
+    }
+
+    return status;
 }
 

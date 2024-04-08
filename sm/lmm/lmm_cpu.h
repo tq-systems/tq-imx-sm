@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-** Copyright 2023 NXP
+** Copyright 2023-2024 NXP
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -201,7 +201,7 @@ int32_t LMM_CpuResetVectorReset(uint32_t lmId, uint32_t cpuId);
  * @param[in]     lmId       LM call is for
  * @param[in]     cpuId      Identifier for the CPU
  * @param[in]     sleepMode  Target sleep mode
- * @param[in]     irqMuxGic  True if GIC wakeup source
+ * @param[in]     sleepFlags Sleep mode flags
  *
  * This function sets the sleep mode of a CPU. The CPU will transition to
  * this mode on its next WFI.
@@ -213,7 +213,7 @@ int32_t LMM_CpuResetVectorReset(uint32_t lmId, uint32_t cpuId);
  * - others returned by ::SM_CPUSLEEPMODESET
  */
 int32_t LMM_CpuSleepModeSet(uint32_t lmId, uint32_t cpuId,
-    uint32_t sleepMode, bool irqMuxGic);
+    uint32_t sleepMode, uint32_t sleepFlags);
 
 /*!
  * Set a CPU IRQ wake mask.
@@ -279,27 +279,27 @@ int32_t LMM_CpuPdLpmConfigSet(uint32_t lmId, uint32_t cpuId,
     uint32_t domainId, uint32_t lpmSetting, uint32_t retMask);
 
 /*!
- * Set a CPU LPM config for a clock.
+ * Set a CPU LPM config for a peripheral.
  *
  * @param[in]     lmId        LM call is for
  * @param[in]     cpuId       Identifier for the CPU
- * @param[in]     clockId     clock ID
+ * @param[in]     perId       peripheral ID
  * @param[in]     lpmSetting  LPM setting
  *
- * This function configures the LPM setting a clock applied when a CPU
- * enters a sleep mode. The LPM setting determines which range of CPU
- * sleep modes will leave the clock on. Note each CPU can have different
+ * This function configures the LPM setting for a peripheral applied when
+ * a CPU enters a sleep mode. The LPM setting determines which range of CPU
+ * sleep modes will leave the peripheral on. Note each CPU can have different
  * settings and the hardware aggregates these settings to determine the
- * domain state.
+ * peripheral state.
  *
  * @return Returns the status (::SM_ERR_SUCCESS = success).
  *
  * Return errors (see @ref STATUS "SM error codes"):
  * - ::SM_ERR_SUCCESS: if the setting is applied.
- * - others returned by ::SM_CPUCLKLPMCONFIGSET
+ * - others returned by ::SM_CPUPERLPMCONFIGSET
  */
-int32_t LMM_CpuClkLpmConfigSet(uint32_t lmId, uint32_t cpuId,
-    uint32_t clockId, uint32_t lpmSetting);
+int32_t LMM_CpuPerLpmConfigSet(uint32_t lmId, uint32_t cpuId,
+    uint32_t perId, uint32_t lpmSetting);
 
 #endif /* LMM_CPU_H */
 

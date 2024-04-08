@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-** Copyright 2023 NXP
+** Copyright 2023-2024 NXP
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -78,14 +78,14 @@ void term_emul_putc(char c)
 
 int _read(int file, char *buf, int len)
 {
-    LPUART_Type *base = BOARD_GetDebugUart(NULL, NULL, NULL);
+    const board_uart_config_t *uartConfig = BOARD_GetDebugUart();
 
-    if ((base != NULL) && (file == STDIN_FILENO))
+    if ((uartConfig->base != NULL) && (file == STDIN_FILENO))
     {
-        (void) LPUART_ReadBlocking(base, (uint8_t*) buf, len);
+        (void) LPUART_ReadBlocking(uartConfig->base, (uint8_t*) buf, len);
 
         // Echo received characters
-        LPUART_WriteBlocking(base, (uint8_t*) buf, len);
+        LPUART_WriteBlocking(uartConfig->base, (uint8_t*) buf, len);
 
         for (int i = 0; i < len; i++)
         {
@@ -133,18 +133,18 @@ int _write(int file, char *buf, int len)
     int ret_len = len;
     uint8_t cr = '\r';
 
-    LPUART_Type *base = BOARD_GetDebugUart(NULL, NULL, NULL);
+    const board_uart_config_t *uartConfig = BOARD_GetDebugUart();
 
-    if ((base != NULL) && (file == STDOUT_FILENO || file == STDERR_FILENO))
+    if ((uartConfig->base != NULL) && (file == STDOUT_FILENO || file == STDERR_FILENO))
     {
         while((len--) != 0)
         {
             if (*buf == '\n')
             {
-                LPUART_WriteBlocking(base, &cr, 1);
+                LPUART_WriteBlocking(uartConfig->base, &cr, 1);
             }
 
-            LPUART_WriteBlocking(base, (uint8_t*) buf, 1);
+            LPUART_WriteBlocking(uartConfig->base, (uint8_t*) buf, 1);
             buf++;
         }
         return ret_len;

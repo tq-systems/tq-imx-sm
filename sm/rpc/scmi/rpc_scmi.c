@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-** Copyright 2023 NXP
+** Copyright 2023-2024 NXP
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -136,7 +136,7 @@ int32_t RPC_SCMI_Init(uint8_t scmiInst)
 
     if (status == SM_ERR_SUCCESS)
     {
-        uint32_t initCount[SM_NUM_AGENT] = {};
+        uint32_t initCount[SM_NUM_AGENT] = { 0 };
 
         /* Init transport for each instance channel */
         for (uint32_t scmiChannel = 0U; scmiChannel < SM_SCMI_NUM_CHN;
@@ -468,14 +468,14 @@ int32_t RPC_SCMI_Reset(uint8_t scmiInst)
 /*--------------------------------------------------------------------------*/
 /* Trigger SCMI notification                                                */
 /*--------------------------------------------------------------------------*/
-int32_t RPC_SCMI_Trigger(lmm_rpc_trigger_t trigger)
+int32_t RPC_SCMI_Trigger(const lmm_rpc_trigger_t *trigger)
 {
     int32_t status;
 
     scmi_msg_id_t msgId;
 
     /* Queue via protocol */
-    switch (trigger.event)
+    switch (trigger->event)
     {
         case LMM_TRIGGER_SYSTEM:
             msgId.protocolId = SCMI_PROTOCOL_SYSTEM;
@@ -648,7 +648,7 @@ static int32_t RPC_SCMI_IsAborted(uint32_t scmiChannel)
 /*--------------------------------------------------------------------------*/
 static void RPC_SCMI_A2pDispatch(uint32_t scmiChannel)
 {
-    scmi_caller_t caller = {};
+    scmi_caller_t caller = { 0 };
 
     /* Record channel */
     caller.scmiChannel = scmiChannel;

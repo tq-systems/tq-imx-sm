@@ -1,7 +1,9 @@
+// SPDX-License-Identifier: BSD-3-Clause
 /*
 ** ###################################################################
 **
-** Copyright 2023 NXP
+** Copyright 2023-2024 NXP
+** Copyright (c) 2024 TQ-Systems GmbH <oss@tq-group.com>, D-82229 Seefeld, Germany.
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -62,11 +64,30 @@
 /*! Vendor string */
 #define SCMI_SUB_VENDOR  "i.MX95 TQMa95xxSA"
 
+/*!
+ * @name Board redirection defines
+ * @{
+ */
+#define SM_SYSTEMRESET  BRD_SM_SystemReset       /*!< Reset */
+/** @} */
+
 /* Types */
 
 /* External variables */
 
 /* Functions */
+
+/*!
+ * Reset the system.
+ *
+ * Redirect to just spin.
+ *
+ * @return Returns the status (::SM_ERR_SUCCESS = success).
+ *
+ * Return errors (see @ref STATUS "SM error codes"):
+ * - ::SM_ERR_SUCCESS
+ */
+int32_t BRD_SM_SystemReset(void);
 
 /** @} */
 

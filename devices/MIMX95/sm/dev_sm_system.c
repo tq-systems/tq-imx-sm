@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-**     Copyright 2023 NXP
+**     Copyright 2023-2024 NXP
 **
 **     Redistribution and use in source and binary forms, with or without modification,
 **     are permitted provided that the following conditions are met:
@@ -51,7 +51,7 @@
 /* Local variables */
 
 static uint32_t s_powerMode = 0U;
-static dev_sm_rst_rec_t s_shutdownRecord = {};
+static dev_sm_rst_rec_t s_shutdownRecord = { 0 };
 
 /*--------------------------------------------------------------------------*/
 /* Initialize system functions                                              */
@@ -74,6 +74,11 @@ int32_t DEV_SM_SystemInit(void)
         s_shutdownRecord.reason = srcResetReason;
         s_shutdownRecord.valid = true;
     }
+
+    /* Default to keep M7 clocks running during sleep modes */
+    BLK_CTRL_S_AONMIX->M7_CFG |=
+        (BLK_CTRL_S_AONMIX_M7_CFG_CORECLK_FORCE_ON_MASK |
+        BLK_CTRL_S_AONMIX_M7_CFG_HCLK_FORCE_ON_MASK);
 
     /* Return status */
     return status;
@@ -102,7 +107,7 @@ int32_t DEV_SM_SystemReset(void)
 {
     int32_t status = SM_ERR_SUCCESS;
 
-    /* Request reset */
+    /* Request warm reset */
     RST_SystemRequestReset();
 
     /* Return status */
@@ -127,8 +132,7 @@ int32_t DEV_SM_SystemStageReset(uint32_t stage, uint32_t container)
 
     if (status == SM_ERR_SUCCESS)
     {
-        /* TODO: Need to do a warm reset */
-        /* Request reset */
+        /* Request warm reset */
         RST_SystemRequestReset();
     }
 

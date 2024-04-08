@@ -1,7 +1,9 @@
+// SPDX-License-Identifier: BSD-3-Clause
 /*
 ** ###################################################################
 **
-** Copyright 2023 NXP
+** Copyright 2023-2024 NXP
+** Copyright (c) 2024 TQ-Systems GmbH <oss@tq-group.com>, D-82229 Seefeld, Germany.
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -44,6 +46,8 @@
 #include "lmm.h"
 #include "fsl_lpi2c.h"
 #include "fsl_bbnsm.h"
+#include "fsl_rgpio.h"
+#include "fsl_iomuxc.h"
 
 /* Local defines */
 
@@ -138,6 +142,15 @@ int32_t BRD_SM_Init(int argc, const char * const argv[], uint32_t *mSel)
         /* Init the device */
         status = DEV_SM_Init(BOARD_BOOT_LEVEL, BOARD_PERF_LEVEL);
         printf("DEV_SM_Init: %d)\n", status);
+    }
+
+    if (status == SM_ERR_SUCCESS)
+    {
+        /* Disallow ANA TMPSNS to generate internal warm reset */
+        SRC_GEN->SRMASK |= BIT32(RST_REASON_TEMPSENSE);
+
+        /* Switch WDOG to FCCU mode */
+        BOARD_WdogModeSet(BOARD_WDOG_MODE_FCCU);
     }
 
     /* Configure ISO controls based on feature fuses */
@@ -389,6 +402,32 @@ void BRD_SM_ShutdownRecordSave(dev_sm_rst_rec_t shutdownRec)
     {
         BRD_SM_ResetRecordPrint("\nShutdown request:", shutdownRec);
     }
+}
+
+/*--------------------------------------------------------------------------*/
+/* Reset board                                                              */
+/*--------------------------------------------------------------------------*/
+int32_t BRD_SM_SystemReset(void)
+{
+    int32_t status = SM_ERR_SUCCESS;
+    rgpio_pin_config_t gpioConfig =
+    {
+        kRGPIO_DigitalOutput,
+        0U
+    };
+
+    /* Drive WDOG_ANY to reset PMIC */
+    RGPIO_PinInit(GPIO1, 15U, &gpioConfig);
+    IOMUXC_SetPinMux(IOMUXC_PAD_WDOG_ANY__GPIO1_IO_BIT15, 0U);
+
+    /* Wait for PMIC to react */
+    SystemTimeDelay(1000U);
+
+    /* Fall back to warm reset of the device */
+    status = DEV_SM_SystemReset();
+
+    /* Return status */
+    return status;
 }
 
 /*--------------------------------------------------------------------------*/

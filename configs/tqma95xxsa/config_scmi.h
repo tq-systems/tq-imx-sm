@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-** Copyright 2023 NXP
+** Copyright 2023-2024 NXP
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -75,12 +75,16 @@
         .faultPerms[DEV_SM_FAULT_M7_LOCKUP] = SM_SCMI_PERM_ALL, \
         .faultPerms[DEV_SM_FAULT_M7_RESET] = SM_SCMI_PERM_ALL, \
         .faultPerms[DEV_SM_FAULT_SW0] = SM_SCMI_PERM_ALL, \
-        .faultPerms[DEV_SM_FAULT_TEST] = SM_SCMI_PERM_ALL, \
+        .faultPerms[DEV_SM_FAULT_SW1] = SM_SCMI_PERM_ALL, \
+        .faultPerms[DEV_SM_FAULT_SW2] = SM_SCMI_PERM_ALL, \
         .faultPerms[DEV_SM_FAULT_WDOG5] = SM_SCMI_PERM_ALL, \
         .fusaPerms = SM_SCMI_PERM_EXCLUSIVE, \
         .lmmPerms[2] = SM_SCMI_PERM_ALL, \
         .pdPerms[DEV_SM_PD_M7] = SM_SCMI_PERM_ALL, \
         .perfPerms[DEV_SM_PERF_M7] = SM_SCMI_PERM_ALL, \
+        .perlpiPerms[DEV_SM_PERLPI_CAN1] = SM_SCMI_PERM_ALL, \
+        .perlpiPerms[DEV_SM_PERLPI_LPUART3] = SM_SCMI_PERM_ALL, \
+        .perlpiPerms[DEV_SM_PERLPI_WDOG5] = SM_SCMI_PERM_ALL, \
         .pinPerms[DEV_SM_PIN_GPIO_IO14] = SM_SCMI_PERM_ALL, \
         .pinPerms[DEV_SM_PIN_GPIO_IO15] = SM_SCMI_PERM_ALL, \
         .rtcPerms[DEV_SM_RTC_BBM] = SM_SCMI_PERM_PRIV, \
@@ -166,6 +170,8 @@
         .cpuPerms[DEV_SM_CPU_A55C4] = SM_SCMI_PERM_ALL, \
         .cpuPerms[DEV_SM_CPU_A55C5] = SM_SCMI_PERM_ALL, \
         .cpuPerms[DEV_SM_CPU_A55P] = SM_SCMI_PERM_ALL, \
+        .faultPerms[DEV_SM_FAULT_SW3] = SM_SCMI_PERM_ALL, \
+        .faultPerms[DEV_SM_FAULT_SW4] = SM_SCMI_PERM_ALL, \
         .faultPerms[DEV_SM_FAULT_WDOG3] = SM_SCMI_PERM_ALL, \
         .faultPerms[DEV_SM_FAULT_WDOG4] = SM_SCMI_PERM_ALL, \
         .pdPerms[DEV_SM_PD_A55C0] = SM_SCMI_PERM_ALL, \
@@ -185,6 +191,22 @@
         .perfPerms[DEV_SM_PERF_A55P] = SM_SCMI_PERM_ALL, \
         .perfPerms[DEV_SM_PERF_A55] = SM_SCMI_PERM_ALL, \
         .perfPerms[DEV_SM_PERF_DRAM] = SM_SCMI_PERM_ALL, \
+        .perlpiPerms[DEV_SM_PERLPI_CAN2] = SM_SCMI_PERM_ALL, \
+        .perlpiPerms[DEV_SM_PERLPI_CAN3] = SM_SCMI_PERM_ALL, \
+        .perlpiPerms[DEV_SM_PERLPI_CAN4] = SM_SCMI_PERM_ALL, \
+        .perlpiPerms[DEV_SM_PERLPI_CAN5] = SM_SCMI_PERM_ALL, \
+        .perlpiPerms[DEV_SM_PERLPI_GPIO2] = SM_SCMI_PERM_ALL, \
+        .perlpiPerms[DEV_SM_PERLPI_GPIO3] = SM_SCMI_PERM_ALL, \
+        .perlpiPerms[DEV_SM_PERLPI_GPIO4] = SM_SCMI_PERM_ALL, \
+        .perlpiPerms[DEV_SM_PERLPI_GPIO5] = SM_SCMI_PERM_ALL, \
+        .perlpiPerms[DEV_SM_PERLPI_LPUART2] = SM_SCMI_PERM_ALL, \
+        .perlpiPerms[DEV_SM_PERLPI_LPUART4] = SM_SCMI_PERM_ALL, \
+        .perlpiPerms[DEV_SM_PERLPI_LPUART5] = SM_SCMI_PERM_ALL, \
+        .perlpiPerms[DEV_SM_PERLPI_LPUART6] = SM_SCMI_PERM_ALL, \
+        .perlpiPerms[DEV_SM_PERLPI_LPUART7] = SM_SCMI_PERM_ALL, \
+        .perlpiPerms[DEV_SM_PERLPI_LPUART8] = SM_SCMI_PERM_ALL, \
+        .perlpiPerms[DEV_SM_PERLPI_WDOG3] = SM_SCMI_PERM_ALL, \
+        .perlpiPerms[DEV_SM_PERLPI_WDOG4] = SM_SCMI_PERM_ALL, \
         .sysPerms = SM_SCMI_PERM_PRIV, \
     }
 
@@ -461,6 +483,22 @@
         .perfPerms[DEV_SM_PERF_DRAM] = SM_SCMI_PERM_ALL, \
         .perfPerms[DEV_SM_PERF_NPU] = SM_SCMI_PERM_ALL, \
         .perfPerms[DEV_SM_PERF_VPU] = SM_SCMI_PERM_ALL, \
+        .perlpiPerms[DEV_SM_PERLPI_CAN2] = SM_SCMI_PERM_ALL, \
+        .perlpiPerms[DEV_SM_PERLPI_CAN3] = SM_SCMI_PERM_ALL, \
+        .perlpiPerms[DEV_SM_PERLPI_CAN4] = SM_SCMI_PERM_ALL, \
+        .perlpiPerms[DEV_SM_PERLPI_CAN5] = SM_SCMI_PERM_ALL, \
+        .perlpiPerms[DEV_SM_PERLPI_GPIO2] = SM_SCMI_PERM_ALL, \
+        .perlpiPerms[DEV_SM_PERLPI_GPIO3] = SM_SCMI_PERM_ALL, \
+        .perlpiPerms[DEV_SM_PERLPI_GPIO4] = SM_SCMI_PERM_ALL, \
+        .perlpiPerms[DEV_SM_PERLPI_GPIO5] = SM_SCMI_PERM_ALL, \
+        .perlpiPerms[DEV_SM_PERLPI_LPUART2] = SM_SCMI_PERM_ALL, \
+        .perlpiPerms[DEV_SM_PERLPI_LPUART4] = SM_SCMI_PERM_ALL, \
+        .perlpiPerms[DEV_SM_PERLPI_LPUART5] = SM_SCMI_PERM_ALL, \
+        .perlpiPerms[DEV_SM_PERLPI_LPUART6] = SM_SCMI_PERM_ALL, \
+        .perlpiPerms[DEV_SM_PERLPI_LPUART7] = SM_SCMI_PERM_ALL, \
+        .perlpiPerms[DEV_SM_PERLPI_LPUART8] = SM_SCMI_PERM_ALL, \
+        .perlpiPerms[DEV_SM_PERLPI_WDOG3] = SM_SCMI_PERM_ALL, \
+        .perlpiPerms[DEV_SM_PERLPI_WDOG4] = SM_SCMI_PERM_ALL, \
         .pinPerms[DEV_SM_PIN_CCM_CLKO1] = SM_SCMI_PERM_ALL, \
         .pinPerms[DEV_SM_PIN_CCM_CLKO2] = SM_SCMI_PERM_ALL, \
         .pinPerms[DEV_SM_PIN_CCM_CLKO3] = SM_SCMI_PERM_ALL, \

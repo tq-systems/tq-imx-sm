@@ -4,7 +4,7 @@ Developer's Guide {#DEV_GUIDE}
 This section describes how to compile a System Manager image and stitch it into a boot
 image that can boot on a supported platform.
 
-The SM firmware can be compiled for two primary variants: target or simulation. Target
+The SM application can be compiled for two primary variants: target or simulation. Target
 builds are compiled with a cross compiler and will only run on i.MX9 hardware. Simulation
 builds run on the host computer and make use of fake HW functions in the code to simulate
 the hardware. Documentation is also compiled.
@@ -23,7 +23,7 @@ In addition, see @ref MONITOR for more information on using the CLI.
 Build Environment {#GUIDE_BUILD}
 =================
 
-The SM firmware is a 32-bit program compiled using the GNU C compiler (gcc), debugged
+The SM application is a 32-bit program compiled using the GNU C compiler (gcc), debugged
 using the GNU debugger (gdb/ddd), and documented using doxygen. As a result, a GNU-compliant
 build environment is required.
 
@@ -66,7 +66,7 @@ So for example if the GCC toolchain is installed in
 Compiling the SM {#GUIDE_COMPILE}
 ==================
 
-The SM firmware can be fully compiled using the Makefile. The command format is:
+The SM application can be fully compiled using the Makefile. The command format is:
 
 Usage: make TARGET OPTIONS
 
@@ -302,4 +302,46 @@ adds information about the locations of files not covered in the doxygen list.
 | sm/test                  | SM [unit test code](@ref TEST)                                            |
 | sm/utilities             | SM [utilities](@ref UTIL) and [debug monitor](@ref MONITOR)               |
 | utilities/newlib         | GCC embedded C library                                                    |
+
+Unit Testing {#GUIDE_TESTING}
+============
+
+SM unit tests are run in the main thread of the SM itself. When the T=\<test\> option is specified
+in the make arguments, the test_\<test\>.c file is compiled into the SM. The TEST_\<test\> function
+(note the name is converted to upper-case camel) is run in place of the normal booting of LMs. The T=all
+option include test_all.c which in turn runs all the tests that can be run autonomously.
+
+Tests are in the sm/test directory and structured around the modules of the SM: SCMI, LMM, board, dev,
+etc.
+
+SCMI Testing
+------------
+
+SCMI tests compile in the client API and make SCMI calls. These go through the MUs as if they came from
+client agents. This works as the tests run from the main thread while the SCMI server-side functions run
+within the MU interrupt context.
+
+SCMI tests require knowledge of the SM configuration:
+
+- Which MUs are used for which agents?
+- Which agents have what access rights to make API calls?
+- Which resources are available to each agent?
+- Which resources can be touched without causing the SM itself to fail?
+
+Which resources to test and for which agent is passed in the [test config data](@ref TEST_CONFIG). This
+contains a list of agents+resources to test. Items with *test* on their line in the cfg file generate
+items in this list. The test inspects the access rights and tests that, based on those rights, the
+resource can and cannot be acted on as configured.
+
+Most SCMI unit tests have the same structure.
+
+- Test common protocol functions (version, attributes, etc.)
+- Test non-resource related functions
+- Test functions when the resource is out of range
+- Loop over test array and if the test is for the tested protocol, call a test function based on the
+  access right of the calling agent
+
+To have adequate test coverage, it is important that the cfg file has items from each power domain,
+that is has items of each protocol type and agents that have each level of access right for an item
+of each protocol.
 

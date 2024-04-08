@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-** Copyright 2023 NXP
+** Copyright 2023-2024 NXP
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -60,7 +60,8 @@
 #define COMMAND_BBM_BUTTON_GET               0x9U
 #define COMMAND_BBM_RTC_NOTIFY               0xAU
 #define COMMAND_BBM_BUTTON_NOTIFY            0xBU
-#define COMMAND_SUPPORTED_MASK               0xFFFUL
+#define COMMAND_NEGOTIATE_PROTOCOL_VERSION   0x10U
+#define COMMAND_SUPPORTED_MASK               0x10FFFUL
 
 /* SCMI BBM max argument lengths */
 #define BBM_MAX_NAME  16U
@@ -284,6 +285,15 @@ typedef struct
     uint32_t flags;
 } msg_rbbm11_t;
 
+/* Request type for NegotiateProtocolVersion() */
+typedef struct
+{
+    /* Header word */
+    uint32_t header;
+    /* The negotiated protocol version the agent intends to use */
+    uint32_t version;
+} msg_rbbm16_t;
+
 /* Request type for BbmRtcEvent() */
 typedef struct
 {
@@ -328,9 +338,12 @@ static int32_t BbmRtcNotify(const scmi_caller_t *caller,
     const msg_rbbm10_t *in, const scmi_msg_status_t *out);
 static int32_t BbmButtonNotify(const scmi_caller_t *caller,
     const msg_rbbm11_t *in, const scmi_msg_status_t *out);
-static int32_t BbmRtcEvent(scmi_msg_id_t msgId, lmm_rpc_trigger_t trigger);
+static int32_t BbmNegotiateProtocolVersion(const scmi_caller_t *caller,
+    const msg_rbbm16_t *in, const scmi_msg_status_t *out);
+static int32_t BbmRtcEvent(scmi_msg_id_t msgId,
+    const lmm_rpc_trigger_t *trigger);
 static int32_t BbmButtonEvent(scmi_msg_id_t msgId,
-    lmm_rpc_trigger_t trigger);
+    const lmm_rpc_trigger_t *trigger);
 static int32_t BbmResetAgentConfig(uint32_t lmId, uint32_t agentId,
     bool permissionsReset);
 
@@ -412,6 +425,11 @@ int32_t RPC_SCMI_BbmDispatchCommand(scmi_caller_t *caller,
             status = BbmButtonNotify(caller, (const msg_rbbm11_t*) in,
                 (const scmi_msg_status_t*) out);
             break;
+        case COMMAND_NEGOTIATE_PROTOCOL_VERSION:
+            lenOut = sizeof(const scmi_msg_status_t);
+            status = BbmNegotiateProtocolVersion(caller,
+                (const msg_rbbm16_t*) in, (const scmi_msg_status_t*) out);
+            break;
         default:
             status = SM_ERR_NOT_SUPPORTED;
             break;
@@ -432,7 +450,7 @@ int32_t RPC_SCMI_BbmDispatchCommand(scmi_caller_t *caller,
 /* - trigger: Trigger data                                                  */
 /*--------------------------------------------------------------------------*/
 int32_t RPC_SCMI_BbmDispatchNotification(scmi_msg_id_t msgId,
-    lmm_rpc_trigger_t trigger)
+    const lmm_rpc_trigger_t *trigger)
 {
     int32_t status = SM_ERR_SUCCESS;
 
@@ -1182,13 +1200,62 @@ static int32_t BbmButtonNotify(const scmi_caller_t *caller,
 }
 
 /*--------------------------------------------------------------------------*/
+/* Negotiate the protocol version                                           */
+/*                                                                          */
+/* Parameters:                                                              */
+/* - caller: Caller info                                                    */
+/* - in->version: The negotiated protocol version the agent intends to use  */
+/*                                                                          */
+/* Process the NEGOTIATE_PROTOCOL_VERSION message. Platform handler for     */
+/* SCMI_BbmNegotiateProtocolVersion().                                      */
+/*                                                                          */
+/* Return errors:                                                           */
+/* - SM_ERR_SUCCESS: if the negotiated protocol version is supported by     */
+/*   the platform. All commands, responses, and notifications post          */
+/*   successful return of this command must comply with the negotiated      */
+/*   version.                                                               */
+/* - SM_ERR_NOT_SUPPORTED: if the protocol version is not supported.        */
+/* - SM_ERR_PROTOCOL_ERROR: if the incoming payload is too small.           */
+/*--------------------------------------------------------------------------*/
+static int32_t BbmNegotiateProtocolVersion(const scmi_caller_t *caller,
+    const msg_rbbm16_t *in, const scmi_msg_status_t *out)
+{
+    int32_t status = SM_ERR_SUCCESS;
+
+    /* Check request length */
+    if (caller->lenCopy < sizeof(*in))
+    {
+        status = SM_ERR_PROTOCOL_ERROR;
+    }
+
+    /* Check major version */
+    if ((status == SM_ERR_SUCCESS) && (SCMI_VER_MAJOR(in->version)
+        == SCMI_VER_MAJOR(PROTOCOL_VERSION)))
+    {
+        /* Check minor version */
+        if (SCMI_VER_MINOR(in->version) > SCMI_VER_MINOR(PROTOCOL_VERSION))
+        {
+            status = SM_ERR_NOT_SUPPORTED;
+        }
+    }
+    else
+    {
+        status = SM_ERR_NOT_SUPPORTED;
+    }
+
+    /* Return status */
+    return status;
+}
+
+/*--------------------------------------------------------------------------*/
 /* Send bbm rtc event                                                       */
 /*                                                                          */
 /* Parameters:                                                              */
 /* - msgId: Message ID to dispatch                                          */
 /* - trigger: Trigger data                                                  */
 /*--------------------------------------------------------------------------*/
-static int32_t BbmRtcEvent(scmi_msg_id_t msgId, lmm_rpc_trigger_t trigger)
+static int32_t BbmRtcEvent(scmi_msg_id_t msgId,
+    const lmm_rpc_trigger_t *trigger)
 {
     int32_t status = SM_ERR_SUCCESS;
 
@@ -1196,10 +1263,10 @@ static int32_t BbmRtcEvent(scmi_msg_id_t msgId, lmm_rpc_trigger_t trigger)
     for (uint32_t dstAgent = 0U; dstAgent < SM_SCMI_NUM_AGNT; dstAgent++)
     {
         /* Agent belong to instance? */
-        if (g_scmiAgentConfig[dstAgent].scmiInst == trigger.rpcInst)
+        if (g_scmiAgentConfig[dstAgent].scmiInst == trigger->rpcInst)
         {
-            uint32_t rtcId = trigger.parm[0];
-            uint32_t event = trigger.parm[1];
+            uint32_t rtcId = trigger->parm[0];
+            uint32_t event = trigger->parm[1];
             msg_rbbm33_t out;
 
             if ((event == LMM_TRIGGER_PARM_RTC_ALARM)
@@ -1252,7 +1319,8 @@ static int32_t BbmRtcEvent(scmi_msg_id_t msgId, lmm_rpc_trigger_t trigger)
 /* - msgId: Message ID to dispatch                                          */
 /* - trigger: Trigger data                                                  */
 /*--------------------------------------------------------------------------*/
-static int32_t BbmButtonEvent(scmi_msg_id_t msgId, lmm_rpc_trigger_t trigger)
+static int32_t BbmButtonEvent(scmi_msg_id_t msgId,
+    const lmm_rpc_trigger_t *trigger)
 {
     int32_t status = SM_ERR_SUCCESS;
 
@@ -1260,7 +1328,7 @@ static int32_t BbmButtonEvent(scmi_msg_id_t msgId, lmm_rpc_trigger_t trigger)
     for (uint32_t dstAgent = 0U; dstAgent < SM_SCMI_NUM_AGNT; dstAgent++)
     {
         /* Agent belong to instance? */
-        if ((g_scmiAgentConfig[dstAgent].scmiInst == trigger.rpcInst)
+        if ((g_scmiAgentConfig[dstAgent].scmiInst == trigger->rpcInst)
             && s_buttonNotify[dstAgent])
         {
             msg_rbbm33_t out;

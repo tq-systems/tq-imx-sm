@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-** Copyright 2023 NXP
+** Copyright 2023-2024 NXP
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -136,8 +136,13 @@
 #endif
 
 #ifndef SM_NUM_CPU
-/*! Redirector (device/board) for the number of CPUs */
+/*! Redirector (device/board) for the number of peripheral LPIs */
 #define SM_NUM_CPU              DEV_SM_NUM_CPU
+#endif
+
+#ifndef SM_NUM_PERLPI
+/*! Redirector (device/board) for the number of CPUs */
+#define SM_NUM_PERLPI           DEV_SM_NUM_PERLPI
 #endif
 
 #ifndef SM_NUM_PIN
@@ -510,9 +515,9 @@
 #define SM_CPUPDLPMCONFIGSET    DEV_SM_CpuPdLpmConfigSet
 #endif
 
-#ifndef SM_CPUCLKLPMCONFIGSET
-/*! Redirector (device/board) to set a CPU clock config */
-#define SM_CPUCLKLPMCONFIGSET  DEV_SM_CpuClkLpmConfigSet
+#ifndef SM_CPUPERLPMCONFIGSET
+/*! Redirector (device/board) to set a CPU peripheral config */
+#define SM_CPUPERLPMCONFIGSET  DEV_SM_CpuPerLpmConfigSet
 #endif
 
 #ifndef SM_CONTROLSET
