@@ -144,7 +144,7 @@ int main(int argc, const char * const argv[])
 
 #ifdef MONITOR
     /* Call monitor */
-    MONITOR_Cmd("\n*** SM Debug Monitor - no further booting ***\n");
+    MONITOR_Cmd("\n*** SM Debug Monitor ***\n");
 #endif
 
 #if !defined(RUN_TEST) && !defined(MONITOR)

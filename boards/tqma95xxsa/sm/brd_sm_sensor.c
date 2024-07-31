@@ -72,7 +72,7 @@ int32_t BRD_SM_SensorNameGet(uint32_t sensorId, string *sensorNameAddr,
     DEV_SM_MaxStringGet(len, &s_maxLen, s_name, BRD_SM_NUM_SENSOR);
 
     /* Check to see if sensorId is within bounds*/
-    if(sensorId < SM_NUM_SENSOR)
+    if (sensorId < SM_NUM_SENSOR)
     {
         /* Check if device or board */
         if (sensorId < DEV_SM_NUM_SENSOR)
@@ -105,7 +105,7 @@ int32_t BRD_SM_SensorDescribe(uint32_t sensorId,
     int32_t status = SM_ERR_SUCCESS;
 
     /* Check to see if sensorId is within bounds*/
-    if(sensorId < SM_NUM_SENSOR)
+    if (sensorId < SM_NUM_SENSOR)
     {
         /* Check if device or board */
         if (sensorId < DEV_SM_NUM_SENSOR)
@@ -145,7 +145,7 @@ int32_t BRD_SM_SensorReadingGet(uint32_t sensorId, int64_t *sensorValue,
     int32_t status = SM_ERR_SUCCESS;
 
     /* Check to see if sensorId is within bounds*/
-    if(sensorId < SM_NUM_SENSOR)
+    if (sensorId < SM_NUM_SENSOR)
     {
         /* Check if device or board */
         if (sensorId < DEV_SM_NUM_SENSOR)
@@ -211,7 +211,7 @@ int32_t BRD_SM_SensorTripPointSet(uint32_t sensorId, uint8_t tripPoint,
     int32_t status = SM_ERR_SUCCESS;
 
     /* Check to see if sensorId is within bounds*/
-    if(sensorId < SM_NUM_SENSOR)
+    if (sensorId < SM_NUM_SENSOR)
     {
         /* Check if device or board */
         if (sensorId < DEV_SM_NUM_SENSOR)
@@ -280,7 +280,7 @@ int32_t BRD_SM_SensorEnable(uint32_t sensorId, bool enable,
     int32_t status = SM_ERR_SUCCESS;
 
     /* Check to see if sensorId is within bounds*/
-    if(sensorId < SM_NUM_SENSOR)
+    if (sensorId < SM_NUM_SENSOR)
     {
         /* Check if device or board */
         if (sensorId < DEV_SM_NUM_SENSOR)
@@ -332,7 +332,7 @@ int32_t BRD_SM_SensorIsEnabled(uint32_t sensorId, bool *enabled,
     int32_t status = SM_ERR_SUCCESS;
 
     /* Check to see if sensorId is within bounds*/
-    if(sensorId < SM_NUM_SENSOR)
+    if (sensorId < SM_NUM_SENSOR)
     {
         uint32_t brdSensorId = sensorId - DEV_SM_NUM_SENSOR;
 

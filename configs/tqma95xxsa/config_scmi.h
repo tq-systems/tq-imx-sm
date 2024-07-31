@@ -60,17 +60,22 @@
         .scmiInst = 0U, \
         .domId = 4U, \
         .secure = 0U, \
+        .seenvId = 1U, \
         .buttonPerms[DEV_SM_BUTTON_0] = SM_SCMI_PERM_NOTIFY, \
+        .clkPerms[DEV_SM_CLK_LPTMR1] = SM_SCMI_PERM_ALL, \
+        .clkPerms[DEV_SM_CLK_LPTMR2] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_M7SYSTICK] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_M7] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_TSTMR2] = SM_SCMI_PERM_ALL, \
         .cpuPerms[DEV_SM_CPU_M7P] = SM_SCMI_PERM_ALL, \
-        .ctrlPerms[BRD_SM_CTRL_BUTTON] = SM_SCMI_PERM_NOTIFY, \
+        .ctrlPerms[BRD_SM_CTRL_TEST] = SM_SCMI_PERM_ALL, \
+        .daisyPerms[DEV_SM_DAISY_LPTMR2_0] = SM_SCMI_PERM_ALL, \
+        .daisyPerms[DEV_SM_DAISY_LPTMR2_1] = SM_SCMI_PERM_ALL, \
+        .daisyPerms[DEV_SM_DAISY_LPTMR2_2] = SM_SCMI_PERM_ALL, \
         .faultPerms[DEV_SM_FAULT_M7_LOCKUP] = SM_SCMI_PERM_ALL, \
         .faultPerms[DEV_SM_FAULT_M7_RESET] = SM_SCMI_PERM_ALL, \
         .faultPerms[DEV_SM_FAULT_SW0] = SM_SCMI_PERM_ALL, \
         .faultPerms[DEV_SM_FAULT_SW1] = SM_SCMI_PERM_ALL, \
-        .faultPerms[DEV_SM_FAULT_SW2] = SM_SCMI_PERM_ALL, \
         .faultPerms[DEV_SM_FAULT_WDOG5] = SM_SCMI_PERM_ALL, \
         .fusaPerms = SM_SCMI_PERM_EXCLUSIVE, \
         .lmmPerms[2] = SM_SCMI_PERM_ALL, \
@@ -160,8 +165,7 @@
         .cpuPerms[DEV_SM_CPU_A55C4] = SM_SCMI_PERM_ALL, \
         .cpuPerms[DEV_SM_CPU_A55C5] = SM_SCMI_PERM_ALL, \
         .cpuPerms[DEV_SM_CPU_A55P] = SM_SCMI_PERM_ALL, \
-        .faultPerms[DEV_SM_FAULT_SW3] = SM_SCMI_PERM_ALL, \
-        .faultPerms[DEV_SM_FAULT_SW4] = SM_SCMI_PERM_ALL, \
+        .faultPerms[DEV_SM_FAULT_SW2] = SM_SCMI_PERM_ALL, \
         .faultPerms[DEV_SM_FAULT_WDOG3] = SM_SCMI_PERM_ALL, \
         .faultPerms[DEV_SM_FAULT_WDOG4] = SM_SCMI_PERM_ALL, \
         .pdPerms[DEV_SM_PD_A55C0] = SM_SCMI_PERM_ALL, \
@@ -171,14 +175,6 @@
         .pdPerms[DEV_SM_PD_A55C4] = SM_SCMI_PERM_ALL, \
         .pdPerms[DEV_SM_PD_A55C5] = SM_SCMI_PERM_ALL, \
         .pdPerms[DEV_SM_PD_A55P] = SM_SCMI_PERM_ALL, \
-        .perfPerms[DEV_SM_PERF_A55C0] = SM_SCMI_PERM_ALL, \
-        .perfPerms[DEV_SM_PERF_A55C1] = SM_SCMI_PERM_ALL, \
-        .perfPerms[DEV_SM_PERF_A55C2] = SM_SCMI_PERM_ALL, \
-        .perfPerms[DEV_SM_PERF_A55C3] = SM_SCMI_PERM_ALL, \
-        .perfPerms[DEV_SM_PERF_A55C4] = SM_SCMI_PERM_ALL, \
-        .perfPerms[DEV_SM_PERF_A55C5] = SM_SCMI_PERM_ALL, \
-        .perfPerms[DEV_SM_PERF_A55PER] = SM_SCMI_PERM_ALL, \
-        .perfPerms[DEV_SM_PERF_A55P] = SM_SCMI_PERM_ALL, \
         .perfPerms[DEV_SM_PERF_A55] = SM_SCMI_PERM_ALL, \
         .perfPerms[DEV_SM_PERF_DRAM] = SM_SCMI_PERM_ALL, \
         .perlpiPerms[DEV_SM_PERLPI_CAN2] = SM_SCMI_PERM_ALL, \
@@ -197,7 +193,7 @@
         .perlpiPerms[DEV_SM_PERLPI_LPUART8] = SM_SCMI_PERM_ALL, \
         .perlpiPerms[DEV_SM_PERLPI_WDOG3] = SM_SCMI_PERM_ALL, \
         .perlpiPerms[DEV_SM_PERLPI_WDOG4] = SM_SCMI_PERM_ALL, \
-        .sysPerms = SM_SCMI_PERM_PRIV, \
+        .sysPerms = SM_SCMI_PERM_ALL, \
     }
 
 /*! Config for SCMI channel 3 */
@@ -230,13 +226,11 @@
         .domId = 3U, \
         .secure = 0U, \
         .buttonPerms[DEV_SM_BUTTON_0] = SM_SCMI_PERM_ALL, \
-        .clkPerms[DEV_SM_CLK_ADC] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_AUDIOPLL1] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_AUDIOPLL1_VCO] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_AUDIOPLL2] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_AUDIOPLL2_VCO] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_AUDIOXCVR] = SM_SCMI_PERM_ALL, \
-        .clkPerms[DEV_SM_CLK_CAMCM0] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_CAMISI] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_CAN1] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_CAN2] = SM_SCMI_PERM_ALL, \
@@ -260,7 +254,6 @@
         .clkPerms[DEV_SM_CLK_FLEXIO1] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_FLEXIO2] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_FLEXSPI1] = SM_SCMI_PERM_ALL, \
-        .clkPerms[DEV_SM_CLK_FRO] = SM_SCMI_PERM_SET, \
         .clkPerms[DEV_SM_CLK_HSIOPCIEAUX] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_HSIOPLL] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_HSIOPLL_VCO] = SM_SCMI_PERM_ALL, \
@@ -285,8 +278,6 @@
         .clkPerms[DEV_SM_CLK_LPSPI6] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_LPSPI7] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_LPSPI8] = SM_SCMI_PERM_ALL, \
-        .clkPerms[DEV_SM_CLK_LPTMR1] = SM_SCMI_PERM_ALL, \
-        .clkPerms[DEV_SM_CLK_LPTMR2] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_LPUART2] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_LPUART4] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_LPUART5] = SM_SCMI_PERM_ALL, \
@@ -299,8 +290,6 @@
         .clkPerms[DEV_SM_CLK_MIPITESTBYTE] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_MQS1] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_MQS2] = SM_SCMI_PERM_ALL, \
-        .clkPerms[DEV_SM_CLK_OSC24M] = SM_SCMI_PERM_SET, \
-        .clkPerms[DEV_SM_CLK_OSC32K] = SM_SCMI_PERM_SET, \
         .clkPerms[DEV_SM_CLK_PDM] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_SAI1] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_SAI2] = SM_SCMI_PERM_ALL, \
@@ -308,12 +297,6 @@
         .clkPerms[DEV_SM_CLK_SAI4] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_SAI5] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_SPDIF] = SM_SCMI_PERM_ALL, \
-        .clkPerms[DEV_SM_CLK_SYSPLL1_PFD0] = SM_SCMI_PERM_SET, \
-        .clkPerms[DEV_SM_CLK_SYSPLL1_PFD0_DIV2] = SM_SCMI_PERM_SET, \
-        .clkPerms[DEV_SM_CLK_SYSPLL1_PFD1] = SM_SCMI_PERM_SET, \
-        .clkPerms[DEV_SM_CLK_SYSPLL1_PFD1_DIV2] = SM_SCMI_PERM_SET, \
-        .clkPerms[DEV_SM_CLK_SYSPLL1_PFD2] = SM_SCMI_PERM_SET, \
-        .clkPerms[DEV_SM_CLK_SYSPLL1_PFD2_DIV2] = SM_SCMI_PERM_SET, \
         .clkPerms[DEV_SM_CLK_TPM2] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_TPM4] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_TPM5] = SM_SCMI_PERM_ALL, \
@@ -327,7 +310,7 @@
         .clkPerms[DEV_SM_CLK_VIDEOPLL1_VCO] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_VPUDSP] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_XSPISLVROOT] = SM_SCMI_PERM_ALL, \
-        .ctrlPerms[BRD_SM_CTRL_BUTTON] = SM_SCMI_PERM_NOTIFY, \
+        .ctrlPerms[DEV_SM_CTRL_ADC_TEST] = SM_SCMI_PERM_ALL, \
         .ctrlPerms[DEV_SM_CTRL_MQS1_SETTINGS] = SM_SCMI_PERM_ALL, \
         .ctrlPerms[DEV_SM_CTRL_PDM_CLK_SEL] = SM_SCMI_PERM_ALL, \
         .ctrlPerms[DEV_SM_CTRL_SAI1_MCLK] = SM_SCMI_PERM_ALL, \
@@ -398,9 +381,6 @@
         .daisyPerms[DEV_SM_DAISY_LPSPI4_SCK] = SM_SCMI_PERM_ALL, \
         .daisyPerms[DEV_SM_DAISY_LPSPI4_SDI] = SM_SCMI_PERM_ALL, \
         .daisyPerms[DEV_SM_DAISY_LPSPI4_SDO] = SM_SCMI_PERM_ALL, \
-        .daisyPerms[DEV_SM_DAISY_LPTMR2_0] = SM_SCMI_PERM_ALL, \
-        .daisyPerms[DEV_SM_DAISY_LPTMR2_1] = SM_SCMI_PERM_ALL, \
-        .daisyPerms[DEV_SM_DAISY_LPTMR2_2] = SM_SCMI_PERM_ALL, \
         .daisyPerms[DEV_SM_DAISY_LPUART4_CTS] = SM_SCMI_PERM_ALL, \
         .daisyPerms[DEV_SM_DAISY_LPUART4_RXD] = SM_SCMI_PERM_ALL, \
         .daisyPerms[DEV_SM_DAISY_LPUART4_TXD] = SM_SCMI_PERM_ALL, \
@@ -473,6 +453,7 @@
         .perfPerms[DEV_SM_PERF_CAM] = SM_SCMI_PERM_ALL, \
         .perfPerms[DEV_SM_PERF_DISP] = SM_SCMI_PERM_ALL, \
         .perfPerms[DEV_SM_PERF_DRAM] = SM_SCMI_PERM_ALL, \
+        .perfPerms[DEV_SM_PERF_GPU] = SM_SCMI_PERM_ALL, \
         .perfPerms[DEV_SM_PERF_NPU] = SM_SCMI_PERM_ALL, \
         .perfPerms[DEV_SM_PERF_VPU] = SM_SCMI_PERM_ALL, \
         .perlpiPerms[DEV_SM_PERLPI_CAN1] = SM_SCMI_PERM_ALL, \

@@ -73,7 +73,7 @@ int32_t BRD_SM_VoltageNameGet(uint32_t domainId, string *voltNameAddr,
     DEV_SM_MaxStringGet(len, &s_maxLen, s_name, BRD_SM_NUM_VOLT);
 
     /* Check to see if domain is within bounds*/
-    if(domainId < SM_NUM_VOLT)
+    if (domainId < SM_NUM_VOLT)
     {
         /* Check if device or board */
         if (domainId < DEV_SM_NUM_VOLT)
@@ -106,7 +106,7 @@ int32_t BRD_SM_VoltageDescribe(uint32_t domainId,
     PF09_RegInfo info;
 
     /* Get voltage range/info */
-    switch(domainId)
+    switch (domainId)
     {
         case DEV_SM_VOLT_SOC:
             status = DEV_SM_VoltageDescribe(domainId, range);
@@ -165,7 +165,7 @@ int32_t BRD_SM_VoltageModeSet(uint32_t domainId, uint8_t voltMode)
     bool rc;
 
     /* Set mode */
-    switch(domainId)
+    switch (domainId)
     {
         case DEV_SM_VOLT_SOC:
             mode = ((voltMode == DEV_SM_VOLT_MODE_OFF)
@@ -233,7 +233,7 @@ int32_t BRD_SM_VoltageModeGet(uint32_t domainId, uint8_t *voltMode)
     bool rc;
 
     /* Get mode */
-    switch(domainId)
+    switch (domainId)
     {
         case DEV_SM_VOLT_SOC:
             rc = PF53_SwModeGet(&pf5302Dev, PF53_REG_SW1, PF53_STATE_VRUN,
@@ -309,7 +309,7 @@ int32_t BRD_SM_VoltageLevelSet(uint32_t domainId, int32_t voltageLevel)
     uint32_t level = (uint32_t) voltageLevel;
 
     /* Set level */
-    switch(domainId)
+    switch (domainId)
     {
         case DEV_SM_VOLT_SOC:
             rc = PF53_VoltageSet(&pf5302Dev, PF53_REG_SW1, PF53_STATE_VRUN,
@@ -372,7 +372,7 @@ int32_t BRD_SM_VoltageLevelGet(uint32_t domainId, int32_t *voltageLevel)
     uint32_t level;
 
     /* Get level */
-    switch(domainId)
+    switch (domainId)
     {
         case DEV_SM_VOLT_SOC:
             rc = PF53_VoltageGet(&pf5302Dev, PF53_REG_SW1, PF53_STATE_VRUN,

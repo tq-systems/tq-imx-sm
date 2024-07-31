@@ -144,7 +144,6 @@
 /*! Config data array for tests */
 #define SM_SCMI_TEST_CONFIG_DATA \
     {.testId = TEST_BUTTON, .channel = 5U, .rsrc = DEV_SM_BUTTON_0}, \
-    {.testId = TEST_CLK, .channel = 5U, .rsrc = DEV_SM_CLK_CAMCM0}, \
     {.testId = TEST_CLK, .channel = 5U, .rsrc = DEV_SM_CLK_DISPOCRAM}, \
     {.testId = TEST_CLK, .channel = 5U, .rsrc = DEV_SM_CLK_ENETREF}, \
     {.testId = TEST_CLK, .channel = 5U, .rsrc = DEV_SM_CLK_ENETTIMER1}, \
@@ -167,6 +166,7 @@
     {.testId = TEST_PD, .channel = 5U, .rsrc = DEV_SM_PD_VPU}, \
     {.testId = TEST_PERF, .channel = 5U, .rsrc = DEV_SM_PERF_CAM}, \
     {.testId = TEST_PERF, .channel = 5U, .rsrc = DEV_SM_PERF_DISP}, \
+    {.testId = TEST_PERF, .channel = 5U, .rsrc = DEV_SM_PERF_GPU}, \
     {.testId = TEST_PERF, .channel = 5U, .rsrc = DEV_SM_PERF_NPU}, \
     {.testId = TEST_PERF, .channel = 5U, .rsrc = DEV_SM_PERF_VPU}, \
     {.testId = TEST_PERLPI, .channel = 5U, .rsrc = DEV_SM_PERLPI_LPUART8}, \

@@ -63,6 +63,17 @@ PF09_Type pf09Dev;
 PF53_Type pf5301Dev;
 PF53_Type pf5302Dev;
 
+irq_prio_info_t s_brdIrqPrioInfo[BOARD_NUM_IRQ_PRIO_IDX] =
+{
+    [BOARD_IRQ_PRIO_IDX_GPIO1_0] =
+    {
+        .irqId = GPIO1_0_IRQn,
+        .irqCntr = 0U,
+        .basePrio = 0U,
+        .dynPrioEn = false
+    }
+};
+
 /* Local functions */
 
 static void BRD_SM_Pf09Handler(void);
@@ -86,6 +97,15 @@ int32_t BRD_SM_SerialDevicesInit(void)
         if (!PF09_Init(&pf09Dev))
         {
             status = SM_ERR_HARDWARE_ERROR;
+        }
+
+        /* Disable XRESET monitor in STANDBY */
+        if (status == SM_ERR_SUCCESS)
+        {
+            if (!PF09_XrstStbyEnable(&pf09Dev, false))
+            {
+                status = SM_ERR_HARDWARE_ERROR;
+            }
         }
 
         /* Disable voltage monitor 1 */
@@ -173,11 +193,12 @@ int32_t BRD_SM_SerialDevicesInit(void)
 }
 
 /*--------------------------------------------------------------------------*/
-/* GPIO1 handler                                                            */
+/* GPIO 1 interrupt 0 handler (Pin 0..15)                                   */
 /*--------------------------------------------------------------------------*/
-void BRD_SM_Gpio1Handler(void)
+void GPIO1_0_IRQHandler(void)
 {
     uint32_t flags;
+    uint8_t status = 0, val = 0;
 
     /* Get GPIO status */
     flags = RGPIO_GetPinsInterruptFlags(GPIO1, kRGPIO_InterruptOutput0);
@@ -195,12 +216,13 @@ void BRD_SM_Gpio1Handler(void)
     }
 
     /* Handle controls interrupts */
-    /* TODO:
     else
     {
         BRD_SM_ControlHandler(status, val);
     }
-    */
+
+    /* Adjust dynamic IRQ priority */
+    (void) DEV_SM_IrqPrioUpdate();
 }
 
 /*==========================================================================*/
