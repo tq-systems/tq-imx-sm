@@ -49,7 +49,11 @@
 #endif
 
 /* Local defines */
-
+#if !defined(__stringify)
+#define __stringify_1(x...)     #x
+#define __stringify(x...)       __stringify_1(x)
+#endif
+#define CONFIG_STR __stringify(SM_CONFIGURATION)
 /* Local types */
 
 /* Local variables */
@@ -85,8 +89,9 @@ int main(int argc, const char * const argv[])
     delta = DEV_SM_Usec64Get();
 
     /* Print banner */
-    printf("\nHello from SM (Build %lu, Commit %08lx, %s %s)\n\n",
+    printf("\nHello from SM (Build %lu, Commit %08lx, %s %s)\n",
         SM_BUILD, SM_COMMIT, SM_DATE, SM_TIME);
+    printf("SM Configuration: %s\n\n", CONFIG_STR);
 
     /* Add to subtract time */
     g_bootTime[SM_BT_SUB] += (DEV_SM_Usec64Get() - delta);
