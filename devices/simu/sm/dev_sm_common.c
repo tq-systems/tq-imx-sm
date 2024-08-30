@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-**     Copyright 2023 NXP
+**     Copyright 2023-2024 NXP
 **
 **     Redistribution and use in source and binary forms, with or without modification,
 **     are permitted provided that the following conditions are met:
@@ -49,6 +49,10 @@
 
 /* Local variables */
 
+/* Global variables */
+
+dev_sm_syslog_t g_syslog;
+
 /* Local functions */
 
 /*--------------------------------------------------------------------------*/
@@ -70,20 +74,61 @@ int32_t DEV_SM_SiInfoGet(uint32_t *deviceId, uint32_t *siRev,
 }
 
 /*--------------------------------------------------------------------------*/
+/* Get the syslog                                                           */
+/*--------------------------------------------------------------------------*/
+int32_t DEV_SM_SyslogGet(uint32_t flags, const dev_sm_syslog_t **syslog,
+    uint32_t *len)
+{
+    /* Return data */
+    *syslog = &g_syslog;
+    *len = sizeof(dev_sm_syslog_t);
+
+    /* Return result */
+    return SM_ERR_SUCCESS;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Dump the syslog                                                          */
+/*--------------------------------------------------------------------------*/
+int32_t DEV_SM_SyslogDump(uint32_t flags)
+{
+    int32_t status = SM_ERR_SUCCESS;
+    const dev_sm_syslog_t *syslog;
+    uint32_t len;
+
+    /* Get data */
+    status = DEV_SM_SyslogGet(flags, &syslog, &len);
+
+    if (status == SM_ERR_SUCCESS)
+    {
+        printf("Sys power mode = 0x%08X\n", syslog->sysPwrMode);
+    }
+
+    /* Return result */
+    return status;
+}
+
+/*--------------------------------------------------------------------------*/
 /* Get time in microseconds                                                 */
 /*--------------------------------------------------------------------------*/
 uint64_t DEV_SM_Usec64Get(void)
 {
-    struct timeval tv;
+    struct timeval tv = { 0 };
+    int64_t tm;
 
-    gettimeofday(&tv,NULL);
+    /* Get time */
+    (void) gettimeofday(&tv, NULL);
 
-    return (tv.tv_sec * 1000000ULL) + tv.tv_usec;
+    /* Convert to microseconds */
+    tm = (tv.tv_sec * 1000000LL) + tv.tv_usec;
+
+    return (uint64_t) tm;
 }
 
 /*--------------------------------------------------------------------------*/
 /* Get address of a fuse word                                               */
 /*--------------------------------------------------------------------------*/
+// coverity[misra_c_2012_rule_8_13_violation:FALSE]
 int32_t DEV_SM_FuseInfoGet(uint32_t fuseWord, uint32_t *addr)
 {
     return SM_ERR_NOT_SUPPORTED;

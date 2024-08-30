@@ -67,7 +67,7 @@ void TEST_ScmiPerf(void)
     uint32_t numDomains = 0U;
     uint32_t agentId, channel, domainId, lmId = 0U;
 
-    /* Performance tests */
+    /* RPC_00010 RPC_00090 RPC_00160 Performance tests */
     printf("**** Performance Domain Protocol Tests ***\n\n");
 
     /* Protocol Version*/
@@ -137,7 +137,7 @@ void TEST_ScmiPerf(void)
         /* Branch -- Invalid Channel */
         NECHECK(SCMI_PerformanceDomainAttributes(SM_SCMI_NUM_CHN,
             0U, NULL, NULL, NULL, NULL, NULL),
-            SM_ERR_INVALID_PARAMETERS);
+            SCMI_ERR_INVALID_PARAMETERS);
 
         /* Branch -- Nullpointer */
         CHECK(SCMI_PerformanceDomainAttributes(SM_TEST_DEFAULT_CHN,
@@ -178,7 +178,7 @@ void TEST_ScmiPerf(void)
 
         /* Branch -- Invalid Channel */
         NECHECK(SCMI_PerformanceLimitsGet(SM_SCMI_NUM_CHN, 0U,
-            NULL, NULL), SM_ERR_INVALID_PARAMETERS);
+            NULL, NULL), SCMI_ERR_INVALID_PARAMETERS);
 
         /* Branch -- Nullpointer */
         CHECK(SCMI_PerformanceLimitsGet(SM_TEST_DEFAULT_CHN, 0U,
@@ -198,7 +198,7 @@ void TEST_ScmiPerf(void)
 
         /* Branch -- Invalid Channel */
         NECHECK(SCMI_PerformanceDescribeLevels(SM_SCMI_NUM_CHN,
-            0U, skipIndex, NULL, NULL), SM_ERR_INVALID_PARAMETERS);
+            0U, skipIndex, NULL, NULL), SCMI_ERR_INVALID_PARAMETERS);
 
         /* Branch -- Nullpointer */
         CHECK(SCMI_PerformanceDescribeLevels(SM_TEST_DEFAULT_CHN,
@@ -366,7 +366,7 @@ static void TEST_ScmiPerfSet(bool pass, uint32_t channel,
 
         /* Branch -- Invalid Channel */
         NECHECK(SCMI_PerformanceLimitsSet(SM_SCMI_NUM_CHN, domainId, rangeMax,
-            rangeMin), SM_ERR_INVALID_PARAMETERS);
+            rangeMin), SCMI_ERR_INVALID_PARAMETERS);
     }
     /* ACCESS DENIED */
     else

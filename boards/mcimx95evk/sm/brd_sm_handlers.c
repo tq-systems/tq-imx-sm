@@ -67,6 +67,17 @@ PF09_Type pf09Dev;
 PF53_Type pf5301Dev;
 PF53_Type pf5302Dev;
 
+irq_prio_info_t s_brdIrqPrioInfo[BOARD_NUM_IRQ_PRIO_IDX] =
+{
+    [BOARD_IRQ_PRIO_IDX_GPIO1_0] =
+    {
+        .irqId = GPIO1_0_IRQn,
+        .irqCntr = 0U,
+        .basePrio = 0U,
+        .dynPrioEn = false
+    }
+};
+
 /* Local functions */
 
 static void BRD_SM_Pf09Handler(void);
@@ -110,6 +121,15 @@ int32_t BRD_SM_SerialDevicesInit(void)
         if (!PF09_Init(&pf09Dev))
         {
             status = SM_ERR_HARDWARE_ERROR;
+        }
+
+        /* Disable XRESET monitor in STANDBY */
+        if (status == SM_ERR_SUCCESS)
+        {
+            if (!PF09_XrstStbyEnable(&pf09Dev, false))
+            {
+                status = SM_ERR_HARDWARE_ERROR;
+            }
         }
 
         /* Disable voltage monitor 1 */
@@ -199,7 +219,7 @@ int32_t BRD_SM_SerialDevicesInit(void)
 /*--------------------------------------------------------------------------*/
 /* GPIO1 handler                                                            */
 /*--------------------------------------------------------------------------*/
-void BRD_SM_Gpio1Handler(void)
+void GPIO1_0_IRQHandler(void)
 {
     uint32_t flags;
     uint8_t status, val;
@@ -208,10 +228,10 @@ void BRD_SM_Gpio1Handler(void)
     flags = RGPIO_GetPinsInterruptFlags(GPIO1, kRGPIO_InterruptOutput0);
 
     /* Get PCAL6408A status */
-    PCAL6408A_IntStatusGet(&pcal6408aDev, &status);
+    (void) PCAL6408A_IntStatusGet(&pcal6408aDev, &status);
 
     /* Get value and Clear PCAL6408A interrupts */
-    PCAL6408A_InputGet(&pcal6408aDev, &val);
+    (void) PCAL6408A_InputGet(&pcal6408aDev, &val);
 
     /* Clear GPIO interrupts */
     RGPIO_ClearPinsInterruptFlags(GPIO1, kRGPIO_InterruptOutput0, flags);
@@ -231,6 +251,9 @@ void BRD_SM_Gpio1Handler(void)
     {
         BRD_SM_ControlHandler(status, val);
     }
+
+    /* Adjust dynamic IRQ priority */
+    (void) DEV_SM_IrqPrioUpdate();
 }
 
 /*==========================================================================*/

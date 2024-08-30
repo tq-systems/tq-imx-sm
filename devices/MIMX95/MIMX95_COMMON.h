@@ -280,9 +280,9 @@ typedef enum IRQn
     MU7_B_IRQn           = 207, /**< WAKEUPMIX MU Ored of all (tx,rx,gp,core,murip) interrupt to MUB */
     MU8_B_IRQn           = 208, /**< WAKEUPMIX MU Ored of all (tx,rx,gp,core,murip) interrupt to MUB */
     Reserved225_IRQn     = 209, /**< WAKEUPMIX XSPI Responder */
-    FCCU0_IRQn           = 210, /**< AONMIX FCCU Interrupt Reaction 0 */
-    FCCU1_IRQn           = 211, /**< AONMIX FCCU Interrupt Reaction 1 */
-    FCCU2_IRQn           = 212, /**< AONMIX FCCU Interrupt Reaction 2 */
+    FCCU_INT0_IRQn       = 210, /**< AONMIX FCCU Interrupt Reaction 0 */
+    FCCU_INT1_IRQn       = 211, /**< AONMIX FCCU Interrupt Reaction 1 */
+    FCCU_INT2_IRQn       = 212, /**< AONMIX FCCU Interrupt Reaction 2 */
     Reserved229_IRQn     = 213, /**< AONMIX STCU Selftest end Interrupt */
     DISP_IRQSTEER0_IRQn  = 214, /**< DISPLAYMIX IRQSTEER 0 */
     DISP_IRQSTEER1_IRQn  = 215, /**< DISPLAYMIX IRQSTEER 1 */
@@ -464,7 +464,7 @@ typedef enum IRQn
  */
 
 #define __MPU_PRESENT          1 /**< Defines if an MPU is present or not */
-#define __NVIC_PRIO_BITS       3 /**< Number of priority bits implemented in the NVIC */
+#define __NVIC_PRIO_BITS       4 /**< Number of priority bits implemented in the NVIC */
 #define __Vendor_SysTickConfig 0 /**< Vendor specific implementation of SysTickConfig is defined */
 #define __FPU_PRESENT          1 /**< Defines if an FPU is present or not */
 #define __DSP_PRESENT          1 /**< Defines if Armv8-M Mainline core supports DSP instructions */

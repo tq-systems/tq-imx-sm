@@ -41,7 +41,13 @@
 
 /* Local Types */
 
+typedef struct {
+  uint32_t LPM0;
+  uint32_t LPM1;
+} cpu_per_lpi_lpgc_t;
+
 /* Local Functions */
+
 static bool CPU_SwMultiWakeup(uint32_t cpuIdx);
 static bool CPU_SleepModeMultiSet(uint32_t cpuIdx, uint32_t sleepMode);
 static bool CPU_WdogReset(uint32_t cpuIdx);
@@ -49,9 +55,15 @@ static bool CPU_MuReset(uint32_t cpuIdx);
 static bool CPU_MiscCtrlSet(uint32_t cpuIdx, uint32_t mask, uint32_t val);
 static bool CPU_MiscCtrlGet(uint32_t cpuIdx, uint32_t mask, uint32_t *val);
 static bool CPU_LpmMixDependSet(uint32_t cpuIdx, uint32_t lpmSetting);
+static bool CPU_VirtLpcgLpmSet(uint32_t lpcgIdx, uint32_t cpuIdx,
+    uint32_t lpmSetting);
+static bool CPU_VirtLpcgLpmGet(uint32_t lpcgIdx, uint32_t cpuIdx,
+    uint32_t *lpmSetting);
 
 /* Local Variables */
+
 static GPC_CPU_CTRL_Type *const s_gpcCpuCtrlPtrs[] = GPC_CPU_CTRL_BASE_PTRS;
+// coverity[misra_c_2012_rule_8_9_violation:FALSE]
 static GICR_Type *const s_gicrPtrs[] = GICR_BASE_PTRS;
 
 static uint32_t s_cpuDdrMixDependMask;
@@ -217,7 +229,7 @@ static cpu_per_lpi_info_t const s_cpuPerLpiInfo[CPU_NUM_PER_LPI_IDX] =
         .reqReg = &BLK_CTRL_NS_AONMIX->QREQ_N,
         .reqMask = BLK_CTRL_NS_AONMIX_QACCEPT_N_AHB_GPIO_MASK,
         .reqVal = BLK_CTRL_NS_AONMIX_QACCEPT_N_AHB_GPIO(0U),
-        .lpcgIdx = CPU_PER_LPI_IDX_GPIO1 + CPU_PER_LPI_LPCG_OFFSET,
+        .lpcgIdx = CPU_PER_LPI_IDX_GPIO1,
     },
 
     [CPU_PER_LPI_IDX_GPIO2] =
@@ -225,7 +237,7 @@ static cpu_per_lpi_info_t const s_cpuPerLpiInfo[CPU_NUM_PER_LPI_IDX] =
         .reqReg = &BLK_CTRL_WAKEUPMIX->QREQ_CTL_0,
         .reqMask = BLK_CTRL_WAKEUPMIX_QREQ_CTL_0_GPIO2_QREQ_N_MASK,
         .reqVal = BLK_CTRL_WAKEUPMIX_QREQ_CTL_0_GPIO2_QREQ_N(0U),
-        .lpcgIdx = CPU_PER_LPI_IDX_GPIO2 + CPU_PER_LPI_LPCG_OFFSET,
+        .lpcgIdx = CPU_PER_LPI_IDX_GPIO2,
     },
 
     [CPU_PER_LPI_IDX_GPIO3] =
@@ -233,7 +245,7 @@ static cpu_per_lpi_info_t const s_cpuPerLpiInfo[CPU_NUM_PER_LPI_IDX] =
         .reqReg = &BLK_CTRL_WAKEUPMIX->QREQ_CTL_0,
         .reqMask = BLK_CTRL_WAKEUPMIX_QREQ_CTL_0_GPIO3_QREQ_N_MASK,
         .reqVal = BLK_CTRL_WAKEUPMIX_QREQ_CTL_0_GPIO3_QREQ_N(0U),
-        .lpcgIdx = CPU_PER_LPI_IDX_GPIO3 + CPU_PER_LPI_LPCG_OFFSET,
+        .lpcgIdx = CPU_PER_LPI_IDX_GPIO3,
     },
 
     [CPU_PER_LPI_IDX_GPIO4] =
@@ -241,7 +253,7 @@ static cpu_per_lpi_info_t const s_cpuPerLpiInfo[CPU_NUM_PER_LPI_IDX] =
         .reqReg = &BLK_CTRL_WAKEUPMIX->QREQ_CTL_0,
         .reqMask = BLK_CTRL_WAKEUPMIX_QREQ_CTL_0_GPIO4_QREQ_N_MASK,
         .reqVal = BLK_CTRL_WAKEUPMIX_QREQ_CTL_0_GPIO4_QREQ_N(0U),
-        .lpcgIdx = CPU_PER_LPI_IDX_GPIO4 + CPU_PER_LPI_LPCG_OFFSET,
+        .lpcgIdx = CPU_PER_LPI_IDX_GPIO4,
     },
 
     [CPU_PER_LPI_IDX_GPIO5] =
@@ -249,7 +261,7 @@ static cpu_per_lpi_info_t const s_cpuPerLpiInfo[CPU_NUM_PER_LPI_IDX] =
         .reqReg = &BLK_CTRL_WAKEUPMIX->QREQ_CTL_0,
         .reqMask = BLK_CTRL_WAKEUPMIX_QREQ_CTL_0_GPIO5_QREQ_N_MASK,
         .reqVal = BLK_CTRL_WAKEUPMIX_QREQ_CTL_0_GPIO5_QREQ_N(0U),
-        .lpcgIdx = CPU_PER_LPI_IDX_GPIO5 + CPU_PER_LPI_LPCG_OFFSET,
+        .lpcgIdx = CPU_PER_LPI_IDX_GPIO5,
     },
 
     [CPU_PER_LPI_IDX_CAN1] =
@@ -257,7 +269,7 @@ static cpu_per_lpi_info_t const s_cpuPerLpiInfo[CPU_NUM_PER_LPI_IDX] =
         .reqReg = &BLK_CTRL_NS_AONMIX->IPG_STOP_CTL,
         .reqMask = BLK_CTRL_NS_AONMIX_IPG_STOP_CTL_CAN1_STOP_MASK,
         .reqVal = BLK_CTRL_NS_AONMIX_IPG_STOP_CTL_CAN1_STOP(1U),
-        .lpcgIdx = CPU_PER_LPI_IDX_CAN1 + CPU_PER_LPI_LPCG_OFFSET,
+        .lpcgIdx = CPU_PER_LPI_IDX_CAN1,
     },
 
     [CPU_PER_LPI_IDX_CAN2] =
@@ -265,7 +277,7 @@ static cpu_per_lpi_info_t const s_cpuPerLpiInfo[CPU_NUM_PER_LPI_IDX] =
         .reqReg = &BLK_CTRL_WAKEUPMIX->IPG_STOP_CTL_0,
         .reqMask = BLK_CTRL_WAKEUPMIX_IPG_STOP_CTL_0_CAN2_STOP_ENABLE_MASK,
         .reqVal = BLK_CTRL_WAKEUPMIX_IPG_STOP_CTL_0_CAN2_STOP_ENABLE(1U),
-        .lpcgIdx = CPU_PER_LPI_IDX_CAN2 + CPU_PER_LPI_LPCG_OFFSET,
+        .lpcgIdx = CPU_PER_LPI_IDX_CAN2,
     },
 
     [CPU_PER_LPI_IDX_CAN3] =
@@ -273,7 +285,7 @@ static cpu_per_lpi_info_t const s_cpuPerLpiInfo[CPU_NUM_PER_LPI_IDX] =
         .reqReg = &BLK_CTRL_WAKEUPMIX->IPG_STOP_CTL_0,
         .reqMask = BLK_CTRL_WAKEUPMIX_IPG_STOP_CTL_0_CAN3_STOP_ENABLE_MASK,
         .reqVal = BLK_CTRL_WAKEUPMIX_IPG_STOP_CTL_0_CAN3_STOP_ENABLE(1U),
-        .lpcgIdx = CPU_PER_LPI_IDX_CAN3 + CPU_PER_LPI_LPCG_OFFSET,
+        .lpcgIdx = CPU_PER_LPI_IDX_CAN3,
     },
 
     [CPU_PER_LPI_IDX_CAN4] =
@@ -281,7 +293,7 @@ static cpu_per_lpi_info_t const s_cpuPerLpiInfo[CPU_NUM_PER_LPI_IDX] =
         .reqReg = &BLK_CTRL_WAKEUPMIX->IPG_STOP_CTL_0,
         .reqMask = BLK_CTRL_WAKEUPMIX_IPG_STOP_CTL_0_CAN4_STOP_ENABLE_MASK,
         .reqVal = BLK_CTRL_WAKEUPMIX_IPG_STOP_CTL_0_CAN4_STOP_ENABLE(1U),
-        .lpcgIdx = CPU_PER_LPI_IDX_CAN4 + CPU_PER_LPI_LPCG_OFFSET,
+        .lpcgIdx = CPU_PER_LPI_IDX_CAN4,
     },
 
     [CPU_PER_LPI_IDX_CAN5] =
@@ -289,71 +301,71 @@ static cpu_per_lpi_info_t const s_cpuPerLpiInfo[CPU_NUM_PER_LPI_IDX] =
         .reqReg = &BLK_CTRL_WAKEUPMIX->IPG_STOP_CTL_0,
         .reqMask = BLK_CTRL_WAKEUPMIX_IPG_STOP_CTL_0_CAN5_STOP_ENABLE_MASK,
         .reqVal = BLK_CTRL_WAKEUPMIX_IPG_STOP_CTL_0_CAN5_STOP_ENABLE(1U),
-        .lpcgIdx = CPU_PER_LPI_IDX_CAN5 + CPU_PER_LPI_LPCG_OFFSET,
+        .lpcgIdx = CPU_PER_LPI_IDX_CAN5,
     },
 
     [CPU_PER_LPI_IDX_LPUART1] =
     {
         .reqReg = &BLK_CTRL_NS_AONMIX->QREQ_N,
-        .reqMask = BLK_CTRL_NS_AONMIX_QACCEPT_N_LPUART1_MASK,
-        .reqVal = BLK_CTRL_NS_AONMIX_QACCEPT_N_LPUART1(0U),
-        .lpcgIdx = CPU_PER_LPI_IDX_LPUART1 + CPU_PER_LPI_LPCG_OFFSET,
+        .reqMask = BLK_CTRL_NS_AONMIX_QACCEPT_N_APB_LPUART1_MASK,
+        .reqVal = BLK_CTRL_NS_AONMIX_QACCEPT_N_APB_LPUART1(0U),
+        .lpcgIdx = CPU_PER_LPI_IDX_LPUART1,
     },
 
     [CPU_PER_LPI_IDX_LPUART2] =
     {
         .reqReg = &BLK_CTRL_NS_AONMIX->QREQ_N,
-        .reqMask = BLK_CTRL_NS_AONMIX_QACCEPT_N_LPUART2_MASK,
-        .reqVal = BLK_CTRL_NS_AONMIX_QACCEPT_N_LPUART2(0U),
-        .lpcgIdx = CPU_PER_LPI_IDX_LPUART2 + CPU_PER_LPI_LPCG_OFFSET,
+        .reqMask = BLK_CTRL_NS_AONMIX_QACCEPT_N_APB_LPUART2_MASK,
+        .reqVal = BLK_CTRL_NS_AONMIX_QACCEPT_N_APB_LPUART2(0U),
+        .lpcgIdx = CPU_PER_LPI_IDX_LPUART2,
     },
 
     [CPU_PER_LPI_IDX_LPUART3] =
     {
-        .reqReg = &BLK_CTRL_WAKEUPMIX->QREQ_CTL_0,
-        .reqMask = BLK_CTRL_WAKEUPMIX_QREQ_CTL_0_LPUART3_QREQ_N_MASK,
-        .reqVal = BLK_CTRL_WAKEUPMIX_QREQ_CTL_0_LPUART3_QREQ_N(0U),
-        .lpcgIdx = CPU_PER_LPI_IDX_LPUART3 + CPU_PER_LPI_LPCG_OFFSET,
+        .reqReg = &BLK_CTRL_WAKEUPMIX->QREQ_CTL_2,
+        .reqMask = BLK_CTRL_WAKEUPMIX_QREQ_CTL_2_LPUART3_APB_QREQ_N_MASK,
+        .reqVal = BLK_CTRL_WAKEUPMIX_QREQ_CTL_2_LPUART3_APB_QREQ_N(0U),
+        .lpcgIdx = CPU_PER_LPI_IDX_LPUART3,
     },
 
     [CPU_PER_LPI_IDX_LPUART4] =
     {
-        .reqReg = &BLK_CTRL_WAKEUPMIX->QREQ_CTL_0,
-        .reqMask = BLK_CTRL_WAKEUPMIX_QREQ_CTL_0_LPUART4_QREQ_N_MASK,
-        .reqVal = BLK_CTRL_WAKEUPMIX_QREQ_CTL_0_LPUART4_QREQ_N(0U),
-        .lpcgIdx = CPU_PER_LPI_IDX_LPUART4 + CPU_PER_LPI_LPCG_OFFSET,
+        .reqReg = &BLK_CTRL_WAKEUPMIX->QREQ_CTL_2,
+        .reqMask = BLK_CTRL_WAKEUPMIX_QREQ_CTL_2_LPUART4_APB_QREQ_N_MASK,
+        .reqVal = BLK_CTRL_WAKEUPMIX_QREQ_CTL_2_LPUART4_APB_QREQ_N(0U),
+        .lpcgIdx = CPU_PER_LPI_IDX_LPUART4,
     },
 
     [CPU_PER_LPI_IDX_LPUART5] =
     {
-        .reqReg = &BLK_CTRL_WAKEUPMIX->QREQ_CTL_0,
-        .reqMask = BLK_CTRL_WAKEUPMIX_QREQ_CTL_0_LPUART5_QREQ_N_MASK,
-        .reqVal = BLK_CTRL_WAKEUPMIX_QREQ_CTL_0_LPUART5_QREQ_N(0U),
-        .lpcgIdx = CPU_PER_LPI_IDX_LPUART5 + CPU_PER_LPI_LPCG_OFFSET,
+        .reqReg = &BLK_CTRL_WAKEUPMIX->QREQ_CTL_2,
+        .reqMask = BLK_CTRL_WAKEUPMIX_QREQ_CTL_2_LPUART5_APB_QREQ_N_MASK,
+        .reqVal = BLK_CTRL_WAKEUPMIX_QREQ_CTL_2_LPUART5_APB_QREQ_N(0U),
+        .lpcgIdx = CPU_PER_LPI_IDX_LPUART5,
     },
 
     [CPU_PER_LPI_IDX_LPUART6] =
     {
-        .reqReg = &BLK_CTRL_WAKEUPMIX->QREQ_CTL_0,
-        .reqMask = BLK_CTRL_WAKEUPMIX_QREQ_CTL_0_LPUART6_QREQ_N_MASK,
-        .reqVal = BLK_CTRL_WAKEUPMIX_QREQ_CTL_0_LPUART6_QREQ_N(0U),
-        .lpcgIdx = CPU_PER_LPI_IDX_LPUART6 + CPU_PER_LPI_LPCG_OFFSET,
+        .reqReg = &BLK_CTRL_WAKEUPMIX->QREQ_CTL_2,
+        .reqMask = BLK_CTRL_WAKEUPMIX_QREQ_CTL_2_LPUART6_APB_QREQ_N_MASK,
+        .reqVal = BLK_CTRL_WAKEUPMIX_QREQ_CTL_2_LPUART6_APB_QREQ_N(0U),
+        .lpcgIdx = CPU_PER_LPI_IDX_LPUART6,
     },
 
     [CPU_PER_LPI_IDX_LPUART7] =
     {
-        .reqReg = &BLK_CTRL_WAKEUPMIX->QREQ_CTL_0,
-        .reqMask = BLK_CTRL_WAKEUPMIX_QREQ_CTL_0_LPUART7_QREQ_N_MASK,
-        .reqVal = BLK_CTRL_WAKEUPMIX_QREQ_CTL_0_LPUART7_QREQ_N(0U),
-        .lpcgIdx = CPU_PER_LPI_IDX_LPUART7 + CPU_PER_LPI_LPCG_OFFSET,
+        .reqReg = &BLK_CTRL_WAKEUPMIX->QREQ_CTL_2,
+        .reqMask = BLK_CTRL_WAKEUPMIX_QREQ_CTL_2_LPUART7_APB_QREQ_N_MASK,
+        .reqVal = BLK_CTRL_WAKEUPMIX_QREQ_CTL_2_LPUART7_APB_QREQ_N(0U),
+        .lpcgIdx = CPU_PER_LPI_IDX_LPUART7,
     },
 
     [CPU_PER_LPI_IDX_LPUART8] =
     {
-        .reqReg = &BLK_CTRL_WAKEUPMIX->QREQ_CTL_0,
-        .reqMask = BLK_CTRL_WAKEUPMIX_QREQ_CTL_0_LPUART8_QREQ_N_MASK,
-        .reqVal = BLK_CTRL_WAKEUPMIX_QREQ_CTL_0_LPUART8_QREQ_N(0U),
-        .lpcgIdx = CPU_PER_LPI_IDX_LPUART8 + CPU_PER_LPI_LPCG_OFFSET,
+        .reqReg = &BLK_CTRL_WAKEUPMIX->QREQ_CTL_2,
+        .reqMask = BLK_CTRL_WAKEUPMIX_QREQ_CTL_2_LPUART8_APB_QREQ_N_MASK,
+        .reqVal = BLK_CTRL_WAKEUPMIX_QREQ_CTL_2_LPUART8_APB_QREQ_N(0U),
+        .lpcgIdx = CPU_PER_LPI_IDX_LPUART8,
     },
 
     [CPU_PER_LPI_IDX_WDOG3] =
@@ -361,7 +373,7 @@ static cpu_per_lpi_info_t const s_cpuPerLpiInfo[CPU_NUM_PER_LPI_IDX] =
         .reqReg = &BLK_CTRL_WAKEUPMIX->IPG_STOP_CTL_1,
         .reqMask = BLK_CTRL_WAKEUPMIX_IPG_STOP_CTL_1_WDOG3_STOP_ENABLE_MASK,
         .reqVal = BLK_CTRL_WAKEUPMIX_IPG_STOP_CTL_1_WDOG3_STOP_ENABLE(1U),
-        .lpcgIdx = CPU_PER_LPI_IDX_WDOG3 + CPU_PER_LPI_LPCG_OFFSET,
+        .lpcgIdx = CPU_PER_LPI_IDX_WDOG3,
     },
 
     [CPU_PER_LPI_IDX_WDOG4] =
@@ -369,7 +381,7 @@ static cpu_per_lpi_info_t const s_cpuPerLpiInfo[CPU_NUM_PER_LPI_IDX] =
         .reqReg = &BLK_CTRL_WAKEUPMIX->IPG_STOP_CTL_1,
         .reqMask = BLK_CTRL_WAKEUPMIX_IPG_STOP_CTL_1_WDOG4_STOP_ENABLE_MASK,
         .reqVal = BLK_CTRL_WAKEUPMIX_IPG_STOP_CTL_1_WDOG4_STOP_ENABLE(1U),
-        .lpcgIdx = CPU_PER_LPI_IDX_WDOG4 + CPU_PER_LPI_LPCG_OFFSET,
+        .lpcgIdx = CPU_PER_LPI_IDX_WDOG4,
     },
 
     [CPU_PER_LPI_IDX_WDOG5] =
@@ -377,9 +389,11 @@ static cpu_per_lpi_info_t const s_cpuPerLpiInfo[CPU_NUM_PER_LPI_IDX] =
         .reqReg = &BLK_CTRL_WAKEUPMIX->IPG_STOP_CTL_1,
         .reqMask = BLK_CTRL_WAKEUPMIX_IPG_STOP_CTL_1_WDOG5_STOP_ENABLE_MASK,
         .reqVal = BLK_CTRL_WAKEUPMIX_IPG_STOP_CTL_1_WDOG5_STOP_ENABLE(1U),
-        .lpcgIdx = CPU_PER_LPI_IDX_WDOG5 + CPU_PER_LPI_LPCG_OFFSET,
+        .lpcgIdx = CPU_PER_LPI_IDX_WDOG5,
     }
 };
+
+static cpu_per_lpi_lpgc_t s_cpuPerLpiLpcg[CPU_NUM_PER_LPI_IDX];
 
 /* Global Variables */
 
@@ -415,8 +429,10 @@ bool CPU_Init(uint32_t cpuIdx)
         /* Apply GPC domain assignment */
         GPC_GLOBAL->GPC_CPU_DOMAIN_ASSIGNMENT[cpuIdx] = CPU2GPC(cpuIdx);
 
-        /* Unforce sleep mode at GPC level  */
-        rc = CPU_SleepForceSet(cpuIdx, false);
+        /* For all CPUs except M33P, remove sleep status in evaluation
+         * of system suspend until started.
+         */
+        rc = CPU_SleepForceSet(cpuIdx, (cpuIdx != CPU_IDX_M33P));
 
         /* Initialize peripheral low-power interfaces */
         if (rc)
@@ -1347,6 +1363,45 @@ bool CPU_SystemSleepGet(uint32_t cpuIdx, uint32_t *sysSleep)
 }
 
 /*--------------------------------------------------------------------------*/
+/* Get system-level sleep status                                            */
+/*--------------------------------------------------------------------------*/
+bool CPU_SystemSleepStatusGet(uint32_t *sysSleepStat)
+{
+    bool rc = true;
+
+    /* Check conditions to enter system sleep */
+    *sysSleepStat = CPU_SLEEP_MODE_SUSPEND;
+    uint32_t cpuIdx = 0U;
+    for (cpuIdx = 0U; cpuIdx < CPU_NUM_IDX; cpuIdx++)
+    {
+        if (cpuIdx != CPU_IDX_M33P)
+        {
+            /* Check if sleep is forced for the CPU */
+            bool sleepForce;
+            if (CPU_SleepForceGet(cpuIdx, &sleepForce))
+            {
+                /* If sleep is not forced, consider the CPU mode */
+                if (!sleepForce)
+                {
+                    uint32_t cpuModeStat =
+                        (s_gpcCpuCtrlPtrs[cpuIdx]->CMC_PIN_STAT &
+                        GPC_CPU_CTRL_CMC_PIN_STAT_CPU_MODE_STAT_MASK) >>
+                        GPC_CPU_CTRL_CMC_PIN_STAT_CPU_MODE_STAT_SHIFT;
+
+                    /* Keep track of lowest CPU mode (RUN is lowest) */
+                    if (cpuModeStat < *sysSleepStat)
+                    {
+                        *sysSleepStat = cpuModeStat;
+                    }
+                }
+            }
+        }
+    }
+
+    return rc;
+}
+
+/*--------------------------------------------------------------------------*/
 /* Set misc CPU controls                                                    */
 /*--------------------------------------------------------------------------*/
 static bool CPU_MiscCtrlSet(uint32_t cpuIdx, uint32_t mask, uint32_t val)
@@ -1573,9 +1628,20 @@ bool CPU_LpmConfigInit(uint32_t cpuIdx)
                 /* Check if first CPU of A55P being started */
                 if (PWR_NumChildPowered(PWR_MIX_SLICE_IDX_A55P) == 1U)
                 {
+                    /* Include A55P sleep status in evaluation of system suspend */
+                    rc = CPU_SleepForceSet(CPU_IDX_A55P, false);
+
                     /* Initialize A55P LPM MIX dependencies */
-                    rc = CPU_LpmMixDependSet(CPU_IDX_A55P, CPU_PD_LPM_ON_RUN_WAIT_STOP);
+                    if (rc)
+                    {
+                        rc = CPU_LpmMixDependSet(CPU_IDX_A55P, CPU_PD_LPM_ON_RUN_WAIT_STOP);
+                    }
                 }
+            }
+            else
+            {
+                /* Include CPU sleep status in evaluation of system suspend */
+                rc = CPU_SleepForceSet(cpuIdx, false);
             }
         }
     }
@@ -1609,8 +1675,64 @@ bool CPU_LpmConfigDeInit(uint32_t cpuIdx, uint32_t lpmSetting)
         {
             /* Remove CPU LPM MIX dependencies */
             rc = CPU_LpmMixDependSet(cpuIdxCur, lpmSetting);
+
+            /* Remove CPU sleep status in evaluation of system suspend */
+            if (rc)
+            {
+                rc = CPU_SleepForceSet(cpuIdxCur, true);
+            }
             ++cpuIdxCur;
         } while (rc && (cpuIdxCur <= cpuIdxEnd));
+    }
+
+    return rc;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Set Virtual LPCG low-power mode setting for specified CPU                */
+/*--------------------------------------------------------------------------*/
+static bool CPU_VirtLpcgLpmSet(uint32_t lpcgIdx, uint32_t cpuIdx,
+    uint32_t lpmSetting)
+{
+    bool rc = false;
+
+    if (lpcgIdx < CPU_NUM_PER_LPI_IDX)
+    {
+        uint64_t lpm = (((uint64_t) s_cpuPerLpiLpcg[lpcgIdx].LPM1)
+            << 32U) | ((uint64_t) s_cpuPerLpiLpcg[lpcgIdx].LPM0);
+
+        /* Insert new LPM_SETTING for this CPU */
+        lpm &= (~(LPMSETTING_MASK(cpuIdx)));
+        lpm |= LPMSETTING_DOM(cpuIdx, lpmSetting);
+
+        s_cpuPerLpiLpcg[lpcgIdx].LPM0 = UINT64_L(lpm);
+        s_cpuPerLpiLpcg[lpcgIdx].LPM1 = UINT64_H(lpm);
+
+        rc = true;
+    }
+
+    return rc;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Get Virtual LPCG low-power mode setting for specified CPU                */
+/*--------------------------------------------------------------------------*/
+static bool CPU_VirtLpcgLpmGet(uint32_t lpcgIdx, uint32_t cpuIdx,
+    uint32_t *lpmSetting)
+{
+    bool rc = false;
+
+    if (lpcgIdx < CPU_NUM_PER_LPI_IDX)
+    {
+        uint64_t lpm =
+            ((((uint64_t) s_cpuPerLpiLpcg[lpcgIdx].LPM1) << 32U) |
+            ((uint64_t) s_cpuPerLpiLpcg[lpcgIdx].LPM0));
+
+        /* Extract LPM_SETTING for this CPU */
+        *lpmSetting = (uint32_t) (LPMSETTING_VAL(cpuIdx, lpm)
+            & 0xFFFFFFFFU);
+
+        rc = true;
     }
 
     return rc;
@@ -1632,7 +1754,7 @@ bool CPU_PerLpiConfigSet(uint32_t cpuIdx, uint32_t perLpiIdx,
             {
                 uint32_t lpcgIdx = s_cpuPerLpiInfo[perLpiIdx].lpcgIdx;
 
-                rc = CCM_LpcgLpmSet(lpcgIdx, cpuIdx, lpmSetting);
+                rc = CPU_VirtLpcgLpmSet(lpcgIdx, cpuIdx, lpmSetting);
             }
         }
     }
@@ -1654,7 +1776,7 @@ bool CPU_PerLpiConfigGet(uint32_t cpuIdx, uint32_t perLpiIdx,
         {
             uint32_t lpcgIdx = s_cpuPerLpiInfo[perLpiIdx].lpcgIdx;
 
-            rc = CCM_LpcgLpmGet(lpcgIdx, cpuIdx, lpmSetting);
+            rc = CPU_VirtLpcgLpmGet(lpcgIdx, cpuIdx, lpmSetting);
         }
     }
 
@@ -1695,7 +1817,7 @@ bool CPU_PerLpiProcess(uint32_t cpuIdx, uint32_t sleepMode)
         {
             cpu_per_lpi_info_t const *perLpiInfo = &s_cpuPerLpiInfo[perLpiIdx];
             uint32_t lpmSetting;
-            if (CCM_LpcgLpmGet(perLpiInfo->lpcgIdx, cpuIdx, &lpmSetting))
+            if (CPU_VirtLpcgLpmGet(perLpiInfo->lpcgIdx, cpuIdx, &lpmSetting))
             {
                 /* Skip processing if no LPM setting applied */
                 if (lpmSetting != CPU_PER_LPI_ON_ALWAYS)

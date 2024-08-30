@@ -11,7 +11,7 @@
 **         Linker file for the GNU C Compiler
 **
 **     Copyright 2016 Freescale Semiconductor, Inc.
-**     Copyright 2016-2022 NXP
+**     Copyright 2016-2024 NXP
 **     All rights reserved.
 **
 **     SPDX-License-Identifier: BSD-3-Clause
@@ -27,15 +27,16 @@ ENTRY(Reset_Handler)
 
 HEAP_SIZE  = DEFINED(__heap_size__)  ? __heap_size__  : 0x1000;
 STACK_SIZE = DEFINED(__stack_size__) ? __stack_size__ : 0x1000;
-M_VECTOR_RAM_SIZE = DEFINED(__ram_vector_table__) ? 0x0620 : 0x0;
+M_VECTOR_RAM_SIZE = DEFINED(__ram_vector_table__) ? 0x0800 : 0x0;
 
 
 /* Specify the memory areas */
 MEMORY
 {
-  m_interrupts          (RX)  : ORIGIN = 0x1FFC0000, LENGTH = 0x00000620
-  m_text                (RX)  : ORIGIN = 0x1FFC0620, LENGTH = 0x0003F9E0
-  m_data                (RW)  : ORIGIN = 0x20000000, LENGTH = 0x0003C000
+  m_interrupts          (RX)  : ORIGIN = 0x1FFC0000, LENGTH = 0x00000800
+  m_text                (RX)  : ORIGIN = 0x1FFC0800, LENGTH = 0x00059800
+  m_draminfo            (RW)  : ORIGIN = 0x2001A000, LENGTH = 0x00010000
+  m_data                (RW)  : ORIGIN = 0x2002A000, LENGTH = 0x00013C00
 }
 
 /* Define output sections */
@@ -212,6 +213,9 @@ SECTIONS
   /* Initializes stack on the end of block */
   __StackTop   = ORIGIN(m_data) + LENGTH(m_data);
   __StackLimit = __StackTop - STACK_SIZE;
+  __FreeTcmStart = __HeapLimit;
+  __FreeTcmLimit = __StackLimit;
+  __DramInfo = ORIGIN(m_draminfo);
   PROVIDE(__stack = __StackTop);
 
   .ARM.attributes 0 : { *(.ARM.attributes) }

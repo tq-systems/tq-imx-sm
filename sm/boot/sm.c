@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-** Copyright 2023 NXP
+** Copyright 2023-2024 NXP
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -59,6 +59,7 @@
 /* Local variables */
 
 /*! Boot times */
+// coverity[misra_c_2012_rule_8_9_violation:FALSE]
 uint64_t g_bootTime[SM_BT_SUB + 1U];
 
 /* Local functions */
@@ -75,7 +76,7 @@ int main(int argc, const char * const argv[])
     /* Store boot start time */
     g_bootTime[SM_BT_START] = DEV_SM_Usec64Get();
 
-#if defined(MONITOR) || defined(RUN_TEST) || defined(CONSOLE)
+#ifdef INC_LIBC
     /* Configure stdio for no buffering */
     (void) setvbuf(stdin, NULL, _IONBF, 0);
     (void) setvbuf(stdout, NULL, _IONBF, 0);
@@ -83,7 +84,7 @@ int main(int argc, const char * const argv[])
 
     /* Init the system hardware */
     status = BRD_SM_Init(argc, argv, &mSel);
-    printf("BRD_SM_Init: %d)\n", status);
+    printf("BRD_SM_Init: %d\n", status);
 
     /* Save start banner time */
     delta = DEV_SM_Usec64Get();
@@ -99,16 +100,16 @@ int main(int argc, const char * const argv[])
     /* Init LMM */
     if (status == SM_ERR_SUCCESS)
     {
-        status = LMM_Init();
-        printf("LMM_Init: %d)\n", status);
+        /* mSel from BRD_SM_Init(), LMM_INIT_FLAGS from Makefile */
+        status = LMM_Init(&mSel, LMM_INIT_FLAGS);
+        printf("LMM_Init: %d\n", status);
     }
 
     /* Boot LMs */
     if (status == SM_ERR_SUCCESS)
     {
-        /* mSel from BRD_SM_Init(), LMM_INIT_FLAGS from Makefile */
-        status = LMM_Boot(mSel, LMM_INIT_FLAGS);
-        printf("LMM_Boot: %d)\n", status);
+        status = LMM_Boot();
+        printf("LMM_Boot: %d\n", status);
     }
 
 #ifdef RUN_TEST
@@ -116,9 +117,15 @@ int main(int argc, const char * const argv[])
     if (status == SM_ERR_SUCCESS)
     {
         status = TEST_Config();
-        printf("TEST_Config: %d)\n", status);
+        printf("TEST_Config: %d\n", status);
     }
 #endif
+
+    /* Post-boot cleanup */
+    if (status == SM_ERR_SUCCESS)
+    {
+        status = LMM_PostBoot();
+    }
 
     /* Report any error during init */
     if (status != SM_ERR_SUCCESS)
@@ -137,16 +144,16 @@ int main(int argc, const char * const argv[])
 
 #ifdef MONITOR
     /* Call monitor */
-    MONITOR_Cmd("\n*** SM Debug Monitor - no further booting ***\n");
+    MONITOR_Cmd("\n*** SM Debug Monitor ***\n");
 #endif
 
 #if !defined(RUN_TEST) && !defined(MONITOR)
     printf("\n*** SM Main Loop ***\n");
     /* Loop - services handled via interrupts */
-    while(true)
+    do
     {
-        ; /* TODO: enter low power mode */
-    }
+        status = DEV_SM_SystemIdle();
+    } while (status == SM_ERR_SUCCESS);
 #endif
 
     printf("\nGood-bye from SM\n\n");
@@ -154,18 +161,49 @@ int main(int argc, const char * const argv[])
     return status;
 }
 
-#if !defined(SIMU) && !defined(MONITOR) && !defined(RUN_TEST)
+/*--------------------------------------------------------------------------*/
+/* Report error                                                             */
+/*--------------------------------------------------------------------------*/
+void SM_Error(int32_t status)
+{
+    uint32_t pc = 0U;
+
+#if !defined(SIMU) && !defined(CPPCHECK)
+    /* Get the LR as PC */
+    // coverity[misra_c_2012_rule_1_2_violation:FALSE]
+    __ASM ("MOV %0, LR\n" : "=r" (pc));
+#endif
+
+#ifdef USES_FUSA
+    /* Report to FuSa */
+    LMM_FuSaAssertionFailure(status);
+#endif
+
+    /* Request board reset */
+    BRD_SM_Exit(status, pc);
+}
+
+#if !defined(SIMU) && !defined(INC_LIBC)
 /*--------------------------------------------------------------------------*/
 /* Exit function for no clib                                                */
 /*--------------------------------------------------------------------------*/
+// coverity[misra_c_2012_rule_21_2_violation:FALSE]
+// coverity[misra_c_2012_rule_21_8_violation:FALSE]
 void exit(int status)
 {
-    BRD_SM_Exit((int32_t) status);
+    uint32_t pc;
+
+    /* Get the LR as PC */
+    // coverity[misra_c_2012_rule_1_2_violation:FALSE]
+    __ASM ("MOV %0, LR\n" : "=r" (pc));
+
+    /* Request board reset */
+    BRD_SM_Exit((int32_t) status, pc);
     __builtin_unreachable();
 }
 #endif
 
-#if !defined(SIMU) && !defined(MONITOR) && !defined(RUN_TEST)
+#if !defined(SIMU) && !defined(INC_LIBC)
 /*--------------------------------------------------------------------------*/
 /* C array init for no clib                                                 */
 /*--------------------------------------------------------------------------*/

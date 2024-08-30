@@ -59,6 +59,13 @@
 
 /* Defines */
 
+
+/*! Number of board IRQs participating dynamic prioritization */
+#define BOARD_NUM_IRQ_PRIO_IDX                 1U
+
+/*! Dynamic IRQ priority table index for GPIO1 */
+#define BOARD_IRQ_PRIO_IDX_GPIO1_0             0U
+
 /* Types */
 
 /* External variables */
@@ -72,6 +79,9 @@ extern PF53_Type pf5301Dev;
 /*! Handle to acces PF5302 */
 extern PF53_Type pf5302Dev;
 
+/*! Array of dynamic priority info for board IRQs */
+extern irq_prio_info_t s_brdIrqPrioInfo[BOARD_NUM_IRQ_PRIO_IDX];
+
 /* Functions */
 
 /*!
@@ -82,9 +92,9 @@ extern PF53_Type pf5302Dev;
 int32_t BRD_SM_SerialDevicesInit(void);
 
 /*!
- * GPIO1 interrupt handler.
+ * GPIO 1 interrupt 0 handler (Pin 0..15)
  */
-void BRD_SM_Gpio1Handler(void);
+void GPIO1_0_IRQHandler(void);
 
 /** @} */
 

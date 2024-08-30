@@ -78,6 +78,7 @@
         .start = 1U, \
         .stop = 1U, \
         .boot[1] = 2U, \
+        .boot[2] = 2U, \
     }
 
 /*--------------------------------------------------------------------------*/
@@ -95,38 +96,59 @@
 /*! Number of  mSel */
 #define SM_LM_NUM_MSEL  3U
 
+/*! Number of  S-EENV */
+#define SM_LM_NUM_SEENV  0U
+
+/*! Config name */
+#define SM_LM_CFG_NAME  "mx95alt"
+
 /*! Default LM for monitor */
-#define SM_LM_DEFAULT  0U
+#define SM_LM_DEFAULT  1U
 
 /*--------------------------------------------------------------------------*/
 /* LM Start/Stop Lists                                                      */
 /*--------------------------------------------------------------------------*/
 
 /*! Config for number of start */
-#define SM_LM_NUM_START  4U
+#define SM_LM_NUM_START  8U
 
 /*! LM start list */
 #define SM_LM_START_DATA \
     {.lmId = 1U, .mSel = 0U, .ss = LMM_SS_CPU, .rsrc = DEV_SM_CPU_M7P}, \
     {.lmId = 1U, .mSel = 1U, .ss = LMM_SS_PD, .rsrc = DEV_SM_PD_A55P}, \
+    {.lmId = 1U, .mSel = 2U, .ss = LMM_SS_CPU, .rsrc = DEV_SM_CPU_M7P}, \
     {.lmId = 1U, .mSel = 1U, .ss = LMM_SS_PERF, .rsrc = DEV_SM_PERF_A55, \
-    .numArg = 1, .arg[0] = 3U,}, \
-    {.lmId = 1U, .mSel = 1U, .ss = LMM_SS_CPU, .rsrc = DEV_SM_CPU_A55C0},
+     .numArg = 1, .arg[0] = 3U,}, \
+    {.lmId = 1U, .mSel = 2U, .ss = LMM_SS_PD, .rsrc = DEV_SM_PD_A55P}, \
+    {.lmId = 1U, .mSel = 1U, .ss = LMM_SS_CPU, .rsrc = DEV_SM_CPU_A55C0}, \
+    {.lmId = 1U, .mSel = 2U, .ss = LMM_SS_PERF, .rsrc = DEV_SM_PERF_A55, \
+     .numArg = 1, .arg[0] = 3U,}, \
+    {.lmId = 1U, .mSel = 2U, .ss = LMM_SS_CPU, .rsrc = DEV_SM_CPU_A55C0},
 
 /*! Config for number of stop */
-#define SM_LM_NUM_STOP  9U
+#define SM_LM_NUM_STOP  19U
 
 /*! LM stop list */
 #define SM_LM_STOP_DATA \
     {.lmId = 1U, .mSel = 0U, .ss = LMM_SS_CPU, .rsrc = DEV_SM_CPU_M7P}, \
     {.lmId = 1U, .mSel = 1U, .ss = LMM_SS_CPU, .rsrc = DEV_SM_CPU_A55P}, \
+    {.lmId = 1U, .mSel = 2U, .ss = LMM_SS_CPU, .rsrc = DEV_SM_CPU_A55P}, \
     {.lmId = 1U, .mSel = 1U, .ss = LMM_SS_PD, .rsrc = DEV_SM_PD_A55C5}, \
+    {.lmId = 1U, .mSel = 2U, .ss = LMM_SS_PD, .rsrc = DEV_SM_PD_A55C5}, \
     {.lmId = 1U, .mSel = 1U, .ss = LMM_SS_PD, .rsrc = DEV_SM_PD_A55C4}, \
+    {.lmId = 1U, .mSel = 2U, .ss = LMM_SS_PD, .rsrc = DEV_SM_PD_A55C4}, \
     {.lmId = 1U, .mSel = 1U, .ss = LMM_SS_PD, .rsrc = DEV_SM_PD_A55C3}, \
+    {.lmId = 1U, .mSel = 2U, .ss = LMM_SS_PD, .rsrc = DEV_SM_PD_A55C3}, \
     {.lmId = 1U, .mSel = 1U, .ss = LMM_SS_PD, .rsrc = DEV_SM_PD_A55C2}, \
+    {.lmId = 1U, .mSel = 2U, .ss = LMM_SS_PD, .rsrc = DEV_SM_PD_A55C2}, \
     {.lmId = 1U, .mSel = 1U, .ss = LMM_SS_PD, .rsrc = DEV_SM_PD_A55C1}, \
+    {.lmId = 1U, .mSel = 2U, .ss = LMM_SS_PD, .rsrc = DEV_SM_PD_A55C1}, \
     {.lmId = 1U, .mSel = 1U, .ss = LMM_SS_PD, .rsrc = DEV_SM_PD_A55C0}, \
-    {.lmId = 1U, .mSel = 1U, .ss = LMM_SS_PD, .rsrc = DEV_SM_PD_A55P},
+    {.lmId = 1U, .mSel = 2U, .ss = LMM_SS_PD, .rsrc = DEV_SM_PD_A55C0}, \
+    {.lmId = 1U, .mSel = 1U, .ss = LMM_SS_PD, .rsrc = DEV_SM_PD_A55P}, \
+    {.lmId = 1U, .mSel = 2U, .ss = LMM_SS_PD, .rsrc = DEV_SM_PD_A55P}, \
+    {.lmId = 1U, .mSel = 1U, .ss = LMM_SS_CPU, .rsrc = DEV_SM_CPU_M7P}, \
+    {.lmId = 1U, .mSel = 2U, .ss = LMM_SS_CPU, .rsrc = DEV_SM_CPU_M7P},
 
 /*--------------------------------------------------------------------------*/
 /* LM Fault Lists                                                           */
@@ -134,8 +156,14 @@
 
 /*! LM fault reactions */
 #define SM_LM_FAULT_DATA \
+    [DEV_SM_FAULT_SW5] = {.reaction = LMM_REACT_SYS_SHUTDOWN, .lm = 0U}, \
     [DEV_SM_FAULT_M7_LOCKUP] = {.reaction = LMM_REACT_LM_RESET, .lm = 1U}, \
     [DEV_SM_FAULT_M7_RESET] = {.reaction = LMM_REACT_LM_RESET, .lm = 1U}, \
+    [DEV_SM_FAULT_SW0] = {.reaction = LMM_REACT_FUSA, .lm = 1U}, \
+    [DEV_SM_FAULT_SW1] = {.reaction = LMM_REACT_LM_RESET, .lm = 1U}, \
+    [DEV_SM_FAULT_SW2] = {.reaction = LMM_REACT_LM_SHUTDOWN, .lm = 1U}, \
+    [DEV_SM_FAULT_SW3] = {.reaction = LMM_REACT_SYS_RESET, .lm = 1U}, \
+    [DEV_SM_FAULT_SW4] = {.reaction = LMM_REACT_SYS_SHUTDOWN, .lm = 1U}, \
     [DEV_SM_FAULT_WDOG3] = {.reaction = LMM_REACT_LM_RESET, .lm = 1U}, \
     [DEV_SM_FAULT_WDOG4] = {.reaction = LMM_REACT_LM_RESET, .lm = 1U}, \
     [DEV_SM_FAULT_WDOG5] = {.reaction = LMM_REACT_LM_RESET, .lm = 1U},

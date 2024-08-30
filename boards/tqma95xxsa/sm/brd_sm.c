@@ -67,6 +67,8 @@
 #define BRD_SM_REC_EID(x) \
     (((uint32_t)(((uint32_t)(x)) << BRD_SM_REC_EID_SHIFT)) & \
     BRD_SM_REC_EID_MASK)
+#define BRD_SM_REC_EID_SIGN  (0x00004000U)
+#define BRD_SM_REC_EID_EXT   (0xFFFF8000U)
 
 /* Defines to encode the valid flag for the errId */
 #define BRD_SM_REC_VERR_MASK  (0x00800000U)
@@ -114,9 +116,12 @@
 
 /* Local functions */
 
+static int32_t BRD_SM_InitComplete(uint32_t mSel);
+
 /*--------------------------------------------------------------------------*/
 /* Init board                                                               */
 /*--------------------------------------------------------------------------*/
+// coverity[misra_c_2012_directive_4_6_violation:FALSE]
 int32_t BRD_SM_Init(int argc, const char * const argv[], uint32_t *mSel)
 {
     int32_t status;
@@ -128,20 +133,26 @@ int32_t BRD_SM_Init(int argc, const char * const argv[], uint32_t *mSel)
     BOARD_InitHardware();
 
     /* Get the boot mode select */
-    if (DEV_SM_RomBootCpuGet(DEV_SM_CPU_M33P, &addr, &ms, &flags) == SM_ERR_SUCCESS)
+    if (DEV_SM_RomBootCpuGet(DEV_SM_CPU_M33P, &addr, &ms, &flags)
+        == SM_ERR_SUCCESS)
     {
         *mSel = ms;
     }
 
     /* Initialize devices connected to serial buses (PMIC, IOExp, etc) */
     status = BRD_SM_SerialDevicesInit();
-    printf("BRD_SM_SerialDevicesInit: %d)\n", status);
+    printf("BRD_SM_SerialDevicesInit: %d\n", status);
 
     if (status == SM_ERR_SUCCESS)
     {
         /* Init the device */
         status = DEV_SM_Init(BOARD_BOOT_LEVEL, BOARD_PERF_LEVEL);
-        printf("DEV_SM_Init: %d)\n", status);
+    }
+
+    if (status == SM_ERR_SUCCESS)
+    {
+        /* Complete board init after device init */
+        status = BRD_SM_InitComplete(*mSel);
     }
 
     if (status == SM_ERR_SUCCESS)
@@ -153,6 +164,7 @@ int32_t BRD_SM_Init(int argc, const char * const argv[], uint32_t *mSel)
         BOARD_WdogModeSet(BOARD_WDOG_MODE_FCCU);
     }
 
+    /* TODO: Remove when A0 support dropped */
     /* Configure ISO controls based on feature fuses */
     uint32_t ipIsoMask = 0U;
 
@@ -171,6 +183,7 @@ int32_t BRD_SM_Init(int argc, const char * const argv[], uint32_t *mSel)
         ipIsoMask |= SRC_XSPR_SLICE_SW_CTRL_ISO_CTRL_1_MASK;
     }
 
+    /* Apply ISO mask */
     if (ipIsoMask != 0U)
     {
         SRC_XSPR_HSIOMIX_TOP->SLICE_SW_CTRL &= (~ipIsoMask);
@@ -183,12 +196,20 @@ int32_t BRD_SM_Init(int argc, const char * const argv[], uint32_t *mSel)
 /*--------------------------------------------------------------------------*/
 /* Exit function                                                            */
 /*--------------------------------------------------------------------------*/
-void BRD_SM_Exit(int32_t status)
+void BRD_SM_Exit(int32_t status, uint32_t pc)
 {
-    printf("exit %d\n", status);
+#if defined(MONITOR) || defined(RUN_TEST)
+    printf("exit %d, 0x%08X\n", status, pc);
 
+    /* Disable watchdog */
+    BOARD_WdogModeSet(BOARD_WDOG_MODE_OFF);
+#else
+    SM_SYSTEMERROR(status, pc);
+    // coverity[misra_c_2012_rule_2_2_violation:FALSE]
     SystemExit();
+#endif
 
+    /* Hang */
     while (true)
     {
         ; /* Intentional empty while */
@@ -216,16 +237,25 @@ int32_t BRD_SM_Custom(int32_t argc, const char * const argv[])
 /* Get fault reaction                                                       */
 /*--------------------------------------------------------------------------*/
 int32_t BRD_SM_FaultReactionGet(dev_sm_rst_rec_t resetRec,
+    // coverity[misra_c_2012_rule_8_13_violation:FALSE]
     uint32_t *reaction, uint32_t *lm)
 {
     int32_t status = SM_ERR_SUCCESS;
 
     /* Print reaction */
-    switch(*reaction)
+    switch (*reaction)
     {
         case LMM_REACT_SYS_RESET:
         case LMM_REACT_SYS_SHUTDOWN:
             ; /* Intentional empty as will print elsewhere */
+            break;
+        case LMM_REACT_GRP_RESET:
+            printf("\nReset group %u", *lm);
+            BRD_SM_ResetRecordPrint(",", resetRec);
+            break;
+        case LMM_REACT_GRP_SHUTDOWN:
+            printf("\nShutdown group %u", *lm);
+            BRD_SM_ResetRecordPrint(",", resetRec);
             break;
         case LMM_REACT_LM_RESET:
             printf("\nReset LM %u", *lm);
@@ -335,6 +365,12 @@ void BRD_SM_ShutdownRecordLoad(dev_sm_rst_rec_t *shutdownRec)
         shutdownRec->validOrigin = ((hdr & BRD_SM_REC_VSRC_MASK ) != 0U);
         shutdownRec->extLen = (hdr & BRD_SM_REC_LEN_MASK ) >>
             BRD_SM_REC_LEN_SHIFT;
+
+        /* Sign extend */
+        if ((shutdownRec->errId & BRD_SM_REC_EID_SIGN) != 0U)
+        {
+            shutdownRec->errId |= BRD_SM_REC_EID_EXT;
+        }
 
         shutdownRec->extLen = MIN(shutdownRec->extLen, DEV_SM_NUM_EXT_INFO);
     }
@@ -589,5 +625,19 @@ int32_t BRD_SM_SupplyLevelGet(uint32_t domain, uint32_t *microVolt)
 {
     /* Get voltage level */
     return BRD_SM_VoltageLevelGet(domain, (int32_t*) microVolt);
+}
+
+/*==========================================================================*/
+
+/*--------------------------------------------------------------------------*/
+/* Complete init after DEV_SM init                                          */
+/*--------------------------------------------------------------------------*/
+static int32_t BRD_SM_InitComplete(uint32_t mSel)
+{
+    /* Safe to call DEV_SM functions to init hardware. For example, to
+       enabled a power domain, configure a clock SSC, clock rate, or pin.
+       Not safe to call LMM functions! */
+
+    return SM_ERR_SUCCESS;
 }
 

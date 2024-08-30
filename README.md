@@ -7,50 +7,18 @@ it provides access to clocking, power, sensor, and pin control via a client RPC 
 To facilitate isolation between cores, the SM partitions the SoC into logical machines (LM) which have
 statically configurable access rights to both hardware and RPC API calls.
 
-Installing the Toolchain
-========================
+Supported development environments include Ubuntu 2020.04, 2022.04, and 2024.04.
 
-Compiling requires an ARM cross-compiler. Download and install the required arm-none-eabi toolchain from
-the [Arm GNU Toolchain Downloads](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads)
-website. For example, from the x86_64 Linux hosted cross toolchains AArch32 bare-metal target
-(arm-none-eabi) section, download the *.xv file to a directory for the tool chain (e.g. tools) and then:
+Download from GitHub
+====================
 
-    tar xvf *.mv
+To download the repo from [GitHub](https://github.com/nxp-imx/imx-sm), first install git:
 
-Set the TOOLS shell variable to the directory the toolchain is installed in. For example:
+    sudo apt-get -y install git
 
-    export TOOLS=~/tools
+Then clone the repo:
 
-When the toolchain is in a directory like arm-gnu-toolchain-12.3.rel1-x86_64-arm-none-eabi in this
-*tools* directory.
-
-Also ensure the Linux installation is up-to-date and then install:
-
-    sudo apt-get -y install make gcc g++-multilib srecord
-
-See the *Release Notes* for the exact toolchain version the SM was tested with.
-
-Compiling an SM Image
-=====================
-
-To get started with the SM on an NXP board, download the [github](https://github.com/nxp-imx/imx-sm)
-repository and then compile the SM for the target configuration.
-
-For example, in the top directory of the code base:
-
-    make config=mx95evk all
-
-Then copy the resulting binary image file, *build/mx95evk/m33_image.bin*, to the iMX95 directory of the
-[mkimage tool](https://github.com/nxp-imx/imx-mkimage). Build a boot container using mkimage, program
-it to the boot device, and boot the board. The SM will display a debug monitor prompt on the M33 debug
-UART.
-
-The above config is for Linux+M7 system testing. Another config is delivered for MCUXpresso testing:
-
-    make config=mx95alt all
-
-Customers will usually create their own config that partitions resources between the AP and M7 for
-their use-case.
+git clone https://github.com/nxp-imx/imx-sm
 
 Building the Documentation
 ==========================
@@ -71,4 +39,54 @@ To build the release notes:
     make rn
 
 The output is sm/doc/sm-rn.pdf (also an html version in sm/doc/build/html).
+
+Supported versions of doxygen include 1.8.17, 1.9.1, and 1.9.8.
+
+Installing the Toolchain
+========================
+
+Compiling requires an ARM cross-compiler. Download and install the required arm-none-eabi toolchain from
+the [Arm GNU Toolchain Downloads](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads)
+website. For example, from the x86_64 Linux hosted cross toolchains AArch32 bare-metal target
+(arm-none-eabi) section, download the *.xv file to a directory for the tool chain (e.g. tools) and then:
+
+    tar xvf *.xv
+
+Set the TOOLS shell variable to the directory the toolchain is installed in. For example:
+
+    export TOOLS=~/tools
+
+When the toolchain is in a directory like arm-gnu-toolchain-12.3.rel1-x86_64-arm-none-eabi in this
+*tools* directory.
+
+Also ensure the Linux installation is up-to-date and then install:
+
+    sudo apt-get -y install make gcc g++-multilib srecord
+
+See the *Release Notes* for the exact toolchain version the SM was tested with.
+
+Compiling an SM Image
+=====================
+
+To get started with the SM on an NXP board, download the [GitHub](https://github.com/nxp-imx/imx-sm)
+repository and then compile the SM for the target configuration.
+
+For example, in the top directory of the code base:
+
+    make config=mx95evk all
+
+Then copy the resulting binary image file, *build/mx95evk/m33_image.bin*, to the iMX95 directory of the
+[mkimage tool](https://github.com/nxp-imx/imx-mkimage). Build a boot container using mkimage, program
+it to the boot device, and boot the board. The SM will display a debug monitor prompt on the M33 debug
+UART.
+
+The above config is for Linux+M7 system testing. Another config is delivered for MCUXpresso testing:
+
+    make config=mx95alt all
+
+Customers will usually create their own config that partitions resources between the AP and M7 for
+their use-case.
+
+Complete documentation on compiling the SM, building a boot image, and programming the boot image is
+contained in the *Developer's Guide* section of the full doxygen-based RM described above.
 

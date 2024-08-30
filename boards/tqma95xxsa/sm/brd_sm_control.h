@@ -60,6 +60,7 @@
  * @name Board redirection defines
  * @{
  */
+#define SM_CONTROLSET          BRD_SM_ControlSet          /*!< Control set */
 #define SM_CONTROLGET          BRD_SM_ControlGet          /*!< Control get */
 #define SM_CONTROLFLAGSSET     BRD_SM_ControlFlagsSet     /*!< Control flags */
 /** @} */
@@ -74,7 +75,7 @@
  * @name BRD_SM control domain indexes
  */
 /** @{ */
-#define BRD_SM_CTRL_BUTTON      (DEV_SM_NUM_CTRL)  /*!< TODO: */
+#define BRD_SM_CTRL_TEST    (DEV_SM_NUM_CTRL + 0U)  /*!< Test */
 /** @} */
 
 /* Types */
@@ -85,6 +86,24 @@
  * @name Board control functions
  * @{
  */
+
+/*!
+ * Set a board control value.
+ *
+ * @param[in]     ctrlId   Index of control to write
+ * @param[in]     numVal   Number of array elements
+ * @param[in]     val      Pointer to array of values to set
+ *
+ * This function allows a caller to write an array of values for
+ * a control.
+ *
+ * @return Returns the status (::SM_ERR_SUCCESS = success).
+ *
+ * Return errors (see @ref STATUS "SM error codes"):
+ * - ::SM_ERR_NOT_FOUND: if ctrlId is not valid.
+ */
+int32_t BRD_SM_ControlSet(uint32_t ctrlId, uint32_t numVal,
+    const uint32_t *val);
 
 /*!
  * Get a board control value.

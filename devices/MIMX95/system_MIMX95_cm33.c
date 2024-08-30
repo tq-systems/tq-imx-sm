@@ -54,6 +54,9 @@ void SystemInit(void)
     /* Enable unaligned access and divide by 0 faults */
     SCB->CCR |= (SCB_CCR_UNALIGN_TRP_Msk | SCB_CCR_DIV_0_TRP_Msk);
 
+    /* Configure priority grouping */
+    NVIC_SetPriorityGrouping(IRQ_PRIGROUP);
+
     /* GCC may utilize FPU registers if GP register pressure is high.  FPU must
      * be enabled before FPU instructions or FPU register usage.
      *
@@ -83,16 +86,7 @@ void SystemInit(void)
                       (1UL << RST_REASON_WDOG4) |
                       (1UL << RST_REASON_WDOG5);
 
-    /* Configure FRO for open-loop */
-    FRO->CSR.CLR = FRO_CSR_TREN_MASK;
-    FRO->CSR.CLR = FRO_CSR_TRUPEN_MASK;
-
-    /* Configure FRO trim */
-    FRO->FROTRIM.RW = FRO_FROTRIM_TRIMTEMP(31U) | 2035U;
-
-    /* Enable FRO */
-    FRO->CSR.SET = FRO_CSR_FROEN_MASK;
-
+    // coverity[misra_c_2012_rule_2_2_violation:FALSE]
     SystemInitHook();
 }
 
@@ -100,6 +94,7 @@ void SystemInit(void)
    -- SystemInitHook()
    ---------------------------------------------------------------------------- */
 
+// coverity[misra_c_2012_rule_1_2_violation:FALSE]
 __attribute__((weak)) void SystemInitHook(void)
 {
     /* Void implementation of the weak function. */
@@ -134,6 +129,8 @@ void SystemDebugWaitAttach(void)
         /* Kick the dog */
         BOARD_WdogRefresh();
     }
+
+    // coverity[misra_c_2012_rule_1_2_violation:FALSE]
     __BKPT(0);
 }
 

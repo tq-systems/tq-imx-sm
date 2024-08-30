@@ -64,7 +64,7 @@ void TEST_ScmiCpu(void)
     uint32_t numCpu = 0U;
     uint32_t agentId, channel, domainId, lmId = 0U;
 
-    /* CPU tests */
+    /* RPC_00290 RPC_00160  CPU tests */
     printf("**** CPU Protocol Tests ***\n\n");
 
     /* Test Protocol Version */
@@ -119,7 +119,7 @@ void TEST_ScmiCpu(void)
             &attributes, name), SCMI_ERR_NOT_FOUND);
 
         NECHECK(SCMI_CpuAttributes(SM_SCMI_NUM_CHN, numCpu,
-            &attributes, name), SM_ERR_INVALID_PARAMETERS);
+            &attributes, name), SCMI_ERR_INVALID_PARAMETERS);
 
     }
 
@@ -130,7 +130,7 @@ void TEST_ScmiCpu(void)
             SCMI_ERR_NOT_FOUND);
 
         NECHECK(SCMI_CpuStart(SM_SCMI_NUM_CHN, numCpu),
-            SM_ERR_INVALID_PARAMETERS);
+            SCMI_ERR_INVALID_PARAMETERS);
     }
 
     /* CpuStop -- invalid cpuId and invalid channel*/
@@ -140,7 +140,7 @@ void TEST_ScmiCpu(void)
             SCMI_ERR_NOT_FOUND);
 
         NECHECK(SCMI_CpuStop(SM_SCMI_NUM_CHN, numCpu),
-            SM_ERR_INVALID_PARAMETERS);
+            SCMI_ERR_INVALID_PARAMETERS);
     }
 
     /* CpuResetVecorSet -- invalid cpuId and invalid channel*/
@@ -157,7 +157,7 @@ void TEST_ScmiCpu(void)
 
         NECHECK(SCMI_CpuResetVectorSet(SM_SCMI_NUM_CHN, numCpu,
             flags, resetVectorLow, resetVectorHigh),
-            SM_ERR_INVALID_PARAMETERS);
+            SCMI_ERR_INVALID_PARAMETERS);
     }
 
     /* Loop over cpu test domains */
@@ -213,7 +213,7 @@ static void TEST_ScmiCpuExclusive(bool pass, uint32_t channel,
         printf("SCMI_CpuStop(%u, %u)\n", channel, domainId);
         CHECK(SCMI_CpuStop(channel, domainId));
 
-        /* CPU Reset Vector Set */
+        /* RPC_00300 CPU Reset Vector Set */
         {
             uint32_t flags = 0U;
             uint32_t resetVectorLow = 0U;

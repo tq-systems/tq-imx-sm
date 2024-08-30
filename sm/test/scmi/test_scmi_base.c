@@ -62,7 +62,7 @@ void TEST_ScmiBase(void)
     int32_t status = 0;
     uint32_t agentId, channel, resource, lmId = 0;
 
-    /* Base tests */
+    /* RPC_00010 RPC_00060 RPC_00160 Base tests */
     printf("**** Base Protocol Tests ***\n\n");
 
     /* Test protocol version */
@@ -98,7 +98,7 @@ void TEST_ScmiBase(void)
 
         /* Branch -- Invalid Channel */
         NECHECK(SCMI_BaseDiscoverVendor(SM_SCMI_NUM_CHN, name),
-            SM_ERR_INVALID_PARAMETERS);
+            SCMI_ERR_INVALID_PARAMETERS);
 
         /* Branch -- Nullpointer */
         CHECK(SCMI_BaseDiscoverVendor(SM_TEST_DEFAULT_CHN, NULL));
@@ -115,7 +115,7 @@ void TEST_ScmiBase(void)
 
         /* Branch -- Invalid Channel */
         NECHECK(SCMI_BaseDiscoverSubVendor(SM_SCMI_NUM_CHN, name),
-            SM_ERR_INVALID_PARAMETERS);
+            SCMI_ERR_INVALID_PARAMETERS);
 
         /* Branch -- Nullpointer */
         CHECK(SCMI_BaseDiscoverSubVendor(SM_TEST_DEFAULT_CHN, NULL));
@@ -133,7 +133,7 @@ void TEST_ScmiBase(void)
 
         /* Branch -- Invalid Channel */
         NECHECK(SCMI_BaseDiscoverImplementationVersion(SM_SCMI_NUM_CHN, NULL),
-            SM_ERR_INVALID_PARAMETERS);
+            SCMI_ERR_INVALID_PARAMETERS);
 
         /* Branch -- Nullpointer */
         CHECK(SCMI_BaseDiscoverImplementationVersion(SM_TEST_DEFAULT_CHN, NULL));
@@ -176,9 +176,8 @@ void TEST_ScmiBase(void)
         printf("  numProtocols=%u\n", numProtocols);
         for (uint32_t p = 0U; p < numProtocols; p++)
         {
-            uint32_t prot = protocols[p/4U] >> ((p % 4U) * 8U);
-
-            printf("  prot%u=0x%02X\n", p, prot & 0xFFU);
+            printf("  prot%u=0x%02X\n", p, (protocols[p/4U] >> ((p % 4U)
+                * 8U)) & 0xFFU);
         }
 
         /* Branch -- Invalid Channel */
@@ -303,7 +302,7 @@ static void TEST_ScmiBasePriv(bool pass, uint32_t channel,
 
         /* Reset an Invalid Channel */
         NECHECK(SCMI_BaseResetAgentConfiguration(SM_SCMI_NUM_CHN, 0U, 0U),
-            SM_ERR_INVALID_PARAMETERS);
+            SCMI_ERR_INVALID_PARAMETERS);
 
         /* Set Device Permissions */
         uint32_t flags = 0U;
@@ -327,7 +326,7 @@ static void TEST_ScmiBasePriv(bool pass, uint32_t channel,
 
         status = SCMI_BaseSetDevicePermissions(SM_SCMI_NUM_CHN, agent,
             0U, flags);
-        BCHECK(status == SM_ERR_INVALID_PARAMETERS);
+        BCHECK(status == SCMI_ERR_INVALID_PARAMETERS);
     }
     /* ACCESS DENIED */
     else

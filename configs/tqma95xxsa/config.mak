@@ -32,6 +32,8 @@
 
 BOARD ?= tqma95xxsa
 
+USES_FUSA ?= 1
+
 include ./devices/MIMX95/sm/Makefile
 include ./boards/$(BOARD)/sm/Makefile
 include ./sm/lmm/Makefile

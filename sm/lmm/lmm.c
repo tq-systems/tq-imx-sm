@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-** Copyright 2023 NXP
+** Copyright 2023-2024 NXP
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -48,6 +48,8 @@
 
 /* Local variables */
 
+static volatile uint32_t s_mSel;
+static volatile uint32_t s_lmmInitFlags;
 static volatile uint32_t s_bootLm;
 static volatile uint8_t s_bootSkip;
 static volatile int32_t s_bootStatus;
@@ -56,20 +58,24 @@ static uint64_t s_lmStartTime[SM_NUM_LM];
 /*--------------------------------------------------------------------------*/
 /* Init logical machine manager                                             */
 /*--------------------------------------------------------------------------*/
-int32_t LMM_Init(void)
+int32_t LMM_Init(uint32_t *mSel, uint32_t lmmInitFlags)
 {
     int32_t status;
     uint32_t numClock;
     const uint32_t *clockList;
 
     /* Init LMM system management */
-    LMM_SystemInit();
+    status = LMM_SystemInit();
 
-    /* Get LM0 default resource state */
-    DEV_SM_LmmInitGet(&numClock, &clockList);
+    /* Success? */
+    if (status == SM_ERR_SUCCESS)
+    {
+        /* Get LM0 default resource state */
+        DEV_SM_LmmInitGet(&numClock, &clockList);
 
-    /* Init LMM clock management */
-    status = LMM_ClockInit(numClock, clockList);
+        /* Init LMM clock management */
+        status = LMM_ClockInit(numClock, clockList);
+    }
 
     /* Init LMM voltage management */
     if (status == SM_ERR_SUCCESS)
@@ -83,11 +89,13 @@ int32_t LMM_Init(void)
         status = LMM_CpuInit();
     }
 
+#ifdef USES_FUSA
     /* Init FuSa */
     if (status == SM_ERR_SUCCESS)
     {
-        status = LMM_FusaInit();
+        status = LMM_FusaInit(mSel);
     }
+#endif
 
     /* Init LMs */
     if (status == SM_ERR_SUCCESS)
@@ -117,6 +125,10 @@ int32_t LMM_Init(void)
         }
     }
 
+    /* Record init parms */
+    s_mSel = *mSel;
+    s_lmmInitFlags = lmmInitFlags;
+
     /* Return status */
     return status;
 }
@@ -126,9 +138,17 @@ int32_t LMM_Init(void)
 /*                                                                          */
 /* Note only call from main(). Cannot be called from an interrupt context.  */
 /*--------------------------------------------------------------------------*/
-int32_t LMM_Boot(uint32_t mSel, uint32_t lmmInitFlags)
+int32_t LMM_Boot(void)
 {
     int32_t status;
+    uint32_t mSel = s_mSel;
+    uint32_t lmmInitFlags = s_lmmInitFlags;
+
+    /* Default out of range mSel */
+    if (mSel >= SM_LM_NUM_MSEL)
+    {
+        mSel = 0U;
+    }
 
     /* Inform LM system of mode select */
     status = LMM_SystemModeSelSet(mSel);
@@ -186,6 +206,19 @@ int32_t LMM_Boot(uint32_t mSel, uint32_t lmmInitFlags)
 
     /* Return status */
     return status;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Post-boot clean-up                                                       */
+/*                                                                          */
+/* Run any clean-up required after starting all LM                          */
+/*--------------------------------------------------------------------------*/
+int32_t LMM_PostBoot(void)
+{
+    uint32_t lmmInitFlags = s_lmmInitFlags;
+
+    /* Just passthru to board/device */
+    return SM_SYSTEMPOSTBOOT(s_mSel, lmmInitFlags);
 }
 
 /*--------------------------------------------------------------------------*/
@@ -300,6 +333,7 @@ void LMM_ErrorDump(void)
     }
 
     /* Dump device/board errors */
+    // coverity[misra_c_2012_rule_2_2_violation:FALSE]
     SM_ERRORDUMP();
 }
 
@@ -344,5 +378,19 @@ void LMM_Handler(void)
 uint64_t LMM_BootTimeGet(uint32_t lmId)
 {
     return s_lmStartTime[lmId];
+}
+
+/*--------------------------------------------------------------------------*/
+/* Get cfg info                                                             */
+/*--------------------------------------------------------------------------*/
+string LMM_CfgInfoGet(uint32_t *mSel)
+{
+    static string cfgName = SM_LM_CFG_NAME;
+
+    /* Return mSel value */
+    *mSel = s_mSel;
+
+    /* Return cfg file name */
+    return cfgName;
 }
 

@@ -74,7 +74,7 @@ sub get_define;
 
 my @protocols = ('base', 'pd', 'sys', 'perf', 'clk', 'sensor',
     'rst', 'volt', 'lmm', 'gpr', 'rtc', 'button', 'cpu', 'perlpi',
-    'pin', 'daisy', 'ctrl', 'fault', 'crc', 'fusa');
+    'pin', 'daisy', 'ctrl', 'fault', 'fusa');
 my @mbTypes = ('MU', 'LOOPBACK');
 my @xportTypes = ('SMT');
 	my @permTypes = ('none', 'get', 'notify', 'set', 'priv',
@@ -82,6 +82,8 @@ my @xportTypes = ('SMT');
 my %makeInclude;
 my %args;
 my $log;
+
+my $seenvid = 0;
 
 # Parse command line
 getopts('hi:l:o:v', \%args);
@@ -107,6 +109,18 @@ if ($help || (not defined $inputFile) || (not defined $outDir))
     print "The input configuration file is loaded, processed, and\n";
     print "configuration header files written to the output directory\n";
     exit;
+}
+
+# Support other cfg files
+if (defined $inputFile)
+{
+	my $otherInputFile = $inputFile;
+    $otherInputFile =~ s/configs/configs\/other/g;
+
+	if (-e $otherInputFile)
+	{
+		$inputFile = $otherInputFile;
+	}
 }
 
 # Open log file
@@ -640,6 +654,11 @@ sub generate_mb
 	                {
 	                    print $out '        .sma = ' . $parm . 'U, \\' . "\n";
 	                }
+	                if ((my $parm = &param($mb, 'priority')) ne '!')
+	                {
+	                    print $out '        .priority = IRQ_PRIO_NOPREEMPT_'
+	                        . uc $parm . ', \\' . "\n";
+	                }
 	                $defLst[$i] = $mu;
 	            }
             }
@@ -908,6 +927,7 @@ sub generate_scmi
     my $firstAgent;
     my $chn = 0;
     my $notify = 20;
+    my $safe = 0;
     foreach my $dat (@list)
     {
         # Handle LM and EOF
@@ -966,6 +986,16 @@ sub generate_scmi
                 }
                 $firstAgent = $agnt + 1;
                 $lmId++;
+
+                # Check safety type
+                $safe = 0;
+       	        if ((my $parm = &param($dat, 'safe')) ne '!')
+    	        {
+                    if ($parm eq 'seenv')
+                    {
+                        $safe = 1;
+                    }
+    	        }
             }
 
             next;
@@ -978,6 +1008,7 @@ sub generate_scmi
             $agentToken =~ s/_/ /g; 
             my $line = $agentToken . ' Config';
     		my $secure = 0;
+            my $dup;
             if ((my $parm = &param($dat, 'name')) ne '!')
             {
                 $parm =~ s/\"//g;
@@ -997,6 +1028,19 @@ sub generate_scmi
             }
             $agnt++;
             $numAgents++;
+            if ((my $parm = &param($dat, 'dup')) ne '!')
+            {
+                $dup = $parm;
+            }
+            else
+            {
+                $dup = $agnt;
+            }
+
+            if ($safe == 1)
+            {
+                $seenvid++;
+            }
 
             # Output banner
             print $out &banner($line);
@@ -1008,7 +1052,7 @@ sub generate_scmi
             }
 
             # Get perms
-            my @perms = &get_perms($cfgRef, $agnt);
+            my @perms = &get_perms($cfgRef, $dup);
 
             # Output agent info
 			print $out '/*! Config for SCMI agent ' . $agnt
@@ -1024,6 +1068,10 @@ sub generate_scmi
             print $out '        .scmiInst = ' . $scmiInst . 'U, \\' . "\n";
             print $out '        .domId = ' . $did . 'U, \\' . "\n";
             print $out '        .secure = ' . $secure . 'U, \\' . "\n";
+            if ($safe == 1)
+            {
+                print $out '        .seenvId = ' . $seenvid . 'U, \\' . "\n";
+            }
 
             # Loop over perms
             $i = 0;
@@ -1055,6 +1103,11 @@ sub generate_scmi
 	            if ((my $parm = &param($dat, 'type')) ne '!')
 	            {
 	                print $out '        .type = SM_SCMI_CHN_'
+	                    . uc $parm . ', \\' . "\n";
+	            }
+	            if ((my $parm = &param($dat, 'sequence')) ne '!')
+	            {
+	                print $out '        .sequence = SM_SCMI_SEQ_'
 	                    . uc $parm . ', \\' . "\n";
 	            }
 	            if ((my $parm = &param($dat, 'xport')) ne '!')
@@ -1373,6 +1426,12 @@ sub generate_lmm
 	                . ', \\' . "\n";
 	        }
 
+            # Output group
+   	        if ((my $parm = &param($lm, 'group')) ne '!')
+	        {
+	            print $out '        .group = ' . $parm . 'U, \\' . "\n";
+	        }
+
 			# Output start/stop
 			my $sidx = first { $start[$_] =~ /lm=$lm_val/ } 0..$#start;
 			if (defined $sidx)
@@ -1456,6 +1515,16 @@ sub generate_lmm
 	# Output max msel
     print $out '/*! Number of  mSel */' . "\n";
     print $out '#define SM_LM_NUM_MSEL  ' . ($maxMsel + 1) . 'U' . "\n\n";
+
+	# Output max num seenv
+    print $out '/*! Number of  S-EENV */' . "\n";
+    print $out '#define SM_LM_NUM_SEENV  ' . ($seenvid) . 'U' . "\n\n";
+
+	# Output config name
+    my ($inName, $inPath, $inSuffix) = fileparse($inputFile, '\.[^\.]*');
+    print $out '/*! Config name */' . "\n";
+    print $out '#define SM_LM_CFG_NAME  "' . substr($inName, 0, 15)
+        . '"' . "\n\n";
 
 	# Output default monitor LM
     print $out '/*! Default LM for monitor */' . "\n";
@@ -2017,6 +2086,12 @@ sub generate_make
     if ((my $parm = &param($make[0], 'board')) ne '!')
     {
 	    print $out 'BOARD ?= ' . $parm . "\n\n";
+    }		
+
+	# Output FuSa define
+    if ($seenvid != 0)
+    {
+	    print $out 'USES_FUSA ?= 1' . "\n\n";
     }		
 
 	# Output SoC/board includes
@@ -3023,8 +3098,15 @@ sub get_trdc
     				error_line('too many regions ' . $elm, '');
     			}
 
-    			$m = sprintf("%s%02d %d, %d = %d", $elm, $rgd, $w0, $w1, $perm);
-    			$rgd++;
+				if ($perm != 0)
+				{
+    				$m = sprintf("%s%02d %d, %d = %d", $elm, $rgd, $w0, $w1, $perm);
+    				$rgd++;
+    			}
+    			else
+    			{
+    				$m = '';
+    			}
 
                 $old_elm = $elm;
                 $old_rgn = $rgn;
@@ -3060,7 +3142,7 @@ sub get_trdc
 				$curr_mrc = $mrc;
 			}
 
-            if ($w1 != 0)
+            if (($w1 != 0) && ($perm != 0))
             {
     			# Find match
     			my $match = -1;
@@ -3246,8 +3328,14 @@ sub convert_trdc
 			my $addr = 0x10040 + (0x2000 * $nmbc) + (0x1000 * $mrc)
 				+ (0x8 * $rgd) + (0x100 * $dom);
 
-			push @avp, sprintf("%s: 0x%08x = %s", uc $idx, $addr, $val1);
+			if ($val2 ne '0x00000000')
+			{
+				push @avp, sprintf("%s: 0x%08x = %s", uc $idx, $addr, $val1);
+			}
 			push @avp, sprintf("%s: 0x%08x = %s", uc $idx, $addr + 4, $val2);
+		}
+		elsif ($t eq '')
+		{
 		}
 		else
 		{
@@ -3482,7 +3570,7 @@ sub startstop
 				if (@words > 0)
 				{
 					$rtn .= ', '  . '\\' . "\n";
-					$rtn .= '    .numArg = ' . @words . ',';
+					$rtn .= '     .numArg = ' . @words . ',';
 				}
 
 				for my $i (0 .. $#words)

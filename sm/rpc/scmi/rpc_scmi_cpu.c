@@ -60,8 +60,9 @@
 #define COMMAND_CPU_NON_IRQ_WAKE_SET         0x9U
 #define COMMAND_CPU_PD_LPM_CONFIG_SET        0xAU
 #define COMMAND_CPU_PER_LPM_CONFIG_SET       0xBU
+#define COMMAND_CPU_INFO_GET                 0xCU
 #define COMMAND_NEGOTIATE_PROTOCOL_VERSION   0x10U
-#define COMMAND_SUPPORTED_MASK               0x10FFFUL
+#define COMMAND_SUPPORTED_MASK               0x11FFFUL
 
 /* SCMI max cpu argument lengths */
 #define CPU_MAX_NAME          16U
@@ -81,6 +82,12 @@
 #define CPU_LPM_SETTING_ON_RUN_WAIT       2U
 #define CPU_LPM_SETTING_ON_RUN_WAIT_STOP  3U
 #define CPU_LPM_SETTING_ON_ALWAYS         4U
+
+/* SCMI CPU run modes */
+#define CPU_RUN_RUN    0U
+#define CPU_RUN_WAIT   1U
+#define CPU_RUN_STOP   2U
+#define CPU_RUN_SLEEP  3U
 
 /* Local macros */
 
@@ -285,6 +292,32 @@ typedef struct
     per_lpm_config_t perConfigs[CPU_MAX_PERCONFIGS_T];
 } msg_rcpu11_t;
 
+/* Request type for CpuInfoGet() */
+typedef struct
+{
+    /* Header word */
+    uint32_t header;
+    /* Identifier for the CPU */
+    uint32_t cpuId;
+} msg_rcpu12_t;
+
+/* Response type for CpuInfoGet() */
+typedef struct
+{
+    /* Header word */
+    uint32_t header;
+    /* Return status */
+    int32_t status;
+    /* Run mode for the CPU */
+    uint32_t runMode;
+    /* Sleep mode for the CPU */
+    uint32_t sleepMode;
+    /* Reset vector low 32 bits for the CPU */
+    uint32_t resetVectorLow;
+    /* Reset vector high 32 bits for the CPU */
+    uint32_t resetVectorHigh;
+} msg_tcpu12_t;
+
 /* Request type for NegotiateProtocolVersion() */
 typedef struct
 {
@@ -320,6 +353,8 @@ static int32_t CpuPdLpmConfigSet(const scmi_caller_t *caller,
     const msg_rcpu10_t *in, const scmi_msg_status_t *out);
 static int32_t CpuPerLpmConfigSet(const scmi_caller_t *caller,
     const msg_rcpu11_t *in, const scmi_msg_status_t *out);
+static int32_t CpuInfoGet(const scmi_caller_t *caller, const msg_rcpu12_t *in,
+    msg_tcpu12_t *out);
 static int32_t CpuNegotiateProtocolVersion(const scmi_caller_t *caller,
     const msg_rcpu16_t *in, const scmi_msg_status_t *out);
 static int32_t CpuResetAgentConfig(uint32_t lmId, uint32_t agentId,
@@ -341,7 +376,7 @@ int32_t RPC_SCMI_CpuDispatchCommand(scmi_caller_t *caller,
     uint32_t lenOut = sizeof(scmi_msg_status_t);
 
     /* Handle standard messages */
-    switch(messageId)
+    switch (messageId)
     {
         case COMMAND_PROTOCOL_VERSION:
             lenOut = sizeof(msg_tcpu0_t);
@@ -403,6 +438,11 @@ int32_t RPC_SCMI_CpuDispatchCommand(scmi_caller_t *caller,
             status = CpuPerLpmConfigSet(caller, (const msg_rcpu11_t*) in,
                 (const scmi_msg_status_t*) out);
             break;
+        case COMMAND_CPU_INFO_GET:
+            lenOut = sizeof(msg_tcpu12_t);
+            status = CpuInfoGet(caller, (const msg_rcpu12_t*) in,
+                (msg_tcpu12_t*) out);
+            break;
         case COMMAND_NEGOTIATE_PROTOCOL_VERSION:
             lenOut = sizeof(const scmi_msg_status_t);
             status = CpuNegotiateProtocolVersion(caller,
@@ -437,6 +477,8 @@ int32_t RPC_SCMI_CpuDispatchReset(uint32_t lmId, uint32_t agentId,
 /*==========================================================================*/
 /* Custom Protocol Implementation                                           */
 /*==========================================================================*/
+
+static uint8_t s_cpuAgent[SM_NUM_CPU];
 
 /*--------------------------------------------------------------------------*/
 /* Get protocol version                                                     */
@@ -812,6 +854,10 @@ static int32_t CpuResetVectorSet(const scmi_caller_t *caller,
         uint64_t resetVector = (((uint64_t) in->resetVectorHigh) << 32U)
             | (uint64_t) in->resetVectorLow;
 
+        /* Mark owning agent */
+        s_cpuAgent[in->cpuId] = ((uint8_t) caller->agentId) + 1U;
+
+        /* Update vector */
         status = LMM_CpuResetVectorSet(caller->lmId, in->cpuId,
             resetVector, boot, start, resume, table);
     }
@@ -829,8 +875,7 @@ static int32_t CpuResetVectorSet(const scmi_caller_t *caller,
 /* - in->flags: Sleep mode flags:                                           */
 /*   Bits[31:1] Reserved, must be zero.                                     */
 /*   Bit[0] IRQ mux:                                                        */
-/*   If set to 1 the the wakeup mux source is the GIC, else if 0 then the   */
-/*   GPC                                                                    */
+/*   If set to 1 the wakeup mux source is the GIC, else if 0 then the GPC   */
 /* - in->sleepMode: Target sleep mode                                       */
 /*                                                                          */
 /* Process the CPU_SLEEP_MODE_SET message. Platform handler for             */
@@ -1124,7 +1169,7 @@ static int32_t CpuPdLpmConfigSet(const scmi_caller_t *caller,
 /*                                                                          */
 /* Return errors:                                                           */
 /* - SM_ERR_SUCCESS: if the CPU is started successfully.                    */
-/* - SM_ERR_NOT_FOUND: if cpuId or a pereipheral ID does not exist.         */
+/* - SM_ERR_NOT_FOUND: if cpuId or a peripheral ID does not exist.          */
 /* - SM_ERR_INVALID_PARAMETERS: if numConfigs or an LPM setting is          */
 /*   invalid.                                                               */
 /* - SM_ERR_DENIED: if the calling agent is not allowed to configure        */
@@ -1196,6 +1241,60 @@ static int32_t CpuPerLpmConfigSet(const scmi_caller_t *caller,
 }
 
 /*--------------------------------------------------------------------------*/
+/* Get info for a CPU                                                       */
+/*                                                                          */
+/* Parameters:                                                              */
+/* - caller: Caller info                                                    */
+/* - in->cpuId: Identifier for the CPU                                      */
+/* - out->runMode: Run mode for the CPU                                     */
+/* - out->sleepMode: Sleep mode for the CPU                                 */
+/* - out->resetVectorLow: Reset vector low 32 bits for the CPU              */
+/* - out->resetVectorHigh: Reset vector high 32 bits for the CPU            */
+/*                                                                          */
+/* Process the CPU_INFO_GET message. Platform handler for                   */
+/* SCMI_CpuInfoGet().                                                       */
+/*                                                                          */
+/* Return errors:                                                           */
+/* - SM_ERR_SUCCESS: if the CPU info is returned successfully.              */
+/* - SM_ERR_NOT_FOUND: if cpuId does not exist.                             */
+/* - SM_ERR_PROTOCOL_ERROR: if the incoming payload is too small.           */
+/*--------------------------------------------------------------------------*/
+static int32_t CpuInfoGet(const scmi_caller_t *caller, const msg_rcpu12_t *in,
+    msg_tcpu12_t *out)
+{
+    int32_t status = SM_ERR_SUCCESS;
+
+    /* Check request length */
+    if (caller->lenCopy < sizeof(*in))
+    {
+        status = SM_ERR_PROTOCOL_ERROR;
+    }
+
+    /* Check CPU */
+    if ((status == SM_ERR_SUCCESS) && (in->cpuId >= SM_NUM_CPU))
+    {
+        status = SM_ERR_NOT_FOUND;
+    }
+
+    /* Check and translate to device CPU sleep mode */
+    if (status == SM_ERR_SUCCESS)
+    {
+        uint64_t vector = 0ULL;
+
+        /* Get CPU info */
+        status = LMM_CpuInfoGet(caller->lmId, in->cpuId,
+            &(out->runMode), &(out->sleepMode), &vector);
+
+        /* Return results */
+        out->resetVectorHigh = SM_UINT64_H(vector);
+        out->resetVectorLow = SM_UINT64_L(vector);
+    }
+
+    /* Return status */
+    return status;
+}
+
+/*--------------------------------------------------------------------------*/
 /* Negotiate the protocol version                                           */
 /*                                                                          */
 /* Parameters:                                                              */
@@ -1259,11 +1358,11 @@ static int32_t CpuResetAgentConfig(uint32_t lmId, uint32_t agentId,
     /* Loop over all CPUs */
     for (uint32_t cpuId = 0U; cpuId < SM_NUM_CPU; cpuId++)
     {
-        /* Reset rate */
-        if (g_scmiAgentConfig[agentId].cpuPerms[cpuId]
-            >= SM_SCMI_PERM_EXCLUSIVE)
+        /* Reset vector */
+        if (s_cpuAgent[cpuId] == (((uint8_t) agentId) + 1U))
         {
             (void) LMM_CpuResetVectorReset(lmId, cpuId);
+            s_cpuAgent[cpuId] = 0U;
         }
     }
 

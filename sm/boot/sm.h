@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-** Copyright 2023 NXP
+** Copyright 2023-2024 NXP
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -90,7 +90,9 @@
 #define SM_ERR_MISSING_PARAMETERS  (-130)  /*!< One or more parameters is missing. */
 #define SM_ERR_POWER               (-131)  /*!< Power domain dependency violation. */
 #define SM_ERR_TEST                (-132)  /*!< Test error. Generally lack of an expected error. */
-#define SM_ERR_LAST                (-133)  /*!< Temp error beyond all valid error codes. */
+#define SM_ERR_SEQ_ERROR           (-133)  /*!< Sequence error. The message sent or recv. did not
+                                                include the required sequence number. */
+#define SM_ERR_LAST                (-134)  /*!< Temp error beyond all valid error codes. */
 /** @} */
 
 /*!
@@ -191,9 +193,26 @@
 /*! Magic macro to do a compile time check */
 #define COMPILE_ASSERT(X) ((void)sizeof(char[1 - (2 * (!(X)))]))
 
-#if !defined(MONITOR) && !defined(RUN_TEST) && !defined(CONSOLE)
+#if !defined(INC_LIBC)
 /*! Eliminate printf */
+// coverity[misra_c_2012_rule_21_1_violation:FALSE]
+// coverity[misra_c_2012_rule_21_2_violation:FALSE]
 #define printf(...)
+#endif
+
+/*! Assert all builds */
+#define ENSURE(cond, err) \
+    if (!(cond)) \
+    { \
+        SM_Error(err); \
+    }
+
+#if defined(DEBUG)
+/*! Include asserts */
+#define ASSERT(cond, err) ENSURE(cond, err)
+#else
+/*! Eliminate assert */
+#define ASSERT(cond, err)
 #endif
 
 /*!
@@ -235,6 +254,24 @@ extern uint64_t g_bootTime[SM_BT_SUB + 1U];
  * @return Returns the status (::SM_ERR_SUCCESS = success).
  */
 int main(int argc, const char * const argv[]);
+
+/*!
+ * Report error.
+ *
+ * @param[in]     status      Status code
+ *
+ * This function reports an error to the board exit code. That code will
+ * record the error information and reset the system.
+ */
+void SM_Error(int32_t status);
+
+#if !defined(SIMU) && !defined(INC_LIBC)
+/*!
+ * Init C lib.
+ */
+// coverity[misra_c_2012_rule_21_2_violation:FALSE]
+void __libc_init_array(void);
+#endif
 
 #endif /* SM_H */
 

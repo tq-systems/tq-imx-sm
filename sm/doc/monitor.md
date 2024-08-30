@@ -39,6 +39,7 @@ Info Commands
 | btime                       | display boot time info                                       |
 | trdc.raw *rdc* [*did*]      | raw dump of TRDC *rdc*, limit to *did* if specified          |
 | trdc *rdc* [*did*]          | formatted dump of TRDC *rdc*, limit to *did* if specified    |
+| syslog [*flags*]            | display syslog, flags and log device specific                |
 
 System Commands
 ---------------
@@ -54,12 +55,15 @@ System Commands
 | stage serial[container]     | set boot stage to serial  and reset                          |
 | suspend                     | request all LM suspend (sleep)                               |
 | wake                        | request all LM wake (resume)                                 |
+| spm *mode*                  | set SM system power mode (used for system suspend)           |
+| idle                        | enter SM idle (system suspend if all LM in suspend)          |
 | wdog warm                   | configure wdog to generate warm reset                        |
 | wdog cold                   | configure wdog to generate warm reset and drive WDOG_ANY     |
 | wdog irq                    | configure wdog to drive WDOG_ANY                             |
 | wdog off                    | turn off the watchdog                                        |
 | wdog trigger                | trigger the watchdog                                         |
 | fault *id*                  | trigger the *id* fault                                       |
+| assert *status*             | assert with status *status*                                  |
 
 Logical Machine Commands
 ------------------------
@@ -74,9 +78,21 @@ Logical Machine Commands
 | lm [*lm*] suspend           | suspend LM (default unless *lm* specified)                   |
 | lm [*lm*] wake              | wake LM (default unless *lm* specified)                      |
 | lm [*lm*] reason            | display reset reason for LM (default unless *lm* specified)  |
+| lm [*lm*] power             | power up an LM (default unless *lm* specified)               |
 
 The output of reason commands on NXP board ports is described in the @ref PORT_NXP_PRINT
 section.
+
+Group Commands
+--------------
+
+These operate on groups of LM as defined by the SM config.
+
+| Command                     | Description                                                  |
+|-----------------------------|--------------------------------------------------------------|
+| grp [*grp*] boot            | boot LM group (0 unless *grp* specified)                     |
+| grp [*grp*] shutdown [gful] | power off LM group (optional grp=0 and graceful flag)        |
+| grp [*grp*] reset [gful]    | reset/reboot LM group (optional grp=0 and graceful flag)     |
 
 Resource Commands
 -----------------
@@ -90,9 +106,11 @@ Resource Commands
 | clock.r                     | display rate/enable for all clocks                           |
 | clock.r range               | display range for all clocks                                 |
 | clock.r parent              | display parents for all clocks                               |
+| clock.r ext *ext*           | display extended data for type *ext* for all clocks          |
 | clock.w *clock* *state*     | enable/display *clock* (on = enable, off = disable)          |
 | clock.w *clock* reparent *parent* | set parent for *clock* to *parent*                     |
 | clock.w *clock* rate *rate* | set rate for *clock* to *rate*                               |
+| clock.w *clock* ext *ext* *extConfigValue* | set extended configuration for type *ext*     |
 | clock.reset *clock*         | reset *clock* to boot state                                  |
 | sensor.r                    | display all sensor values                                    |
 | sensor.w *sensor*           | enable/display *sensor* (on = enable, off = disable)         |
@@ -110,6 +128,8 @@ Resource Commands
 | cpu.w *cpu* stop            | stop CPU *cpu*                                               |
 | cpu.w *cpu* vector *addr*   | set boot vectors for CPU *cpu*                               |
 | ctrl.r                      | display values for all controls                              |
+| ctrl.w *ctrl* *list...*     | set *list* values for *ctrl* control                         |
+| ctrl.notify *ctrl* *flags*  | set notify flags to *flags* for *ctrl* control               |
 
 Data R/W Commands
 -----------------

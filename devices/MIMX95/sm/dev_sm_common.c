@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-**     Copyright 2023 NXP
+**     Copyright 2023-2024 NXP
 **
 **     Redistribution and use in source and binary forms, with or without modification,
 **     are permitted provided that the following conditions are met:
@@ -44,8 +44,8 @@
 
 /* Local defines */
 
-#define BASE(X)         (((X) >> 4U) & 0xFU)
-#define METAL(X)        (((X) >> 0U) & 0xFU)
+#define TMP_BASE(X)     (((X) >> 4U) & 0xFU)
+#define TMP_METAL(X)    (((X) >> 0U) & 0xFU)
 
 #define MINOR_BASE(X)   (((X) & 0xFU) << 4U)
 #define MINOR_METAL(X)  (((X) & 0xFU) << 0U)
@@ -59,6 +59,10 @@
 /* Local types */
 
 /* Local variables */
+
+/* Global variables */
+
+dev_sm_syslog_t g_syslog;
 
 /* Local functions */
 
@@ -85,9 +89,10 @@ int32_t DEV_SM_SiInfoGet(uint32_t *deviceId, uint32_t *siRev,
     {
         uint32_t tmpMinor;
         uint32_t fuseMinor;
+        uint32_t newVal;
 
         /* Copy name */
-        DEV_SM_StrCpy(s_siName, "i.MX9596 A0", 15U);
+        DEV_SM_StrCpy(s_siName, "i.MX95 A0", 15U);
 
         /* Update minor version */
         tmpMinor = (*deviceId & OSC24M_DIGPROG_DEVICE_ID_DIGPROG_MINOR_MASK)
@@ -98,15 +103,10 @@ int32_t DEV_SM_SiInfoGet(uint32_t *deviceId, uint32_t *siRev,
         tmpMinor = MAX(tmpMinor, fuseMinor);
 
         /* Update name */
-        s_siName[9] = 'A' + (char) BASE(tmpMinor);
-        s_siName[10] = '0' + (char) METAL(tmpMinor);
-
-        /* Update part num */
-        if (*partNum != 0U)
-        {
-            s_siName[6] = '0' + (char) PN_DESIG(*partNum);
-            s_siName[7] = '0' + (char) PN_CORES(*partNum);
-        }
+        newVal = TMP_BASE(tmpMinor);
+        s_siName[7] = 'A' + ((uint8_t) newVal);
+        newVal = TMP_METAL(tmpMinor);
+        s_siName[8] = '0' + ((uint8_t) newVal);
 
         /* Mark updated */
         s_updated = true;
@@ -115,6 +115,54 @@ int32_t DEV_SM_SiInfoGet(uint32_t *deviceId, uint32_t *siRev,
     /* Return name */
     *siNameAddr = s_siName;
 
+    /* Return result */
+    return status;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Get the syslog                                                           */
+/*--------------------------------------------------------------------------*/
+int32_t DEV_SM_SyslogGet(uint32_t flags, const dev_sm_syslog_t **syslog,
+    uint32_t *len)
+{
+    /* Return data */
+    *syslog = &g_syslog;
+    *len = sizeof(dev_sm_syslog_t);
+
+    /* Return result */
+    return SM_ERR_SUCCESS;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Dump the syslog                                                          */
+/*--------------------------------------------------------------------------*/
+int32_t DEV_SM_SyslogDump(uint32_t flags)
+{
+    int32_t status;
+    const dev_sm_syslog_t *syslog;
+    uint32_t len;
+
+    /* Get data */
+    status = DEV_SM_SyslogGet(flags, &syslog, &len);
+
+#ifdef INC_LIBC
+    if (status == SM_ERR_SUCCESS)
+    {
+        const dev_sm_sys_sleep_rec_t *sysSleepRecord
+            = &g_syslog.sysSleepRecord;
+
+        printf("Wake vector = %u\n", sysSleepRecord->wakeSource);
+        printf("Sys power mode = 0x%08X\n", sysSleepRecord->sysPwrMode);
+        printf("MIX power status = 0x%08X\n", sysSleepRecord->mixPwrStat);
+        printf("MEM power status = 0x%08X\n", sysSleepRecord->memPwrStat);
+        printf("PLL power status = 0x%08X\n", sysSleepRecord->pllPwrStat);
+        printf("Sleep latency = %u usec\n", sysSleepRecord->sleepEntryUsec);
+        printf("Wake latency = %u usec\n", sysSleepRecord->sleepExitUsec);
+        printf("Sleep count = %u\n", sysSleepRecord->sleepCnt);
+    }
+#endif
+
+    /* Return result */
     return status;
 }
 
@@ -142,6 +190,7 @@ int32_t DEV_SM_FuseInfoGet(uint32_t fuseWord, uint32_t *addr)
         status = SM_ERR_NOT_FOUND;
     }
 
+    /* Return result */
     return status;
 }
 

@@ -66,7 +66,7 @@ void TEST_LmmClock(void)
     uint64_t rate = 0U;
     bool enabled = false;
 
-    /* LM tests */
+    /* LM_00010 LM_00030 LM tests */
     printf("**** LMM Clock API Tests ***\n\n");
 
     for (uint32_t clockId = 0U; clockId < (SM_NUM_CLOCK - 1U); clockId++)
@@ -119,7 +119,7 @@ void TEST_LmmClock(void)
         printf("  enabled=%d\n",  enabled);
 
         /* Make sure clockId not clock 0*/
-        if(clockId == DEV_SM_CLK_0)
+        if (clockId == DEV_SM_CLK_0)
         {
             /* If it is throw err, and print number of muxes*/
             printf("LMM_ClockMuxGet(%u, %u)\n", lmId, clockId);

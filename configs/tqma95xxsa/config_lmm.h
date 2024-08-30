@@ -95,7 +95,7 @@
         .boot[0] = 3U, \
         .bootSkip[0] = 1U, \
         .start = 4U, \
-        .stop = 4U, \
+        .stop = 7U, \
     }
 
 /*--------------------------------------------------------------------------*/
@@ -114,6 +114,12 @@
 /*! Number of  mSel */
 #define SM_LM_NUM_MSEL  3U
 
+/*! Number of  S-EENV */
+#define SM_LM_NUM_SEENV  1U
+
+/*! Config name */
+#define SM_LM_CFG_NAME  "tqma95xxsa"
+
 /*! Default LM for monitor */
 #define SM_LM_DEFAULT  2U
 
@@ -122,34 +128,43 @@
 /*--------------------------------------------------------------------------*/
 
 /*! Config for number of start */
-#define SM_LM_NUM_START  12U
+#define SM_LM_NUM_START  15U
 
 /*! LM start list */
 #define SM_LM_START_DATA \
     {.lmId = 1U, .mSel = 0U, .ss = LMM_SS_CPU, .rsrc = DEV_SM_CPU_M7P}, \
     {.lmId = 1U, .mSel = 1U, .ss = LMM_SS_CPU, .rsrc = DEV_SM_CPU_M7P}, \
     {.lmId = 1U, .mSel = 2U, .ss = LMM_SS_CPU, .rsrc = DEV_SM_CPU_M7P}, \
+    {.lmId = 2U, .mSel = 0U, .ss = LMM_SS_VOLT, .rsrc = DEV_SM_VOLT_ARM, \
+     .numArg = 1, .arg[0] = 1U,}, \
+    {.lmId = 2U, .mSel = 1U, .ss = LMM_SS_VOLT, .rsrc = DEV_SM_VOLT_ARM, \
+     .numArg = 1, .arg[0] = 1U,}, \
+    {.lmId = 2U, .mSel = 2U, .ss = LMM_SS_VOLT, .rsrc = DEV_SM_VOLT_ARM, \
+     .numArg = 1, .arg[0] = 1U,}, \
     {.lmId = 2U, .mSel = 0U, .ss = LMM_SS_PD, .rsrc = DEV_SM_PD_A55P}, \
     {.lmId = 2U, .mSel = 1U, .ss = LMM_SS_PD, .rsrc = DEV_SM_PD_A55P}, \
     {.lmId = 2U, .mSel = 2U, .ss = LMM_SS_PD, .rsrc = DEV_SM_PD_A55P}, \
     {.lmId = 2U, .mSel = 0U, .ss = LMM_SS_PERF, .rsrc = DEV_SM_PERF_A55, \
-    .numArg = 1, .arg[0] = 3U,}, \
+     .numArg = 1, .arg[0] = 3U,}, \
     {.lmId = 2U, .mSel = 1U, .ss = LMM_SS_PERF, .rsrc = DEV_SM_PERF_A55, \
-    .numArg = 1, .arg[0] = 3U,}, \
+     .numArg = 1, .arg[0] = 3U,}, \
     {.lmId = 2U, .mSel = 2U, .ss = LMM_SS_PERF, .rsrc = DEV_SM_PERF_A55, \
-    .numArg = 1, .arg[0] = 3U,}, \
+     .numArg = 1, .arg[0] = 3U,}, \
     {.lmId = 2U, .mSel = 0U, .ss = LMM_SS_CPU, .rsrc = DEV_SM_CPU_A55C0}, \
     {.lmId = 2U, .mSel = 1U, .ss = LMM_SS_CPU, .rsrc = DEV_SM_CPU_A55C0}, \
     {.lmId = 2U, .mSel = 2U, .ss = LMM_SS_CPU, .rsrc = DEV_SM_CPU_A55C0},
 
 /*! Config for number of stop */
-#define SM_LM_NUM_STOP  27U
+#define SM_LM_NUM_STOP  33U
 
 /*! LM stop list */
 #define SM_LM_STOP_DATA \
     {.lmId = 1U, .mSel = 0U, .ss = LMM_SS_CPU, .rsrc = DEV_SM_CPU_M7P}, \
     {.lmId = 1U, .mSel = 1U, .ss = LMM_SS_CPU, .rsrc = DEV_SM_CPU_M7P}, \
     {.lmId = 1U, .mSel = 2U, .ss = LMM_SS_CPU, .rsrc = DEV_SM_CPU_M7P}, \
+    {.lmId = 1U, .mSel = 0U, .ss = LMM_SS_PD, .rsrc = DEV_SM_PD_M7}, \
+    {.lmId = 1U, .mSel = 2U, .ss = LMM_SS_PD, .rsrc = DEV_SM_PD_M7}, \
+    {.lmId = 1U, .mSel = 2U, .ss = LMM_SS_PD, .rsrc = DEV_SM_PD_M7}, \
     {.lmId = 2U, .mSel = 0U, .ss = LMM_SS_CPU, .rsrc = DEV_SM_CPU_A55P}, \
     {.lmId = 2U, .mSel = 1U, .ss = LMM_SS_CPU, .rsrc = DEV_SM_CPU_A55P}, \
     {.lmId = 2U, .mSel = 2U, .ss = LMM_SS_CPU, .rsrc = DEV_SM_CPU_A55P}, \
@@ -173,7 +188,10 @@
     {.lmId = 2U, .mSel = 2U, .ss = LMM_SS_PD, .rsrc = DEV_SM_PD_A55C0}, \
     {.lmId = 2U, .mSel = 0U, .ss = LMM_SS_PD, .rsrc = DEV_SM_PD_A55P}, \
     {.lmId = 2U, .mSel = 1U, .ss = LMM_SS_PD, .rsrc = DEV_SM_PD_A55P}, \
-    {.lmId = 2U, .mSel = 2U, .ss = LMM_SS_PD, .rsrc = DEV_SM_PD_A55P},
+    {.lmId = 2U, .mSel = 2U, .ss = LMM_SS_PD, .rsrc = DEV_SM_PD_A55P}, \
+    {.lmId = 2U, .mSel = 0U, .ss = LMM_SS_VOLT, .rsrc = DEV_SM_VOLT_ARM}, \
+    {.lmId = 2U, .mSel = 1U, .ss = LMM_SS_VOLT, .rsrc = DEV_SM_VOLT_ARM}, \
+    {.lmId = 2U, .mSel = 2U, .ss = LMM_SS_VOLT, .rsrc = DEV_SM_VOLT_ARM},
 
 /*--------------------------------------------------------------------------*/
 /* LM Fault Lists                                                           */
@@ -181,17 +199,16 @@
 
 /*! LM fault reactions */
 #define SM_LM_FAULT_DATA \
-    [DEV_SM_FAULT_SW5] = {.reaction = LMM_REACT_SYS_SHUTDOWN, .lm = 0U}, \
-    [DEV_SM_FAULT_WDOG5] = {.reaction = LMM_REACT_LM_SHUTDOWN, .lm = 1U}, \
-    [DEV_SM_FAULT_M7_LOCKUP] = {.reaction = LMM_REACT_LM_SHUTDOWN, .lm = 1U}, \
+    [DEV_SM_FAULT_SW3] = {.reaction = LMM_REACT_GRP_RESET, .lm = 0U}, \
+    [DEV_SM_FAULT_SW4] = {.reaction = LMM_REACT_SYS_RESET, .lm = 0U}, \
+    [DEV_SM_FAULT_WDOG5] = {.reaction = LMM_REACT_LM_RESET, .lm = 1U}, \
+    [DEV_SM_FAULT_M7_LOCKUP] = {.reaction = LMM_REACT_LM_RESET, .lm = 1U}, \
     [DEV_SM_FAULT_M7_RESET] = {.reaction = LMM_REACT_LM_RESET, .lm = 1U}, \
     [DEV_SM_FAULT_SW0] = {.reaction = LMM_REACT_FUSA, .lm = 1U}, \
     [DEV_SM_FAULT_SW1] = {.reaction = LMM_REACT_LM_RESET, .lm = 1U}, \
-    [DEV_SM_FAULT_SW2] = {.reaction = LMM_REACT_LM_SHUTDOWN, .lm = 1U}, \
     [DEV_SM_FAULT_WDOG3] = {.reaction = LMM_REACT_LM_RESET, .lm = 2U}, \
     [DEV_SM_FAULT_WDOG4] = {.reaction = LMM_REACT_LM_RESET, .lm = 2U}, \
-    [DEV_SM_FAULT_SW3] = {.reaction = LMM_REACT_LM_RESET, .lm = 2U}, \
-    [DEV_SM_FAULT_SW4] = {.reaction = LMM_REACT_LM_SHUTDOWN, .lm = 2U},
+    [DEV_SM_FAULT_SW2] = {.reaction = LMM_REACT_LM_RESET, .lm = 2U},
 
 #endif /* CONFIG_LMM_H */
 

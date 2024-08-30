@@ -27,8 +27,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _FSL_CCM_H_
-#define _FSL_CCM_H_
+#ifndef FSL_CCM_H
+#define FSL_CCM_H
 
 /*!
  * @addtogroup CCM_driver
@@ -38,6 +38,7 @@
 /*! @file */
 
 /* Includes */
+
 #include "fsl_common.h"
 
 /* Defines */
@@ -45,6 +46,7 @@
 /* Types */
 
 /* Functions */
+
 bool CCM_RootGetEnable(uint32_t rootIdx);
 bool CCM_RootSetEnable(uint32_t rootIdx, bool enable);
 uint64_t CCM_RootGetRate(uint32_t rootIdx);
@@ -70,6 +72,7 @@ bool CCM_LpcgLpmGet(uint32_t lpcgIdx, uint32_t cpuIdx, uint32_t *cpuLpmSetting);
 
 /* Externs */
 
-#endif /* _FSL_CCM_H_ */
+#endif /* FSL_CCM_H */
 
 /** @} */
+

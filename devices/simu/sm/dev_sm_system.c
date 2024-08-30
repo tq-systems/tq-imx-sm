@@ -48,7 +48,6 @@
 
 /* Local variables */
 
-static uint32_t s_powerMode = 0U;
 static dev_sm_rst_rec_t s_shutdownRecord = { 0 };
 
 /*--------------------------------------------------------------------------*/
@@ -67,15 +66,7 @@ int32_t DEV_SM_SystemInit(void)
 /*--------------------------------------------------------------------------*/
 void DEV_SM_SystemPowerModeSet(uint32_t powerMode)
 {
-    s_powerMode = powerMode;
-}
-
-/*--------------------------------------------------------------------------*/
-/* get power mode                                                           */
-/*--------------------------------------------------------------------------*/
-void DEV_SM_SystemPowerModeGet(uint32_t *powerMode)
-{
-    *powerMode = s_powerMode;
+    g_syslog.sysPwrMode = powerMode;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -168,10 +159,12 @@ int32_t DEV_SM_SystemReasonNameGet(uint32_t resetReason,
 
     static string const s_name[DEV_SM_NUM_REASON] =
     {
-        [DEV_SM_REASON_POR] =   "por",
-        [DEV_SM_REASON_FAULT] = "fault",
-        [DEV_SM_REASON_BBM] =   "bbm",
-        [DEV_SM_REASON_SW] =    "sw"
+        [DEV_SM_REASON_POR] =        "por",
+        [DEV_SM_REASON_FAULT] =      "fault",
+        [DEV_SM_REASON_BBM] =        "bbm",
+        [DEV_SM_REASON_SW] =         "sw",
+        [DEV_SM_REASON_SM_ERR] =     "sm_err",
+        [DEV_SM_REASON_FUSA_SRECO] = "fusa_sreco"
     };
 
     /* Get max string width */
@@ -193,10 +186,55 @@ int32_t DEV_SM_SystemReasonNameGet(uint32_t resetReason,
 }
 
 /*--------------------------------------------------------------------------*/
+/* Post-boot clean-up                                                       */
+/*                                                                          */
+/* Run any clean-up required after starting all LM                          */
+/*--------------------------------------------------------------------------*/
+int32_t DEV_SM_SystemPostBoot(uint32_t mSel, uint32_t initFlags)
+{
+    int32_t status = SM_ERR_SUCCESS;
+
+    /* Return status */
+    return status;
+}
+
+/*--------------------------------------------------------------------------*/
 /* Complete system reset processing                                         */
 /*--------------------------------------------------------------------------*/
-int32_t DEV_SM_SystemRstComp(dev_sm_rst_rec_t resetRec)
+int32_t DEV_SM_SystemRstComp(const dev_sm_rst_rec_t *resetRec)
 {
     return SM_SYSTEMRSTCOMP(resetRec);
+}
+
+/*--------------------------------------------------------------------------*/
+/* Report SM error to log and reset                                         */
+/*--------------------------------------------------------------------------*/
+void DEV_SM_SystemError(int32_t status, uint32_t pc)
+{
+    dev_sm_rst_rec_t resetRec =
+    {
+        .reason = DEV_SM_REASON_SM_ERR,
+        .errId = (uint32_t) status,
+        .validErr = true,
+        .valid = true
+    };
+
+    /* Record PC */
+    if (pc != 0U)
+    {
+        resetRec.extInfo[0] = pc;
+        resetRec.extLen = 1U;
+    }
+
+    /* Finalize system reset flow */
+    (void) DEV_SM_SystemRstComp(&resetRec);
+}
+
+/*--------------------------------------------------------------------------*/
+/* Idle the system                                                          */
+/*--------------------------------------------------------------------------*/
+int32_t DEV_SM_SystemIdle(void)
+{
+    return SM_ERR_SUCCESS;
 }
 

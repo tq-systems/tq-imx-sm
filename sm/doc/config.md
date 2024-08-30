@@ -82,6 +82,11 @@ and modules for the LMM, MU MB, SCMI, and SMT. It also includes the GCC
 cross-compile toolchain info (targets, flags, warnings, libraries, linker control
 files, etc.).
 
+Other defines may exit such as defining the board or various USES.
+
+    BOARD ?= mcimx95evk
+    USES_FUSA ?= 1
+
 MU Mailbox {#MB_MU_CONFIG}
 ----------------
 
@@ -93,6 +98,7 @@ Configures the MU mailbox module. The defines in this file are as follows:
 - **SM_MB_MUn_CONFIG** - fills a single mb_mu_config_t structure for an MU mailbox
   - *mu* - Index to MU SDK driver, see MU_BASE_PTRS
   - *sma* - Shared memory address, undefined (0) indicates the MU SRAM
+  - *priority* - Priority of the MU interrupt, for example IRQ_PRIO_NOPREEMPT_CRITICAL
   - *xportType[]* - array of transport types, one per doorbell of the MB
   - *xportChannel[]* - array of transport channels, one per doorbell of the MB
 - **SM_NUM_MB_MU** - number of MU mailboxes
@@ -174,6 +180,7 @@ Configures the SCMI RPC. The defines in this file are as follows:
   - *name* - agent name
   - *domId* - RDC domain ID (DID)
   - *secure* - security state, 1=secure, 0=not secure
+  - *seenvId* - S-EENV ID, 0=not an S-EENV, otherwise ID + 1
   - *scmiInst* - SCMI instance this agent belongs to
   - *basePerms[]* - array of base protocol permissions, one per agent, device
   - *pdPerms[]* - array of power protocol permissions, one per power domain
@@ -193,13 +200,13 @@ Configures the SCMI RPC. The defines in this file are as follows:
   - *daisyPerms[]* - array of pin control protocol daisy permissions, one per daisy register
   - *ctrlPerms[]* - array of control protocol permissions, one per control
   - *faultPerms[]* - array of FuSa protocol fault permissions, one per fault
-  - *crcPerms[]* - array of FuSa protocol CRC permissions, one per CRC channel
   - *fusaPerms* - FuSa protocol permission (F-EENV)
 - **SM_SCMI_CHNn_CONFIG** - fills a single scmi_chn_config_t structure
   - *agentId* - agent this channel linked with
   - *type* - type of SCMI channel, for example ::SM_SCMI_CHN_A2P
   - *xportType* - transport type to link, for example ::SM_XPORT_SMT
   - *xportChannel* - transport channel to link
+  - *sequence* - sequence type, for example ::SM_SCMI_SEQ_NONE
 - **SM_SCMIn_CONFIG** - fills a single scmi_config_t structure
   - *lmId* - ID of logical machine linked to this SCMI instance
   - *numAgents* - number of agents in this SCMI instance
@@ -280,6 +287,9 @@ as follows:
 - **SM_NUM_LM** - total number of LM
 - **SM_LM_CONFIG_DATA** - fills in the ::g_lmmConfig array of lmm_config_t
   structures, one per LM
+- **SM_LM_NUM_MSEL** - number of mSel
+- **SM_LM_NUM_SEENV** - Number of S-EENV IDs
+- **SM_LM_CFG_NAME** - Basename of the cfg file
 - **SM_LM_DEFAULT** - default LM used by the debug monitor
 - **SM_LM_NUM_START** - total number of start array entries
 - **SM_LM_START_DATA** - fills in the s_lmmStart array of lmm_start_t
@@ -336,6 +346,8 @@ Fault reactions supported are:
 |----------------------------|----------------------------------|
 | ::LMM_REACT_SYS_RESET      | Reset the system                 |
 | ::LMM_REACT_SYS_SHUTDOWN   | Shutdown (power off) the system  |
+| ::LMM_REACT_GRP_RESET      | Reset an LM group                |
+| ::LMM_REACT_GRP_SHUTDOWN   | Shutdown (power off) an LM group |
 | ::LMM_REACT_LM_RESET       | Reset an LM                      |
 | ::LMM_REACT_LM_SHUTDOWN    | Shutdown (power off) an LM       |
 | ::LMM_REACT_BOARD          | Custom board handling            |
@@ -580,7 +592,7 @@ and memory. This ownership info is then used to determine API access rights to r
 because the [config_dev.h](@ref DEV_CONFIG) file usually has manual customizations, it will
 not be overwritten if it exits.
 
-The cfg files are also usually stored in the configs directory. So an example usage is:
+The cfg files are also usually stored in the *configs* directory. So an example usage is:
 
     cd configs
     ./configtool -i <name>.cfg -o <name>
@@ -588,6 +600,11 @@ The cfg files are also usually stored in the configs directory. So an example us
 where \<name\> is the configuration name. This can also be accomplished using make:
 
     make config=<name> cfg
+
+Some config files are also stored in *configs/other*. This will also be searched to find the
+specified cfg file. No need to include *other* in the file name. Config files in *other* are
+delivered as is and not maintained or tested as part of an SM release. They usually come
+from other teams such as an OS, virtualization, or test teams.
 
 To create a new config, its best to copy a config for the NXP (e.g. EVK) board for the
 same SoC device to a new config file name, modify it, and generate the header files.
@@ -661,39 +678,43 @@ Configtool Commands {#CONFIGTOOL_CMDS}
 The configtool supports the following commands and key=value pairs in the input file.
 
 | Command     | Key     | Value                                        |
-|-------------|---------|----------------------------- ----------------|
-| MAKE        | soc     | Build includes ./devices/\<VAL\>/sm/Makefile |
-|             | board   | Build includes ./boards/\<VAL\>/sm/Makefile |
-|             | build   | Build includes ./sm/makefiles/\<VAL\>.mak |
-| DOX         | name    | Define doxygen group CONFIG_\<VAL\>, use group for all config files |
-|             | desc    | Group description, quoted |
-| DOMn        | did     | Starts a domain (aka DID) section *n*, ends with another DOMn or LMn command, used for resources not part of an LM such as ELE, MTR, DAP, etc.,  the DID is usually defined in the RM and sometimes must be a fixed value e.g. ELE=0, MTR=1 |
-| LMn         | name    | Starts an LM section *n*, *n* starts at 0 and should increment, LM name string, quoted, 15 characters max |
-|             | rpc     | Linked RPC is SM_RPC_\<VAL\>, e.g. ::SM_RPC_SCMI |
-|             | boot    | Optional, boot order starting with 1, undefined/0 = do not boot |
-|             | skip    | Optional, if not 0, ignore error on boot if no image in boot container |
-|             | rtime   | Optional, boot time of LM in uS, relative to start of LM boot loop, max 178 seconds |
-|             | did     | RDC DID for this LM |
-|             | safe    | Safety type is LMM_SAFE_TYPE_\<VAL\>, e.g. ::LMM_SAFE_TYPE_SEENV, deault is NSEENV |
-|             | default | The deault LM for the debug monitor |
-| MODE        | msel    | Alternate boot config index |
-|             | boot    | Optional, boot order starting with 1, undefined/0 = do not boot |
-|             | skip    | Optional, if not 0, ignore error on boot if no image in boot container |
-| SCMI_AGENTn | name    | Starts an SCMI agent section *n*, *n* starts at 0 and should increment, agent name string, quoted, 15 characters max |
-|             | secure  | Agent is secure (no =value) |
-| MAILBOX     | type    | Define a mailbox of type SM_MB_<VAL\>, e.g. ::SM_MB_MU, one per agent |
-|             | mu      | Index into SDK MU base pointer array, platform side |
-|             | test    | Index into SDK MU base pointer array, client side for testing |
-|             | sma     | Shared memory area address, undefined/0 = MU SRAM |
-| CHANNEL     | xport   | Define a channel of type SM_XPORT_<VAL\>, e.g. ::SM_XPORT_SMT, up to four per mailbox |
-|             | db      | Mailbox doorbell, 0-3 |
-|             | rpc     | RPC type of SM_RPC_<VAL\>, e.g. ::SM_RPC_SCMI |
-|             | type    | SCMI channel type of SM_SCMI_CHN_<VAL\>, e.g. ::SM_SCMI_CHN_A2P |
-|             | check   | CRC algorithm to use (e.g. crc32 for ::SM_SMT_CRC_CRC32), default is none |
-|             | notify  | Depth of notification buffer, **one setting applies to all channels** |
-|             | test    | =default, use this channel as the default for unit tests |
-| DEBUG       | did     | Specify DID (usually 9) used by the DAP/ETR that should have access to everything |
-| MIX         | name    | Add dev config for the mix |
+|-------------|----------|----------------------------- ----------------|
+| MAKE        | soc      | Build includes ./devices/\<VAL\>/sm/Makefile |
+|             | board    | Build includes ./boards/\<VAL\>/sm/Makefile |
+|             | build    | Build includes ./sm/makefiles/\<VAL\>.mak |
+| DOX         | name     | Define doxygen group CONFIG_\<VAL\>, use group for all config files |
+|             | desc     | Group description, quoted |
+| DOMn        | did      | Starts a domain (aka DID) section *n*, ends with another DOMn or LMn command, used for resources not part of an LM such as ELE, MTR, DAP, etc.,  the DID is usually defined in the RM and sometimes must be a fixed value e.g. ELE=0, MTR=1 |
+| LMn         | name     | Starts an LM section *n*, *n* starts at 0 and should increment, LM name string, quoted, 15 characters max |
+|             | rpc      | Linked RPC is SM_RPC_\<VAL\>, e.g. ::SM_RPC_SCMI |
+|             | boot     | Optional, boot order starting with 1, undefined/0 = do not boot |
+|             | skip     | Optional, if not 0, ignore error on boot if no image in boot container |
+|             | rtime    | Optional, boot time of LM in uS, relative to start of LM boot loop, max 178 seconds |
+|             | did      | RDC DID for this LM |
+|             | safe     | Safety type is LMM_SAFE_TYPE_\<VAL\>, e.g. ::LMM_SAFE_TYPE_SEENV, deault is NSEENV |
+|             | group    | LM group, deault is 0 |
+|             | default  | The deault LM for the debug monitor |
+| MODE        | msel     | Alternate boot config index |
+|             | boot     | Optional, boot order starting with 1, undefined/0 = do not boot |
+|             | skip     | Optional, if not 0, ignore error on boot if no image in boot container |
+| SCMI_AGENTn | name     | Starts an SCMI agent section *n*, *n* starts at 0 and should increment, agent name string, quoted, 15 characters max |
+|             | secure   | Agent is secure (no =value) |
+|             | dup      | Duplicate API perms from agent <val\> |
+| MAILBOX     | type     | Define a mailbox of type SM_MB_<VAL\>, e.g. ::SM_MB_MU, one per agent |
+|             | mu       | Index into SDK MU base pointer array, platform side |
+|             | test     | Index into SDK MU base pointer array, client side for testing |
+|             | sma      | Shared memory area address, undefined/0 = MU SRAM |
+|             | priority | MU interrupt prority is IRQ_PRIO_NOPREEMPT_\<VAL\>, e.g. IRQ_PRIO_NOPREEMPT_CRITICAL, deault is NORMAL |
+| CHANNEL     | xport    | Define a channel of type SM_XPORT_<VAL\>, e.g. ::SM_XPORT_SMT, up to four per mailbox |
+|             | db       | Mailbox doorbell, 0-3 |
+|             | rpc      | RPC type of SM_RPC_<VAL\>, e.g. ::SM_RPC_SCMI |
+|             | type     | SCMI channel type of SM_SCMI_CHN_<VAL\>, e.g. ::SM_SCMI_CHN_A2P |
+|             | check    | CRC algorithm to use (e.g. crc32 for ::SM_SMT_CRC_CRC32), default is none |
+|             | notify   | Depth of notification buffer, **one setting applies to all channels** |
+|             | test     | =default, use this channel as the default for unit tests |
+|             | sequence | Sequence type (e.g. token for ::SM_SCMI_SEQ_TOKEN), default is none |
+| DEBUG       | did      | Specify DID (usually 9) used by the DAP/ETR that should have access to everything |
+| MIX         | name     | Add dev config for the mix |
 
 
 While any DID can be used, it is recommended to use the standard mapping defined in
@@ -726,7 +747,6 @@ files for a list of each resource type):
 - **CTRL_a** - Device/board control *a*
 - **FUSA** - Used to define access rights to the F-EENV functions (for FuSa)
 - **FAULT_a** - Device/board fault *a* (for FuSa)
-- **CRC_a** - Device/board CRC channel *a* (for FuSa)
 - **TRDC_CONFIG_a** - TRDC *a* configuration info
 - **MDAC_am=r** - TRDC *a*, MDA_Wr_m, *m* is the master, *r* is register (can be
   a range r1-r2)
@@ -850,7 +870,7 @@ Below is an explanation of each line:
 - **Lines 21-23** - Defines, OWNER and EXEC used below, DFMT0 used in include files for CPU masters
 - **Line 27** - Give LM0 the M33 core. M33P and OWNER are defines and expand to:
 @code
-    DEV_SM_PD_M33P DEV_SM_CLK_M33 DEV_SM_CLK_M33SYSTICK DEV_SM_CPU_M33P sa=secure MDAC_A16C=0-2 pd=all clk=all cpu=all 
+    DEV_SM_CLK_M33 DEV_SM_CLK_M33SYSTICK DEV_SM_CPU_M33P sa=secure MDAC_A16C=0-2 pd=all clk=all cpu=all 
 @endcode
   This configures the MDACs for secure (DID=2 from LM), ALL perms for the M33 related power
   domain, clocks, and CPU protocols.

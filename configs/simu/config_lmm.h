@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-** Copyright 2023 NXP
+** Copyright 2023-2024 NXP
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -109,6 +109,12 @@
 /*! Number of  mSel */
 #define SM_LM_NUM_MSEL  1U
 
+/*! Number of  S-EENV */
+#define SM_LM_NUM_SEENV  1U
+
+/*! Config name */
+#define SM_LM_CFG_NAME  "simu"
+
 /*! Default LM for monitor */
 #define SM_LM_DEFAULT  2U
 
@@ -125,7 +131,7 @@
     {.lmId = 1U, .mSel = 0U, .ss = LMM_SS_CPU, .rsrc = DEV_SM_CPU_1}, \
     {.lmId = 2U, .mSel = 0U, .ss = LMM_SS_PD, .rsrc = DEV_SM_PD_2}, \
     {.lmId = 2U, .mSel = 0U, .ss = LMM_SS_PERF, .rsrc = DEV_SM_PERF_0, \
-    .numArg = 1, .arg[0] = 3U,}, \
+     .numArg = 1, .arg[0] = 3U,}, \
     {.lmId = 2U, .mSel = 0U, .ss = LMM_SS_CPU, .rsrc = DEV_SM_CPU_2},
 
 /*! Config for number of stop */

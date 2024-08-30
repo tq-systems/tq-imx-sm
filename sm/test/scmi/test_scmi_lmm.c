@@ -69,7 +69,7 @@ void TEST_ScmiLmm(void)
     uint32_t numLm = 0U;
     uint32_t agentId, channel, lm, lmId = 0U;
 
-    /* LMM tests */
+    /* LM_00010 RPC_00180 RPC_00160 LMM tests */
     printf("**** LMM Protocol Tests ***\n\n");
 
     /* Test protocol version */
@@ -127,7 +127,7 @@ void TEST_ScmiLmm(void)
             SCMI_ERR_NOT_FOUND);
 
         NECHECK(SCMI_LmmBoot(SM_SCMI_NUM_CHN, numLm),
-            SM_ERR_INVALID_PARAMETERS);
+            SCMI_ERR_INVALID_PARAMETERS);
     }
 
     /* LmmReset -- Invalid lm */
@@ -139,7 +139,7 @@ void TEST_ScmiLmm(void)
             SCMI_ERR_NOT_FOUND);
 
         NECHECK(SCMI_LmmReset(SM_SCMI_NUM_CHN, numLm, flags),
-            SM_ERR_INVALID_PARAMETERS);
+            SCMI_ERR_INVALID_PARAMETERS);
     }
 
     /* LmmShutdown -- Invalid lm */
@@ -151,7 +151,7 @@ void TEST_ScmiLmm(void)
             SCMI_ERR_NOT_FOUND);
 
         NECHECK(SCMI_LmmShutdown(SM_SCMI_NUM_CHN, numLm, flags),
-            SM_ERR_INVALID_PARAMETERS);
+            SCMI_ERR_INVALID_PARAMETERS);
     }
 
     /* LmmWake -- Invalid lm */
@@ -161,7 +161,7 @@ void TEST_ScmiLmm(void)
             SCMI_ERR_NOT_FOUND);
 
         NECHECK(SCMI_LmmWake(SM_SCMI_NUM_CHN, numLm),
-            SM_ERR_INVALID_PARAMETERS);
+            SCMI_ERR_INVALID_PARAMETERS);
     }
 
     /* LmmNotify -- Invalid lm */
@@ -174,12 +174,12 @@ void TEST_ScmiLmm(void)
             SCMI_ERR_NOT_FOUND);
 
         NECHECK(SCMI_LmmNotify(SM_SCMI_NUM_CHN, numLm, flags),
-            SM_ERR_INVALID_PARAMETERS);
+            SCMI_ERR_INVALID_PARAMETERS);
     }
 
     {
         NECHECK(SCMI_LmmEvent(SM_SCMI_NUM_CHN, NULL, NULL, NULL),
-            SM_ERR_INVALID_PARAMETERS);
+            SCMI_ERR_INVALID_PARAMETERS);
     }
 
     /* Invalid notification */
@@ -192,7 +192,7 @@ void TEST_ScmiLmm(void)
         lmm_rpc_trigger_t trigger = { 0 };
 
         printf("RPC_SCMI_LmmDispatchNotification()\n");
-        RPC_SCMI_LmmDispatchNotification(msgId, &trigger);
+        NCHECK(RPC_SCMI_LmmDispatchNotification(msgId, &trigger));
     }
 
     /* Loop over power test domains */
@@ -205,7 +205,7 @@ void TEST_ScmiLmm(void)
         /* Test functions with GET perm required */
         TEST_ScmiLmmGet(perm >= SM_SCMI_PERM_GET, channel, lm);
 
-        /* Test functions with NOTIFY perm required */
+        /* RPC_00170 Test functions with NOTIFY perm required */
         TEST_ScmiLmmNotify(perm >= SM_SCMI_PERM_NOTIFY,
             channel, lm);
 
@@ -233,7 +233,7 @@ static void TEST_ScmiLmmNotify(bool pass, uint32_t channel, uint32_t lm)
 {
     uint32_t flags = SCMI_LMM_NOTIFY_BOOT(0U) | SCMI_LMM_NOTIFY_SHUTDOWN(0U);
 
-    /* Adequate Access Permissions */
+    /* LM_00040 LM_00050 Adequate Access Permissions */
     if (pass)
     {
         printf("SCMI_LmmNotify(%u, %u, 0x%08X)\n", channel, lm, flags);
@@ -260,6 +260,7 @@ static void TEST_ScmiLmmGet(bool pass, uint32_t channel, uint32_t lm)
         uint8_t name[SCMI_LMM_MAX_NAME];
         uint32_t newlm = lm;
 
+        /* RPC_00220 Get status */
         printf("SCMI_LmmAttributes(%u, %u)\n", channel, newlm);
         name[0] = 0U;
 
@@ -306,15 +307,17 @@ static void TEST_ScmiLmmSet(bool pass, uint32_t channel, uint32_t lm,
         printf("SCMI_LmmBoot(%u, %u)\n", channel, lm);
         CHECK(SCMI_LmmBoot(channel, lm));
 
-        /* Send notification -- Shutdown */
+        /* RPC_00210 Send notification -- Shutdown */
         flags = SCMI_LMM_NOTIFY_BOOT(0U) | SCMI_LMM_NOTIFY_SHUTDOWN(1U);
         printf("SCMI_LmmNotify(%u, %u, 0x%08X)\n", channel, lm, flags);
         CHECK(SCMI_LmmNotify(channel, lm, flags));
 
         /* Cause Event to Occur */
+        const uint32_t sequences[24] = { 0U };
         flags = SCMI_LMM_FLAGS_GRACEFUL(0U);
         printf("SCMI_LmmShutdown(%u, %u)\n", channel, lm);
         CHECK(SCMI_LmmShutdown(channel, lm, flags));
+        SCMI_SequenceRestore(sequences);
 
         /* Event */
         {
@@ -328,7 +331,7 @@ static void TEST_ScmiLmmSet(bool pass, uint32_t channel, uint32_t lm,
             BCHECK(SCMI_LMM_EVENT_SHUTDOWN(flags) == 1U);
         }
 
-        /* Send notification -- Boot */
+        /* RPC_00210 Send notification -- Boot */
         flags = SCMI_LMM_NOTIFY_BOOT(1U) | SCMI_LMM_NOTIFY_SHUTDOWN(0U);
         printf("SCMI_LmmNotify(%u, %u, 0x%08X)\n", channel, lm, flags);
         CHECK(SCMI_LmmNotify(channel, lm, flags));
@@ -405,7 +408,7 @@ static void TEST_ScmiLmmPriv(bool pass, uint32_t channel, uint32_t lm,
                 SCMI_ERR_INVALID_PARAMETERS);
         }
 
-        /* Reset Config */
+        /* LM_00020 Reset Config */
 #ifdef SIMU
         if (pass)
         {

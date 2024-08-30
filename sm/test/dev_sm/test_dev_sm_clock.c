@@ -36,6 +36,8 @@
 /* Unit test for the device SM Clock  API.                                  */
 /*==========================================================================*/
 
+/* DEV_00010 */
+
 /* Include Config */
 
 /* Includes */
@@ -120,7 +122,7 @@ void TEST_DevSmClock(void)
                 SM_ERR_INVALID_PARAMETERS);
 
             /* Make sure clockId is not clock 0*/
-            if(clockId == DEV_SM_CLK_0)
+            if (clockId == DEV_SM_CLK_0)
             {
                 /* If it is throw err, and print number of muxes*/
                 printf("DEV_SM_ClockMuxGet(%u)\n", clockId);

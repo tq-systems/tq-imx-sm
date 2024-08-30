@@ -69,7 +69,7 @@ static int32_t LMM_DoBoot(lmm_rpc_trigger_t *trigger,
     const lmm_rst_rec_t *bootRec);
 static int32_t LMM_DoShutdown(lmm_rpc_trigger_t *trigger,
     const lmm_rst_rec_t *shutdownRec);
-static int32_t LM_ProcessStart(uint32_t lmId, uint32_t start);
+static int32_t LM_ProcessStart(uint32_t lmId, uint32_t start, bool cpu);
 static int32_t LM_ProcessStop(uint32_t lmId, uint32_t stop);
 static int32_t LM_ClockStart(uint32_t lmId, uint32_t rsrc, uint32_t numArg,
     const uint64_t *arg);
@@ -131,11 +131,11 @@ int32_t LMM_SystemReasonNameGet(uint32_t lmId, uint32_t resetReason,
 /*--------------------------------------------------------------------------*/
 /* Complete system reset handling                                           */
 /*--------------------------------------------------------------------------*/
-int32_t LMM_SystemRstComp(lmm_rst_rec_t resetRec)
+int32_t LMM_SystemRstComp(const lmm_rst_rec_t *resetRec)
 {
     int32_t status;
 
-    status = LMM_SystemReset(0U, 0U, false, &resetRec);
+    status = LMM_SystemReset(0U, 0U, false, resetRec);
 
     /* Return status */
     return status;
@@ -183,6 +183,11 @@ int32_t LMM_SystemShutdown(uint32_t lmId, uint32_t agentId,
 
         /* Save reason */
         DEV_SM_SystemShutdownRecSet(newShutdownRec);
+
+#ifdef USES_FUSA
+        /* Report to FuSa */
+        LMM_FusaExit(shutdownRec);
+#endif
 
         /* Request system shutdown */
         status = SM_SYSTEMSHUTDOWN();
@@ -234,6 +239,11 @@ int32_t LMM_SystemReset(uint32_t lmId, uint32_t agentId, bool graceful,
         /* Save reason */
         newResetRec.reset = true;
         DEV_SM_SystemShutdownRecSet(newResetRec);
+
+#ifdef USES_FUSA
+        /* Report to FuSa */
+        LMM_FusaExit(resetRec);
+#endif
 
         /* Request system reset */
         status = SM_SYSTEMRESET();
@@ -429,6 +439,36 @@ int32_t LMM_SystemLmCheck(uint32_t bootLm)
 }
 
 /*--------------------------------------------------------------------------*/
+/* Power on LM                                                              */
+/*--------------------------------------------------------------------------*/
+int32_t LMM_SystemLmPowerOn(uint32_t lmId, uint32_t agentId, uint32_t pwrLm)
+{
+    int32_t status = SM_ERR_SUCCESS;
+
+    if (s_lmState[pwrLm] == LMM_STATE_LM_OFF)
+    {
+        /* Start resources minus CPU starts */
+        if (g_lmmConfig[pwrLm].start != 0U)
+        {
+            status = LM_ProcessStart(pwrLm,
+                g_lmmConfig[pwrLm].start - 1U, false);
+        }
+
+        if (status == SM_ERR_SUCCESS)
+        {
+            /* Record state */
+            s_lmState[pwrLm] = LMM_STATE_LM_POWERED;
+        }
+
+        /* Record status */
+        s_lmError[pwrLm] = status;
+    }
+
+    /* Return status */
+    return status;
+}
+
+/*--------------------------------------------------------------------------*/
 /* Boot LM                                                                  */
 /*--------------------------------------------------------------------------*/
 int32_t LMM_SystemLmBoot(uint32_t lmId, uint32_t agentId, uint32_t bootLm,
@@ -600,19 +640,16 @@ int32_t LMM_SystemLmWake(uint32_t lmId, uint32_t agentId, uint32_t wakeLm)
 
     if (status == SM_ERR_SUCCESS)
     {
-        /* Send notifications */
-        for (uint32_t dstLm = 0U; dstLm < SM_NUM_LM; dstLm++)
+        lmm_rpc_trigger_t trigger =
         {
-            lmm_rpc_trigger_t trigger =
-            {
-                .event = LMM_TRIGGER_SYSTEM,
-                .parm[0] = LMM_TRIGGER_PARM_LM_WAKE,
-                .parm[1] = lmId,
-                .parm[2] = wakeLm
-            };
+            .event = LMM_TRIGGER_SYSTEM,
+            .parm[0] = LMM_TRIGGER_PARM_LM_WAKE,
+            .parm[1] = lmId,
+            .parm[2] = wakeLm
+        };
 
-            (void) LMM_RpcNotificationTrigger(dstLm, &trigger);
-        }
+        /* Notify LM via system */
+        (void) LMM_RpcNotificationTrigger(wakeLm, &trigger);
     }
 
     /* Return status */
@@ -643,6 +680,107 @@ int32_t LM_SystemLmReason(uint32_t lmId, uint32_t reasonLm,
     return status;
 }
 
+/*--------------------------------------------------------------------------*/
+/* Group boot                                                               */
+/*--------------------------------------------------------------------------*/
+int32_t LMM_SystemGrpBoot(uint32_t lmId, uint32_t agentId,
+    const lmm_rst_rec_t *bootRec, uint8_t group)
+{
+    int32_t status = SM_ERR_SUCCESS;
+
+    /* Loop over boot order */
+    for (uint8_t bootOrder = 1U; bootOrder <= SM_NUM_LM;
+        bootOrder++)
+    {
+        /* Loop over LMs */
+        for (uint32_t lm = 0U; lm < SM_NUM_LM; lm++)
+        {
+            /* Boot if LM requested in this order */
+            if ((g_lmmConfig[lm].group == group)
+                && (g_lmmConfig[lm].boot[s_modeSel] == bootOrder))
+            {
+                /* Boot LM and store status */
+                status = LMM_SystemLmBoot(lmId, agentId, lm,
+                    bootRec);
+            }
+
+            /* Exit loop on error */
+            if (status != SM_ERR_SUCCESS)
+            {
+                break;
+            }
+        }
+
+        /* Exit loop on error */
+        if (status != SM_ERR_SUCCESS)
+        {
+            break;
+        }
+    }
+
+    /* Return status */
+    return status;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Group shutdown                                                           */
+/*--------------------------------------------------------------------------*/
+int32_t LMM_SystemGrpShutdown(uint32_t lmId, uint32_t agentId,
+    bool graceful, const lmm_rst_rec_t *shutdownRec, uint8_t group)
+{
+    int32_t status = SM_ERR_SUCCESS;
+
+    /* Loop over LMs */
+    for (uint32_t lm = 0U; lm < SM_NUM_LM; lm++)
+    {
+        /* LM in group? */
+        if (g_lmmConfig[lm].group == group)
+        {
+            /* Shutdown LM */
+            status = LMM_SystemLmShutdown(lmId, agentId, lm, graceful,
+                shutdownRec);
+
+            /* Error? */
+            if (status != SM_ERR_SUCCESS)
+            {
+                break;
+            }
+        }
+    }
+
+    /* Return status */
+    return status;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Group reset                                                              */
+/*--------------------------------------------------------------------------*/
+int32_t LMM_SystemGrpReset(uint32_t lmId, uint32_t agentId, bool graceful,
+    const lmm_rst_rec_t *resetRec, uint8_t group)
+{
+    int32_t status;
+
+    if (!graceful)
+    {
+        /* Shutdown LMs */
+        status = LMM_SystemGrpShutdown(lmId, agentId, graceful, resetRec,
+            group);
+
+        /* Boot LMs */
+        if (status == SM_ERR_SUCCESS)
+        {
+            status = LMM_SystemGrpBoot(lmId, agentId, resetRec, group);
+        }
+    }
+    else
+    {
+        status = SM_ERR_NOT_SUPPORTED;
+    }
+
+    /* Return status */
+    return status;
+}
+
 /*==========================================================================*/
 
 /*--------------------------------------------------------------------------*/
@@ -654,13 +792,14 @@ static int32_t LMM_DoBoot(lmm_rpc_trigger_t *trigger,
     int32_t status = SM_ERR_SUCCESS;
     uint32_t bootLm = trigger->parm[2];
 
-    if (s_lmState[bootLm] == LMM_STATE_LM_OFF)
+    if ((s_lmState[bootLm] == LMM_STATE_LM_OFF)
+        || (s_lmState[bootLm] == LMM_STATE_LM_POWERED))
     {
         /* Start resources */
         if (g_lmmConfig[bootLm].start != 0U)
         {
             status = LM_ProcessStart(bootLm,
-                g_lmmConfig[bootLm].start - 1U);
+                g_lmmConfig[bootLm].start - 1U, true);
         }
 
         if (status == SM_ERR_SUCCESS)
@@ -761,7 +900,7 @@ static int32_t LMM_DoShutdown(lmm_rpc_trigger_t *trigger,
 /*--------------------------------------------------------------------------*/
 /* Process start list                                                       */
 /*--------------------------------------------------------------------------*/
-static int32_t LM_ProcessStart(uint32_t lmId, uint32_t start)
+static int32_t LM_ProcessStart(uint32_t lmId, uint32_t start, bool cpu)
 {
     int32_t status = SM_ERR_SUCCESS;
     uint32_t idx = start;
@@ -796,12 +935,19 @@ static int32_t LM_ProcessStart(uint32_t lmId, uint32_t start)
                         ptr->numArg, ptr->arg);
                     break;
                 case LMM_SS_CPU:
-                    status = LMM_CpuResetVectorReset(ptr->lmId,
-                        ptr->rsrc);
-                    if (status == SM_ERR_SUCCESS)
+                    if (cpu)
                     {
-                        status = LMM_CpuStart(ptr->lmId, ptr->rsrc);
+                        status = LMM_CpuResetVectorReset(ptr->lmId,
+                            ptr->rsrc);
+                        if (status == SM_ERR_SUCCESS)
+                        {
+                            status = LMM_CpuStart(ptr->lmId, ptr->rsrc);
+                        }
                     }
+                    break;
+                case LMM_SS_VOLT:
+                    status = LMM_VoltageModeSet(ptr->lmId, ptr->rsrc,
+                        (uint8_t) ptr->arg[0]);
                     break;
                 default:
                     status = SM_ERR_NOT_SUPPORTED;
@@ -847,17 +993,21 @@ static int32_t LM_ProcessStop(uint32_t lmId, uint32_t stop)
             switch (ptr->ss)
             {
                 case LMM_SS_PD:
-                    status = LMM_PowerStateSet(ptr->lmId, ptr->rsrc,
+                    (void) LMM_PowerStateSet(ptr->lmId, ptr->rsrc,
                         DEV_SM_POWER_STATE_OFF);
                     break;
                 case LMM_SS_PERF:
-                    status = LMM_PerfLevelSet(ptr->lmId, ptr->rsrc, 0U);
+                    (void) LMM_PerfLevelSet(ptr->lmId, ptr->rsrc, 0U);
                     break;
                 case LMM_SS_CLK:
-                    status = LMM_ClockEnable(ptr->lmId, ptr->rsrc, false);
+                    (void) LMM_ClockEnable(ptr->lmId, ptr->rsrc, false);
                     break;
                 case LMM_SS_CPU:
-                    status = LMM_CpuStop(ptr->lmId, ptr->rsrc);
+                    (void) LMM_CpuStop(ptr->lmId, ptr->rsrc);
+                    break;
+                case LMM_SS_VOLT:
+                    (void) LMM_VoltageModeSet(ptr->lmId, ptr->rsrc,
+                        DEV_SM_VOLT_MODE_OFF);
                     break;
                 default:
                     status = SM_ERR_NOT_SUPPORTED;

@@ -54,16 +54,18 @@
 /* Defines */
 
 /*! Number of device boot/shutdown/reset reasons */
-#define DEV_SM_NUM_REASON  4UL
+#define DEV_SM_NUM_REASON  6UL
 
 /*!
  * @name Device boot/shutdown/reset reason indexes
  */
 /** @{ */
-#define DEV_SM_REASON_POR    0U  /*!< Power on reset */
-#define DEV_SM_REASON_FAULT  1U  /*!< Fault */
-#define DEV_SM_REASON_BBM    2U  /*!< BBM boot/shutdown */
-#define DEV_SM_REASON_SW     3U  /*!< SW requested */
+#define DEV_SM_REASON_POR         0U  /*!< Power on reset */
+#define DEV_SM_REASON_FAULT       1U  /*!< Fault */
+#define DEV_SM_REASON_BBM         2U  /*!< BBM boot/shutdown */
+#define DEV_SM_REASON_SW          3U  /*!< SW requested */
+#define DEV_SM_REASON_SM_ERR      4U  /*!< SM error/exit */
+#define DEV_SM_REASON_FUSA_SRECO  5U  /*!< FuSa global recovery */
 /** @} */
 
 /*! Number of device reset reasons */
@@ -100,6 +102,7 @@
 
 /* Include SM device API */
 
+// coverity[misra_c_2012_rule_20_1_violation:FALSE]
 #include "dev_sm_system_api.h"
 
 #endif /* DEV_SM_SYSTEM_H */

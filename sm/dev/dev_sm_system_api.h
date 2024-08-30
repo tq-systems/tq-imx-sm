@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-**     Copyright 2023 NXP
+**     Copyright 2023-2024 NXP
 **
 **     Redistribution and use in source and binary forms, with or without modification,
 **     are permitted provided that the following conditions are met:
@@ -76,7 +76,7 @@ typedef struct
     uint32_t origin;
     /*! Number of extended info words */
     uint32_t extLen;
-    /*! EExtended info (PC, BFAR, etc. for exceptions) */
+    /*! Extended info (PC, BFAR, etc. for exceptions) */
     uint32_t extInfo[DEV_SM_NUM_EXT_INFO];
 } dev_sm_rst_rec_t;
 
@@ -101,13 +101,6 @@ int32_t DEV_SM_SystemInit(void);
  * @param[in]     powerMode  Mode to store
  */
 void DEV_SM_SystemPowerModeSet(uint32_t powerMode);
-
-/*!
- * Get the power mode.
- *
- * @param[out]    powerMode  Pointer to return the power mode
- */
-void DEV_SM_SystemPowerModeGet(uint32_t *powerMode);
 
 /*!
  * Reset the system.
@@ -176,6 +169,18 @@ int32_t DEV_SM_SystemReasonNameGet(uint32_t resetReason,
     string *reasonNameAddr, int32_t *len);
 
 /*!
+ * System post-boot complete.
+ *
+ * @param[in]     mSel       Boot mode selection
+ * @param[in]     initFlags  Init flags from makefile
+ *
+ * Do any housekeeping after booting all LM.
+ *
+ * @return Returns the status (::SM_ERR_SUCCESS = success).
+ */
+int32_t DEV_SM_SystemPostBoot(uint32_t mSel, uint32_t initFlags);
+
+/*!
  * Complete a reset.
  *
  * @param[in]     resetRec  Reset record to store
@@ -189,7 +194,55 @@ int32_t DEV_SM_SystemReasonNameGet(uint32_t resetReason,
  * Return errors (see @ref STATUS "SM error codes"):
  * - others returned by ::SM_SYSTEMRSTCOMP
  */
-int32_t DEV_SM_SystemRstComp(dev_sm_rst_rec_t resetRec);
+int32_t DEV_SM_SystemRstComp(const dev_sm_rst_rec_t *resetRec);
+
+/*!
+ * Report an SM system error.
+ *
+ * @param[in]     status  Status code
+ * @param[in]     pc      PC of caller
+ *
+ * Error is logged as reset reason and then system reset.
+ */
+void DEV_SM_SystemError(int32_t status, uint32_t pc);
+
+/*!
+ * Transition the system to sleep mode.
+ *
+ * @param[in]     sleepMode  system sleep mode
+ *
+ * @return Returns the status (::SM_ERR_SUCCESS = success).
+ *
+ * Return errors (see @ref STATUS "SM error codes"):
+ */
+int32_t DEV_SM_SystemSleep(uint32_t sleepMode);
+
+/*!
+ * Transition the system to idle mode.
+ *
+ * @return Returns the status (::SM_ERR_SUCCESS = success).
+ *
+ * Return errors (see @ref STATUS "SM error codes"):
+ */
+int32_t DEV_SM_SystemIdle(void);
+
+/*!
+ * Place the system DRAM into retention.
+ *
+ * @return Returns the status (::SM_ERR_SUCCESS = success).
+ *
+ * Return errors (see @ref STATUS "SM error codes"):
+ */
+int32_t DEV_SM_SystemDramRetentionEnter(void);
+
+/*!
+ * Exit the system DRAM from retention.
+ *
+ * @return Returns the status (::SM_ERR_SUCCESS = success).
+ *
+ * Return errors (see @ref STATUS "SM error codes"):
+ */
+int32_t DEV_SM_SystemDramRetentionExit(void);
 
 #endif /* DEV_SM_SYSTEM_API_H */
 

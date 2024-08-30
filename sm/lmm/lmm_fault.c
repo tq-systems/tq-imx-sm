@@ -61,22 +61,32 @@ int32_t LMM_FaultComplete(dev_sm_rst_rec_t resetRec)
     /* Get fault reaction */
     status = LMM_FaultReactionGet(resetRec, &reaction, &lm);
 
+#ifdef USES_FUSA
     /* Let FuSa handle */
     if (status == SM_ERR_SUCCESS)
     {
         status = LMM_FusaFaultRecover(resetRec.errId, &reaction, &lm);
     }
+#endif
 
     /* Do reaction */
     if (status == SM_ERR_SUCCESS)
     {
-        switch(reaction)
+        switch (reaction)
         {
             case LMM_REACT_SYS_RESET:
                 status = LMM_SystemReset(0U, 0U, false, &resetRec);
                 break;
             case LMM_REACT_SYS_SHUTDOWN:
                 status = LMM_SystemShutdown(0U, 0U, false, &resetRec);
+                break;
+            case LMM_REACT_GRP_RESET:
+                status = LMM_SystemGrpReset(0U, 0U, false, &resetRec,
+                    (uint8_t) lm);
+                break;
+            case LMM_REACT_GRP_SHUTDOWN:
+                status = LMM_SystemGrpShutdown(0U, 0U, false, &resetRec,
+                    (uint8_t) lm);
                 break;
             case LMM_REACT_LM_RESET:
                 status = LMM_SystemLmReset(0U, 0U, lm, false, false,
@@ -102,11 +112,13 @@ int32_t LMM_FaultComplete(dev_sm_rst_rec_t resetRec)
         }
     }
 
+#ifdef USES_FUSA
     /* Let FuSa know cleared */
     if (status == SM_ERR_SUCCESS)
     {
         LMM_FusaFaultCleared(resetRec.errId);
     }
+#endif
 
     /* Return status */
     return status;
