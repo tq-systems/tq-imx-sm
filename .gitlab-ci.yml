@@ -29,4 +29,4 @@ compile:
       - "${BUILDDIR}/${MACHINE}/m33*.bin"
       - "${BUILDDIR}/${MACHINE}/m33*.elf"
       - "${BUILDDIR}/${MACHINE}/build_info.h"
-
+  interruptible: true

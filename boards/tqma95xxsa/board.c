@@ -370,6 +370,23 @@ void BOARD_InitTimers(void)
 /*--------------------------------------------------------------------------*/
 /* Set watchdog mode                                                        */
 /*--------------------------------------------------------------------------*/
+
+static void ConfigureWdogAnyPin(bool wdog)
+{
+    const uint32_t config = IOMUXC_PAD_FSEL1(0x3U) | IOMUXC_PAD_OD(0x1U) | IOMUXC_PAD_PU(0x1U);
+
+    if (wdog)
+    {
+        IOMUXC_SetPinMux(IOMUXC_PAD_WDOG_ANY__WDOG_ANY, 0U);
+        IOMUXC_SetPinConfig(IOMUXC_PAD_WDOG_ANY__WDOG_ANY, config);
+    }
+    else
+    {
+        IOMUXC_SetPinMux(IOMUXC_PAD_WDOG_ANY__FCCU_EOUT1, 0U);
+        IOMUXC_SetPinConfig(IOMUXC_PAD_WDOG_ANY__FCCU_EOUT1, config);
+    }
+}
+
 void BOARD_WdogModeSet(uint32_t mode)
 {
     switch (mode)
@@ -385,7 +402,7 @@ void BOARD_WdogModeSet(uint32_t mode)
             BLK_CTRL_S_AONMIX->WDOG_ANY_MASK |= BOARD_WDOG_ANY_MASK;
 
             /* Drive WDOG_ANY from WDOG */
-            IOMUXC_SetPinMux(IOMUXC_PAD_WDOG_ANY__WDOG_ANY, 0U);
+            ConfigureWdogAnyPin(true);
             break;
         case BOARD_WDOG_MODE_COLD: /* cold */
             /* Allow WDOG to generate internal warm reset */
@@ -398,7 +415,7 @@ void BOARD_WdogModeSet(uint32_t mode)
             BLK_CTRL_S_AONMIX->WDOG_ANY_MASK &= ~BOARD_WDOG_ANY_MASK;
 
             /* Drive WDOG_ANY from WDOG */
-            IOMUXC_SetPinMux(IOMUXC_PAD_WDOG_ANY__WDOG_ANY, 0U);
+            ConfigureWdogAnyPin(true);
             break;
         case BOARD_WDOG_MODE_IRQ: /* irq */
             /* Enable WDOG interrupt */
@@ -411,7 +428,7 @@ void BOARD_WdogModeSet(uint32_t mode)
             BLK_CTRL_S_AONMIX->WDOG_ANY_MASK |= BOARD_WDOG_ANY_MASK;
 
             /* Drive WDOG_ANY from WDOG */
-            IOMUXC_SetPinMux(IOMUXC_PAD_WDOG_ANY__WDOG_ANY, 0U);
+            ConfigureWdogAnyPin(true);
             break;
         case BOARD_WDOG_MODE_OFF:  /* off */
             WDOG32_Deinit(BOARD_WDOG_BASE_PTR);
@@ -421,7 +438,7 @@ void BOARD_WdogModeSet(uint32_t mode)
             break;
         case BOARD_WDOG_MODE_FCCU: /* fccu */
             /* Drive WDOG_ANY from FCCU */
-            IOMUXC_SetPinMux(IOMUXC_PAD_WDOG_ANY__FCCU_EOUT1, 0U);
+            ConfigureWdogAnyPin(false);
 
             /* Disallow WDOG to generate internal warm reset */
             SRC_GEN->SRMASK |= BOARD_WDOG_SRMASK;

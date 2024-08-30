@@ -100,6 +100,7 @@ endif
 
 # Default to MX95 EVK
 CONFIG ?= mx95evk
+FLAGS += -DSM_CONFIGURATION="$(CONFIG)"
 
 # Configure output
 BUILD = $(ROOT_DIR)/build
