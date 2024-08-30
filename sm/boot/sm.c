@@ -84,7 +84,7 @@ int main(int argc, const char * const argv[])
 
     /* Init the system hardware */
     status = BRD_SM_Init(argc, argv, &mSel);
-    printf("BRD_SM_Init: %d)\n", status);
+    printf("BRD_SM_Init: %d\n", status);
 
     /* Save start banner time */
     delta = DEV_SM_Usec64Get();
@@ -102,14 +102,14 @@ int main(int argc, const char * const argv[])
     {
         /* mSel from BRD_SM_Init(), LMM_INIT_FLAGS from Makefile */
         status = LMM_Init(&mSel, LMM_INIT_FLAGS);
-        printf("LMM_Init: %d)\n", status);
+        printf("LMM_Init: %d\n", status);
     }
 
     /* Boot LMs */
     if (status == SM_ERR_SUCCESS)
     {
         status = LMM_Boot();
-        printf("LMM_Boot: %d)\n", status);
+        printf("LMM_Boot: %d\n", status);
     }
 
 #ifdef RUN_TEST
@@ -117,7 +117,7 @@ int main(int argc, const char * const argv[])
     if (status == SM_ERR_SUCCESS)
     {
         status = TEST_Config();
-        printf("TEST_Config: %d)\n", status);
+        printf("TEST_Config: %d\n", status);
     }
 #endif
 

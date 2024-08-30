@@ -141,7 +141,7 @@ int32_t BRD_SM_Init(int argc, const char * const argv[], uint32_t *mSel)
 
     /* Initialize devices connected to serial buses (PMIC, IOExp, etc) */
     status = BRD_SM_SerialDevicesInit();
-    printf("BRD_SM_SerialDevicesInit: %d)\n", status);
+    printf("BRD_SM_SerialDevicesInit: %d\n", status);
 
     if (status == SM_ERR_SUCCESS)
     {
