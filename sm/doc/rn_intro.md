@@ -26,19 +26,14 @@ The table below lists the release information:
 | Tested mkimage    | #MKIMAGE_BRANCH             |
 | Tested Linux      | #MKIMAGE_BUILD              |
 
-\htmlonly
-<font color="red">\endhtmlonly
-
-This is an alpha release! It is not production quality.
-
-\htmlonly
-</font>\endhtmlonly
+<br>
+<br>
 
 Highlights {#RN_HIGH}
 ==========
 
-- Added support for the FCCU (via an eMcem component)
-- Added peripheral low-power management
+- Added system suspend/resume support
+- Added support for the i.MX95 15x15 EVK
 - Misc. improvements and bug fixes
 
 Note these are highlights of the original release. These do not cover changes

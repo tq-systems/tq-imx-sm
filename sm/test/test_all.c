@@ -36,6 +36,8 @@
 /* All unit tests.                                                          */
 /*==========================================================================*/
 
+/* TEST_00010 TEST_00020 TEST_00030 */
+
 /* Include Config */
 
 /* Includes */
@@ -83,7 +85,6 @@ void TEST_All(void)
     /* Run LMM tests */
     TEST_LmmClock();
     TEST_LmmPerf();
-//    TEST_LmmPower();
     TEST_LmmSys();
     TEST_LmmCpu();
     TEST_LmmVoltage();
@@ -112,6 +113,6 @@ void TEST_All(void)
     TEST_UtilitiesConfig();
 
     /* Exit */
-    BRD_SM_Exit(SM_ERR_SUCCESS);
+    BRD_SM_Exit(SM_ERR_SUCCESS, 0U);
 }
 

@@ -50,6 +50,8 @@
 
 /* Local variables */
 
+static uint32_t numDevCtrl = 0U;
+
 /* Local functions */
 
 static void TEST_ScmiMiscGet(bool pass, uint32_t channel,
@@ -68,11 +70,10 @@ void TEST_ScmiMisc(void)
     uint32_t agentId = 0U;
     uint32_t channel = 0U;
     uint32_t ctrlId = 0U;
-    uint32_t numCtrl = 0U;
     uint32_t lmId = 0U;
 
-    /* Control tests */
-    printf("**** Control Protocol Tests ***\n\n");
+    /* RPC_00350 RPC_00160 Misc tests */
+    printf("**** Misc Protocol Tests ***\n\n");
 
     /* Test protocol version */
     {
@@ -88,12 +89,15 @@ void TEST_ScmiMisc(void)
     /* Test protocol attributes */
     {
         uint32_t attributes = 0U;
+        uint32_t numBrdCtrl = 0U;
 
         printf("SCMI_MiscProtocolAttributes()\n");
         CHECK(SCMI_MiscProtocolAttributes(SM_TEST_DEFAULT_CHN,
             &attributes));
-        numCtrl = SCMI_MISC_PROTO_ATTR_NUM_CTRL(attributes);
-        printf("  numCtrl=%u\n", numCtrl);
+        numDevCtrl = SCMI_MISC_PROTO_ATTR_NUM_DEV_CTRL(attributes);
+        numBrdCtrl = SCMI_MISC_PROTO_ATTR_NUM_BRD_CTRL(attributes);
+        printf("  numDevCtrl=%u\n", numDevCtrl);
+        printf("  numBrdCtrl=%u\n", numBrdCtrl);
     }
 
     /* Test message attributes */
@@ -106,7 +110,7 @@ void TEST_ScmiMisc(void)
             30U, NULL));
     }
 
-    /* Test build info */
+    /* RPC_00400 Test build info */
     {
         uint32_t buildNum = 0U;
         uint32_t buildCommit = 0U;
@@ -133,12 +137,14 @@ void TEST_ScmiMisc(void)
             NULL, NULL, NULL));
     }
 
-    /* Test ROM data */
+    /* RPC_00370 Test ROM data */
     {
         uint32_t numPassover = 0U;
         uint32_t passoverBuffer[SCMI_MISC_MAX_PASSOVER] = { 0 };
+#ifdef INC_LIBC
         const rom_passover_t *passover
             = (const rom_passover_t*) passoverBuffer;
+#endif
 
         printf("SCMI_MiscRomPassoverGet(%u)\n",
             SM_TEST_DEFAULT_CHN);
@@ -167,23 +173,23 @@ void TEST_ScmiMisc(void)
         /* Control Set -- Invalid ctrlId */
         uint32_t val = 0x1234ABCDU;
 
-        NECHECK(SCMI_MiscControlSet(SM_TEST_DEFAULT_CHN, numCtrl,
+        NECHECK(SCMI_MiscControlSet(SM_TEST_DEFAULT_CHN, numDevCtrl,
             1U, &val), SCMI_ERR_NOT_FOUND);
 
         /* Branch -- Invalid Channel */
         NECHECK(SCMI_MiscControlSet(SM_SCMI_NUM_CHN, 0U,
-            1U, &val), SM_ERR_INVALID_PARAMETERS);
+            1U, &val), SCMI_ERR_INVALID_PARAMETERS);
     }
 
     /* Control Get */
     {
         /* Control Get -- Invalid ctrlId */
-        NECHECK(SCMI_MiscControlGet(SM_TEST_DEFAULT_CHN, numCtrl, NULL,
+        NECHECK(SCMI_MiscControlGet(SM_TEST_DEFAULT_CHN, numDevCtrl, NULL,
             NULL), SCMI_ERR_NOT_FOUND);
 
         /* Branch -- Invalid Channel */
         NECHECK(SCMI_MiscControlGet(SM_SCMI_NUM_CHN, 0U, NULL, NULL),
-            SM_ERR_INVALID_PARAMETERS);
+            SCMI_ERR_INVALID_PARAMETERS);
     }
 
     /* Control Action */
@@ -193,12 +199,12 @@ void TEST_ScmiMisc(void)
         uint32_t numVal = 0U;
         uint32_t rtnVal[5] = {0U, 0U, 0U, 0U, 0U};
 
-        NECHECK(SCMI_MiscControlAction(SM_TEST_DEFAULT_CHN, numCtrl, 23U,
+        NECHECK(SCMI_MiscControlAction(SM_TEST_DEFAULT_CHN, numDevCtrl, 23U,
             3, arg, &numVal, rtnVal), SCMI_ERR_NOT_FOUND);
 
         /* Branch -- Invalid Channel */
         NECHECK(SCMI_MiscControlAction(SM_SCMI_NUM_CHN, 0U, 23U,
-            3, arg, NULL, NULL), SM_ERR_INVALID_PARAMETERS);
+            3, arg, NULL, NULL), SCMI_ERR_INVALID_PARAMETERS);
     }
 
     /* Control Notify */
@@ -206,15 +212,15 @@ void TEST_ScmiMisc(void)
         /* Control Notify -- Invalid ctrlId */
         printf("SCMI_MiscControlNotify(%u, %u)\n", SM_TEST_DEFAULT_CHN,
             ctrlId);
-        NECHECK(SCMI_MiscControlNotify(SM_TEST_DEFAULT_CHN, numCtrl, 1U),
+        NECHECK(SCMI_MiscControlNotify(SM_TEST_DEFAULT_CHN, numDevCtrl, 1U),
             SCMI_ERR_NOT_FOUND);
 
         /* Branch -- Invalid Channel */
         NECHECK(SCMI_MiscControlNotify(SM_SCMI_NUM_CHN, 0U, 1U),
-            SM_ERR_INVALID_PARAMETERS);
+            SCMI_ERR_INVALID_PARAMETERS);
     }
 
-    /* Test reset reason */
+    /* RPC_00380 Test reset reason */
     {
         uint32_t flags = SCMI_MISC_REASON_FLAG_SYSTEM(0U);
         uint32_t bootFlags = 0U;
@@ -270,7 +276,7 @@ void TEST_ScmiMisc(void)
         lmm_rpc_trigger_t trigger = { 0 };
 
         printf("RPC_SCMI_MiscDispatchNotification()\n");
-        RPC_SCMI_MiscDispatchNotification(msgId, &trigger);
+        NCHECK(RPC_SCMI_MiscDispatchNotification(msgId, &trigger));
     }
 
     /* Loop over control test domains */
@@ -278,17 +284,24 @@ void TEST_ScmiMisc(void)
         &channel, &ctrlId, &lmId);
     while (status == SM_ERR_SUCCESS)
     {
+        uint32_t sCtrlId = ctrlId;
         uint8_t perm = g_scmiAgentConfig[agentId].ctrlPerms[ctrlId];
 
-        /* Test functions with GET perm required */
-        TEST_ScmiMiscGet(perm >= SM_SCMI_PERM_GET, channel, ctrlId);
+        /* Convert to slit ctrlId */
+        if (ctrlId >= numDevCtrl)
+        {
+            sCtrlId = (sCtrlId - numDevCtrl) | SCMI_MISC_CTRL_FLAG_BRD;
+        }
 
-        /* Test functions with notify perms required */
-        TEST_ScmiMiscNotify(perm >= SM_SCMI_PERM_NOTIFY,channel, ctrlId);
+        /* Test functions with GET perm required */
+        TEST_ScmiMiscGet(perm >= SM_SCMI_PERM_GET, channel, sCtrlId);
+
+        /* RPC_00170 Test functions with notify perms required */
+        TEST_ScmiMiscNotify(perm >= SM_SCMI_PERM_NOTIFY,channel, sCtrlId);
 
         /* Test functions with EXCLUSIVE perm required */
         TEST_ScmiMiscExclusive(perm >= SM_SCMI_PERM_EXCLUSIVE, channel,
-            ctrlId, lmId);
+            sCtrlId, lmId);
 
         /* Get next test case */
         status = TEST_ConfigNextGet(TEST_CTRL, &agentId,
@@ -335,7 +348,7 @@ static void TEST_ScmiMiscNotify(bool pass, uint32_t channel,
     /* Adequate Permissions */
     if (pass)
     {
-        /* Misc Control Notify & Event */
+        /* RPC_00360 Misc Control Notify & Event */
         uint32_t flags = 1U;
 
         /* Request notification */
@@ -396,7 +409,7 @@ static void TEST_ScmiMiscExclusive(bool pass, uint32_t channel,
     /* Adequate Set Permissions */
     if (pass)
     {
-        /* Control Set */
+        /* RPC_00360 Control Set */
         printf("SCMI_MiscControlSet(%u, %u)\n", channel, ctrlId);
         CHECK(SCMI_MiscControlSet(channel, ctrlId,
             1U, &val));

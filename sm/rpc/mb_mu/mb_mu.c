@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-** Copyright 2023 NXP
+** Copyright 2023-2024 NXP
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -39,6 +39,7 @@
 /* Includes */
 
 #include "sm.h"
+#include "dev_sm.h"
 #include "fsl_device_registers.h"
 #include "mb_mu.h"
 #include "config_mb_mu.h"
@@ -79,10 +80,17 @@ int32_t MB_MU_Init(uint8_t inst, uint8_t db, bool noIrq, uint32_t initCount)
         static IRQn_Type const s_muIrqs[] = MU_IRQS;
         MU_Type *base = s_muBases[s_mbMuConfig[inst].mu];
         IRQn_Type irq = s_muIrqs[s_mbMuConfig[inst].mu];
+        uint32_t priority = s_mbMuConfig[inst].priority;
 
         /* Init MU */
         MU_Init(base);
         NVIC_EnableIRQ(irq);
+
+        /* Configure priority */
+        if (priority != 0U)
+        {
+            status = DEV_SM_IrqPrioBaseSet(irq, priority);
+        }
     }
 
     /* Enable interrupts */
@@ -137,8 +145,8 @@ int32_t MB_MU_DoorbellRing(uint8_t inst, uint8_t db)
         MU_Type *base = s_muBases[s_mbMuConfig[inst].mu];
 
         /* Trigger GI interrupt */
-        MU_TriggerInterrupts(base, ((uint32_t) kMU_GenInt0InterruptTrigger)
-                << db);
+        (void) MU_TriggerInterrupts(base,
+            ((uint32_t) kMU_GenInt0InterruptTrigger) << db);
     }
 
     /* Return status */

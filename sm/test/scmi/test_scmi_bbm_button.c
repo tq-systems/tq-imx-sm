@@ -112,7 +112,7 @@ void TEST_ScmiBbmButton(void)
         lmm_rpc_trigger_t trigger = { 0 };
 
         printf("RPC_SCMI_BbmDispatchNotification()\n");
-        RPC_SCMI_BbmDispatchNotification(msgId, &trigger);
+        NCHECK(RPC_SCMI_BbmDispatchNotification(msgId, &trigger));
     }
 
     /* Loop over BBM test resources */
@@ -125,7 +125,7 @@ void TEST_ScmiBbmButton(void)
         /* Test functions with no perm required */
         TEST_ScmiButtonNone(channel, resource);
 
-        /* Test functions with NOTIFY perm required */
+        /* RPC_00170 Test functions with NOTIFY perm required */
         TEST_ScmiButtonNotify(perm >= SM_SCMI_PERM_SET, channel, resource);
 
         /* Get next test case */
@@ -174,7 +174,7 @@ static void TEST_ScmiButtonNotify(bool pass, uint32_t channel,
             }
         }
 
-        /* Test ON/OFF button notification */
+        /* RPC_00280 Test ON/OFF button notification */
         {
             uint32_t flags = SCMI_BBM_NOTIFY_BUTTON_DETECT(1U);
 

@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-** Copyright 2023 NXP
+** Copyright 2023-2024 NXP
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -35,6 +35,8 @@
 /*==========================================================================*/
 /* Unit test for the device SM CPU API.                                     */
 /*==========================================================================*/
+
+/* DEV_00010 */
 
 /* Include Config */
 
@@ -118,13 +120,15 @@ void TEST_DevSmCpu(void)
         NECHECK(DEV_SM_CpuSleepModeSet(DEV_SM_NUM_CPU, sleepMode, 0U),
             SM_ERR_NOT_FOUND);
 
+#if 0
         /* Invalid Sleep Mode
             July 18, 2023 -- 0U <= x <= 4U are valid */
-        // sleepMode = 5U;
+        sleepMode = 5U;
 
-        // printf("DEV_SM_CpuSleepModeSet(%u)\n", 0U);
-        // NECHECK(DEV_SM_CpuSleepModeSet(0U, sleepMode),
-        //     SM_ERR_INVALID_PARAMETERS);
+        printf("DEV_SM_CpuSleepModeSet(%u)\n", 0U);
+        NECHECK(DEV_SM_CpuSleepModeSet(0U, sleepMode),
+            SM_ERR_INVALID_PARAMETERS);
+#endif
     }
 
     /* IRQ wake set */

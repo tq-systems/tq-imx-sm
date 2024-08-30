@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-**     Copyright 2023 NXP
+**     Copyright 2023-2024 NXP
 **
 **     Redistribution and use in source and binary forms, with or without modification,
 **     are permitted provided that the following conditions are met:
@@ -82,16 +82,39 @@ typedef struct
 int32_t DEV_SM_SensorInit(void);
 
 /*!
- * Power up a sensor.
+ * Configure and start a sensor.
  *
- * @param[in]     sensorId        Sensor name to get
+ * @param[in]     sensorId        Sensor to power on
  *
  * This function initializes the sensor. It is used after the power
  * domain containing the sensor is turned on.
  *
  * @return Returns the status (::SM_ERR_SUCCESS = success).
  */
+int32_t DEV_SM_SensorConfigStart(uint32_t sensorId);
+
+/*!
+ * Enable and start a sensor.
+ *
+ * @param[in]     sensorId        Sensor to power off
+ *
+ * This function enables and starts a sensor a sensor. The sensor
+ * must already be configured using DEV_SM_SensorConfigStart().
+ *
+ * @return Returns the status (::SM_ERR_SUCCESS = success).
+ */
 int32_t DEV_SM_SensorPowerUp(uint32_t sensorId);
+
+/*!
+ * Stop and disable a sensor.
+ *
+ * @param[in]     sensorId        Sensor to power off
+ *
+ * This function stops and disables a sensor to save power.
+ *
+ * @return Returns the status (::SM_ERR_SUCCESS = success).
+ */
+int32_t DEV_SM_SensorPowerDown(uint32_t sensorId);
 
 /*!
  * Get a sensor name.

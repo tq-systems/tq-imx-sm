@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 NXP
+ * Copyright 2023-2024 NXP
  *
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
@@ -27,8 +27,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _FSL_CLOCK_H_
-#define _FSL_CLOCK_H_
+#ifndef FSL_CLOCK_H
+#define FSL_CLOCK_H
 
 /*!
  * @addtogroup CLOCK_driver
@@ -38,13 +38,17 @@
 /*! @file */
 
 /* Includes */
+
 #include "fsl_common.h"
 
 /* Defines */
+
 #define CLOCK_OSC32K_HZ                     32768ULL
 #define CLOCK_OSC24M_HZ                     24000000ULL
 #define CLOCK_FRO_HZ                        300000000ULL
 #define CLOCK_PLL_FREF_HZ                   CLOCK_OSC24M_HZ
+#define CLOCK_M_HZ                          1000000ULL
+#define CLOCK_K_HZ                          1000ULL
 
 #define CLOCK_PLL_CALC_ACCURACY_HZ          1000U
 #define CLOCK_PLL_MFD                       (CLOCK_PLL_FREF_HZ/CLOCK_PLL_CALC_ACCURACY_HZ)
@@ -266,17 +270,23 @@ typedef struct
 } ccm_gpr_sel_attr_t;
 
 /* Functions */
+
 bool CLOCK_SourceGetEnable(uint32_t sourceIdx);
 bool CLOCK_SourceSetEnable(uint32_t sourceIdx, bool enable);
 uint64_t CLOCK_SourceGetRate(uint32_t sourceIdx);
 bool CLOCK_SourceSetRate(uint32_t sourceIdx, uint64_t rate, uint32_t roundRule);
+bool CLOCK_SourceSetSsc(uint32_t sourceIdx, uint32_t spreadPercent,
+    uint32_t modFreq, uint32_t enable);
+bool CLOCK_SourceGetSsc(uint32_t sourceIdx, uint32_t *spreadPercent,
+    uint32_t *modFreq, uint32_t *enable);
 
 /* Externs */
+
 extern uint64_t g_clockExt1Rate;
 extern const pll_attr_t g_pllAttrs[];
 extern const uint8_t g_clockRootMux[][CLOCK_NUM_ROOT_MUX_SEL];
 extern const ccm_gpr_sel_attr_t g_clockGprSel[CLOCK_NUM_GPR_SEL];
 
-#endif /* _FSL_CLOCK_H_ */
+#endif /* FSL_CLOCK_H */
 
 /** @} */

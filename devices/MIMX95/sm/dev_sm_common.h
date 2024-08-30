@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-**     Copyright 2023 NXP
+**     Copyright 2023-2024 NXP
 **
 **     Redistribution and use in source and binary forms, with or without modification,
 **     are permitted provided that the following conditions are met:
@@ -74,12 +74,27 @@
 
 /* Types */
 
+/*!
+ * Syslog
+ */
+typedef struct
+{
+    /*! System sleep record */
+    dev_sm_sys_sleep_rec_t sysSleepRecord;
+} dev_sm_syslog_t;
+
+/* Global variables */
+
+/*! Structure to hold the syslog */
+extern dev_sm_syslog_t g_syslog;
+
 /* Functions */
 
 /** @} */
 
 /* Include SM device API */
 
+// coverity[misra_c_2012_rule_20_1_violation:FALSE]
 #include "dev_sm_common_api.h"
 
 #endif /* DEV_SM_COMMON_H */

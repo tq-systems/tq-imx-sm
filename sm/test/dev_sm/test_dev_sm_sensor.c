@@ -36,6 +36,8 @@
 /* Unit test for the device SM sensor API.                                  */
 /*==========================================================================*/
 
+/* DEV_00010 */
+
 /* Include Config */
 
 /* Includes */
@@ -120,7 +122,7 @@ void TEST_DevSmSensor(void)
 
         /* Check if timestampSupport is on and then return error or does
             timestamping */
-        if(!sensor.timestampSupport)
+        if (!sensor.timestampSupport)
         {
             printf("DEV_SM_SensorEnable(%u)\n", sensorId);
             NECHECK(DEV_SM_SensorEnable(

@@ -205,7 +205,7 @@ uint32_t SystemMemoryProbe(const void *addr, void *val, uint8_t width)
     if ((pAddr >= 0x80000000UL) && (pAddr < 0x80010000UL))
     {
         // Perform the probe
-        switch(width)
+        switch (width)
         {
             default:
                 *((uint8_t *) val) = *((const uint8_t *) addr);
@@ -425,32 +425,6 @@ static int32_t MONITOR_CharGet(char *buf, uint32_t len, bool echo)
 
         rtn = (int32_t) len;
     }
-#ifdef DEBUG
-    else if (SM_DBG_READY == 2)
-    {
-        int32_t idx = 0;
-
-        while((len--) != 0U)
-        {
-            char c;
-
-            /* Get character */
-            c = term_emul_getc();
-
-            /* Convert CR into LF */
-            if (c == '\r')
-            {
-                c = '\n';
-            }
-            buf[idx++] = c;
-
-            /* Echo received character */
-            term_emul_putc(c);
-        }
-
-        rtn = idx;
-    }
-#endif
     else
     {
         errno = EBADF;

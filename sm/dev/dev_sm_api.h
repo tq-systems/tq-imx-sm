@@ -165,11 +165,6 @@
 #define SM_NUM_FAULT            DEV_SM_NUM_FAULT
 #endif
 
-#ifndef SM_NUM_CRC
-/*! Redirector (device/board) for the number of CRC channels */
-#define SM_NUM_CRC              1U
-#endif
-
 #ifndef SM_NUM_RDC
 /*! Redirector (device/board) for the number of RDC */
 #define SM_NUM_RDC              DEV_SM_NUM_RDC
@@ -198,6 +193,11 @@
 #ifndef SM_POWERSTATEGET
 /*! Redirector (device/board) to get a power domain's state */
 #define SM_POWERSTATEGET        DEV_SM_PowerStateGet
+#endif
+
+#ifndef SM_POWERRETMODESET
+/*! Redirector (device/board) to set a power domain's retention mode */
+#define SM_POWERRETMODESET      DEV_SM_PowerRetModeSet
 #endif
 
 #ifndef SM_POWERRETMASKGET
@@ -243,6 +243,16 @@
 #ifndef DEV_SM_SYSTEMRSTREASON
 /*! Redirector (device/board) to get system reset reason */
 #define DEV_SM_SYSTEMRSTREASON  DEV_SM_SystemRstReason
+#endif
+
+#ifndef SM_SYSTEMPOSTBOOT
+/*! Redirector (device/board) to post boot clean-up */
+#define SM_SYSTEMPOSTBOOT       DEV_SM_SystemPostBoot
+#endif
+
+#ifndef SM_SYSTEMERROR
+/*! Redirector (device/board) to report an error */
+#define SM_SYSTEMERROR          DEV_SM_SystemError
 #endif
 
 #ifndef SM_PERFNAMEGET
@@ -318,6 +328,16 @@
 #ifndef SM_CLOCKPARENTGET
 /*! Redirector (device/board) to get a clock parent */
 #define SM_CLOCKPARENTGET       DEV_SM_ClockParentGet
+#endif
+
+#ifndef SM_CLOCKEXTENDEDSET
+/*! Redirector (device/board) to set extended clock data */
+#define SM_CLOCKEXTENDEDSET     DEV_SM_ClockExtendedSet
+#endif
+
+#ifndef SM_CLOCKEXTENDEDGET
+/*! Redirector (device/board) to get extended clock data */
+#define SM_CLOCKEXTENDEDGET     DEV_SM_ClockExtendedGet
 #endif
 
 #ifndef SM_SENSORNAMEGET
@@ -573,6 +593,16 @@
 #ifndef SM_SIINFOGET
 /*! Redirector (device/board) to get silicon info */
 #define SM_SIINFOGET            DEV_SM_SiInfoGet
+#endif
+
+#ifndef SM_SYSLOGGET
+/*! Redirector (device/board) to get the syslog */
+#define SM_SYSLOGGET            DEV_SM_SyslogGet
+#endif
+
+#ifndef SM_SYSLOGDUMP
+/*! Redirector (device/board) to dump the syslog */
+#define SM_SYSLOGDUMP           DEV_SM_SyslogDump
 #endif
 
 /** @} */

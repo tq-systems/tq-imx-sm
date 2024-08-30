@@ -67,6 +67,8 @@
 #define SYS_STATE_FULL_RESET     0x80000002U
 #define SYS_STATE_FULL_SUSPEND   0x80000003U
 #define SYS_STATE_FULL_WAKE      0x80000004U
+#define SYS_STATE_GRP_SHUTDOWN   0x80000005U
+#define SYS_STATE_GRP_RESET      0x80000006U
 #define SYS_STATE_MODE           0xC0000000U
 
 /* Local macros */
@@ -207,7 +209,7 @@ int32_t RPC_SCMI_SysDispatchCommand(scmi_caller_t *caller,
     uint32_t lenOut = sizeof(scmi_msg_status_t);
 
     /* Handle standard messages */
-    switch(messageId)
+    switch (messageId)
     {
         case COMMAND_PROTOCOL_VERSION:
             lenOut = sizeof(msg_tsys0_t);
@@ -264,7 +266,7 @@ int32_t RPC_SCMI_SysDispatchNotification(scmi_msg_id_t msgId,
     int32_t status = SM_ERR_SUCCESS;
 
     /* Handle notifications */
-    switch(msgId.messageId)
+    switch (msgId.messageId)
     {
         case RPC_SCMI_NOTIFY_SYSTEM_POWER_STATE_NOTIFIER:
             status = SystemPowerStateNotifier(msgId, trigger);
@@ -304,7 +306,7 @@ static bool s_sysNotify[SM_SCMI_NUM_AGNT];
 /* Local functions */
 
 static int32_t SystemPowerUpdate(const scmi_caller_t *caller, uint32_t lmId,
-    uint32_t systemState, bool graceful);
+    uint32_t systemState, bool *graceful);
 static int32_t SystemPowerMode(uint32_t lmId, uint32_t agentId,
     uint32_t powerMode);
 
@@ -574,7 +576,7 @@ static int32_t SystemPowerStateSet(const scmi_caller_t *caller,
         {
             /* Request power transition */
             status = SystemPowerUpdate(caller, lmId, in->systemState,
-                graceful);
+                &graceful);
 
             /* May be nothing to return result to */
             if ((status == SM_ERR_SUCCESS) && (!graceful))
@@ -751,7 +753,7 @@ static int32_t SysResetAgentConfig(uint32_t lmId, uint32_t agentId,
     /* Reset power mode */
     if (s_powerMode[agentId] != 0U)
     {
-        SystemPowerMode(lmId, agentId, 0U);
+        status = SystemPowerMode(lmId, agentId, 0U);
     }
 
     /* Return status */
@@ -767,7 +769,7 @@ static int32_t SysResetAgentConfig(uint32_t lmId, uint32_t agentId,
 /* - systemState: new system power state                                    */
 /*--------------------------------------------------------------------------*/
 static int32_t SystemPowerUpdate(const scmi_caller_t *caller, uint32_t lmId,
-    uint32_t systemState, bool graceful)
+    uint32_t systemState, bool *graceful)
 {
     int32_t status = SM_ERR_SUCCESS;
 
@@ -777,17 +779,17 @@ static int32_t SystemPowerUpdate(const scmi_caller_t *caller, uint32_t lmId,
         case SYS_STATE_SHUTDOWN:
             /* Shutdown */
             status = LMM_SystemLmShutdown(caller->lmId, caller->instAgentId,
-                lmId, graceful, &g_swReason);
+                lmId, *graceful, &g_swReason);
             break;
         case SYS_STATE_COLD_RESET:
             /* Cold Reset */
             status = LMM_SystemLmReset(caller->lmId, caller->instAgentId,
-                lmId, false, graceful, &g_swReason);
+                lmId, false, *graceful, &g_swReason);
             break;
         case SYS_STATE_WARM_RESET:
             /* Warm Reset */
             status = LMM_SystemLmReset(caller->lmId, caller->instAgentId,
-                lmId, true, graceful, &g_swReason);
+                lmId, true, *graceful, &g_swReason);
             break;
         case SYS_STATE_POWER_UP:
             /* Power up */
@@ -801,22 +803,34 @@ static int32_t SystemPowerUpdate(const scmi_caller_t *caller, uint32_t lmId,
         case SYS_STATE_FULL_SHUTDOWN:
             /* System shutdown */
             status = LMM_SystemShutdown(caller->lmId,
-                caller->instAgentId, graceful, &g_swReason);
+                caller->instAgentId, *graceful, &g_swReason);
             break;
         case SYS_STATE_FULL_RESET:
             /* System reset*/
             status = LMM_SystemReset(caller->lmId,
-                caller->instAgentId, graceful, &g_swReason);
+                caller->instAgentId, *graceful, &g_swReason);
             break;
         case SYS_STATE_FULL_SUSPEND:
             /* System suspend */
+            *graceful = true;
             status = LMM_SystemSuspend(caller->lmId,
                 caller->instAgentId);
             break;
         case SYS_STATE_FULL_WAKE:
             /* System wake*/
+            *graceful = true;
             status = LMM_SystemWake(caller->lmId,
                 caller->instAgentId);
+            break;
+        case SYS_STATE_GRP_SHUTDOWN:
+            /* System shutdown */
+            status = LMM_SystemGrpShutdown(caller->lmId,
+                caller->instAgentId, *graceful, &g_swReason, 0U);
+            break;
+        case SYS_STATE_GRP_RESET:
+            /* System reset*/
+            status = LMM_SystemGrpReset(caller->lmId,
+                caller->instAgentId, *graceful, &g_swReason, 0U);
             break;
         default:
             status = SM_ERR_INVALID_PARAMETERS;

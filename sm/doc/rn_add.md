@@ -18,49 +18,79 @@ The tool chain used with this SM is Arm GNU Toolchain Version **12.3.Rel1** obta
 [Arm GNU Toolchain](https://developer.arm.com/Tools%20and%20Software/GNU%20Toolchain).
 Use the x86_64 Linux hosted AArch32 bare-metal target (arm-none-eabi) toolchain.
 
+Supported development environments include Ubuntu 2020.04, 2022.04, and 2024.04. Supported
+versions of doxygen include 1.8.17, 1.9.1, and 1.9.8.
+
 SCMI API Changes {#RN_ADD_API}
 ================
 
-- Updated to SCMI 3.2 BETA3
-- Added a CPU peripheral low-power interface configuration message
-- Added a platform wake flag to the CPU sleep mode flags
+The following changes can affect client (aka agent software):
+
+- Updated to the final SCMI 3.2 spec, **not backwards compatible to BETA3**
+- Significant changes to the SCMI pinctrl protocol due to the ARM spec change
+- Split misc device and board controls, **board controls now start at 0x8000**
+- Added new SCMI_MSG_MISC_CFG_INFO message and SCMI_MiscCfgInfo() function
+- Added new SCMI_MSG_MISC_SYSLOG message and SCMI_MiscSyslog() function
+- Added new SCMI_MSG_CPU_INFO_GET message and SCMI_CpuInfoGet() function
+- Added CPU run modes
+- Added clock state and extended clock identifiers
+- Added SCMI_LmmPowerOn()
+- Added group shutdown and group reset system power states
+- Added sequence functions SCMI_SequenceConfig(), SCMI_SequenceSave(), SCMI_SequenceRestore()
+- Added a new SCMI_ERR_SEQ_ERROR error type
+- Updated FuSa protocol functions
+
+Client software **must* update to the final SCMI 3.2 protocols.
 
 Configuration Changes {#RN_ADD_CONFIG}
 =====================
 
-- Updated mx95alt to allow M33 access to the SEMA41 (for testing)
-- Updated mx95evk:
-  - fault reactions (for testing)
-  - to give AP secure (ATF) access to the peripheral LPI
-  - to fix issues with mSel 1 and 2 start/stop script 
+The following are cfg file changes that customers **must** make to their cfg files
+and rebuild their config headers.
 
-Customers will require the LPI changes if running ATF. They should also configure fault
-handling as required.
+- Assigned CLK_ELE to the SM
+- Fixed assignment of EIM_NPU and ERM_NPU
+- Update SW faults to reserve FAULT_SW4 for FuSa use
+- Added M7 power off on M7 LM shutdown
+- Set the priority of the M7 MU to high
+- Assigned LPTMR1/2 to the M7 LM
+- Added VDD_SOC enable/disable via new VOLT start/stop options
+- Gave ATF all access to SYS
+- Removed assignment of SM clocks to AP-NS (Linux no longer requires)
+- Split DC into small functional resources
+- Update NETC, PCI, and USB SMMU parameters (KPA, SID) for Linux
 
 Board Interface Changes {#RN_ADD_BOARD}
 =======================
 
-These are changes to the board interface:
+The following interface changes will require customers make similar change to their port.
 
-- Defined a debug UART config structure
-- Changed the BOARD_GetDebugUart() prototype
-
-Customers will require similar changes to their ports.
+- Added BOARD_SystemSleepPrepare(), BOARD_SystemSleepEnter(), BOARD_SystemSleepExit()
+  and BOARD_SystemSleepUnprepare() to support system suspend
+- Added pc to BRD_SM_Exit()
+- Added *perLpiId* to *board_uart_config_t*
 
 Board Implementation Changes {#RN_ADD_BOARD_IMP}
 ============================
 
-These are changes to the NXP reference ports:
+Customers may require some of the following changes in their board port.
 
-- Added BRD_SM_SystemReset() overload to reset system instead of just the SoC
-- Supported WDOG configuration for FCCU, configured for FCCU mode after FCCU init
-- Moved to WDOG2 as it goes through the FCCU
-- Enabled the three FCCU interrupts, disable the WDOG interrupt
-- Fixed polarity of the WDOG_ANY flags
-- Refactored the debug UART configuration
-- Supported disable of the debug UART from the cfg file
-- Disabled PF09 voltage monitors
-- Disabled the PF09 PWRUP interrupt
+- Added low-power interface data structures and functions
+- Moved to FRO initialization to board code, use fuse trim if available
+- Modified BRD_SM_Exit() to pass the PC
+- Change to support GPIO1 interrupt direct and not via device handlers
+- Added support for board interrupt prioritization
+- Renamed FCCU0_IRQn to FCCU_INT0_IRQn
+- Removed FCCU 1/2 interrupt enables
+- Set the default ADC clock rate to 80MHz
+- Added BRD_SM_InitComplete() to allow DEV_SM init calls
+- Added LM group reactions to BRD_SM_FaultReactionGet()
+- Added function override for BRD_SM_ControlSet()
+- Added support for a BRD_SM_CTRL_TEST control
+- Fixed issue with *errId* sign extension
+- Moved the watchdog config to be file static
+- Disable XRESET mode in PF09 to support the 15x15 EVK
 
-Customers will require similar changes to their ports.
+**Note the FRO and GPIO change (if used) must be made else the SM will
+fail to boot.**
 

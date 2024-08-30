@@ -38,9 +38,11 @@
 /*! @file */
 
 /* Includes */
+
 #include "fsl_common.h"
 
 /* Defines */
+
 #define CPU_NUM_IDX         9U
 
 #define CPU_IDX_M33P        0U
@@ -114,8 +116,6 @@
 #define CPU_PER_LPI_IDX_WDOG4           19U
 #define CPU_PER_LPI_IDX_WDOG5           20U
 
-#define CPU_PER_LPI_LPCG_OFFSET         128U
-
 #define CPU_PER_LPI_ON_NEVER            0U
 #define CPU_PER_LPI_ON_RUN              1U
 #define CPU_PER_LPI_ON_RUN_WAIT         2U
@@ -123,6 +123,7 @@
 #define CPU_PER_LPI_ON_ALWAYS           4U
 
 /* Types */
+
 typedef struct
 {
     IRQn_Type secIrq;
@@ -154,6 +155,7 @@ typedef struct
 } cpu_per_lpi_info_t;
 
 /* Functions */
+
 bool CPU_Init(uint32_t cpuIdx);
 bool CPU_WaitSet(uint32_t cpuIdx, bool enableCpuWait);
 bool CPU_WaitGet(uint32_t cpuIdx, bool *cpuWait);
@@ -171,6 +173,7 @@ bool CPU_SleepForceSet(uint32_t cpuIdx, bool sleepForce);
 bool CPU_SleepForceGet(uint32_t cpuIdx, bool *sleepForce);
 bool CPU_SystemSleepSet(uint32_t cpuIdx, uint32_t sysSleep);
 bool CPU_SystemSleepGet(uint32_t cpuIdx, uint32_t *sysSleep);
+bool CPU_SystemSleepStatusGet(uint32_t *sysSleepStat);
 bool CPU_WakeMuxSet(uint32_t cpuIdx, bool gicWake);
 bool CPU_WakeMuxGet(uint32_t cpuIdx, bool *gicWake);
 bool CPU_IrqWakeSet(uint32_t cpuIdx, uint32_t maskIdx, uint32_t maskVal);

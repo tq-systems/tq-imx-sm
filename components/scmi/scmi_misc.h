@@ -70,6 +70,10 @@
 #define SCMI_MSG_MISC_RESET_REASON         0xAU
 /*! Get silicon info */
 #define SCMI_MSG_MISC_SI_INFO              0xBU
+/*! Get build config name */
+#define SCMI_MSG_MISC_CFG_INFO             0xCU
+/*! Get system log */
+#define SCMI_MSG_MISC_SYSLOG               0xDU
 /*! Read control notification event */
 #define SCMI_MSG_MISC_CONTROL_EVENT        0x0U
 /** @} */
@@ -86,6 +90,8 @@
 #define SCMI_MISC_MAX_NAME       16U
 /*! Max length of the returned silicon name */
 #define SCMI_MISC_MAX_SINAME     16U
+/*! Max length of the returned cfg name */
+#define SCMI_MISC_MAX_CFGNAME    16U
 /*! Max number value words */
 #define SCMI_MISC_MAX_VAL_T      SCMI_ARRAY(8U, uint32_t)
 /*! Max number return words */
@@ -98,6 +104,8 @@
 #define SCMI_MISC_MAX_PASSOVER   SCMI_ARRAY(8U, uint32_t)
 /*! Max number of extended shutdown info words */
 #define SCMI_MISC_MAX_EXTINFO    SCMI_ARRAY(16U, uint32_t)
+/*! Max number syslog words */
+#define SCMI_MISC_MAX_SYSLOG     SCMI_ARRAY(8U, uint32_t)
 /** @} */
 
 /*!
@@ -116,6 +124,16 @@
 #define SCMI_MISC_NUM_PASSOVER  msgRx->numPassover
 /*! Actual number of extended shutdown info words returned */
 #define SCMI_MISC_NUM_EXTINFO   SCMI_MISC_SHUTDOWN_FLAG_EXT_LEN(msgRx->shutdownFlags)
+/*! Actual number of syslog words returned */
+#define SCMI_MISC_NUM_SYSLOG    SCMI_MISC_NUM_LOG_FLAGS_NUM_LOGS(msgRx->numLogFlags)
+/** @} */
+
+/*!
+ * @name SCMI Control ID Flags
+ */
+/** @{ */
+/*! Flag bit indicating board control */
+#define SCMI_MISC_CTRL_FLAG_BRD  0x8000U
 /** @} */
 
 /* Macros */
@@ -124,10 +142,12 @@
  * @name SCMI misc protocol attributes
  */
 /** @{ */
+/*! Number of board controls */
+#define SCMI_MISC_PROTO_ATTR_NUM_BRD_CTRL(x)  (((x) & 0xFF000000U) >> 24U)
 /*! Number of reasons */
-#define SCMI_MISC_PROTO_ATTR_NUM_REASON(x)  (((x) & 0xFF0000U) >> 16U)
-/*! Number of controls */
-#define SCMI_MISC_PROTO_ATTR_NUM_CTRL(x)    (((x) & 0xFFFFU) >> 0U)
+#define SCMI_MISC_PROTO_ATTR_NUM_REASON(x)    (((x) & 0xFF0000U) >> 16U)
+/*! Number of device controls */
+#define SCMI_MISC_PROTO_ATTR_NUM_DEV_CTRL(x)  (((x) & 0xFFFFU) >> 0U)
 /** @} */
 
 /*!
@@ -176,6 +196,16 @@
 #define SCMI_MISC_SHUTDOWN_FLAG_REASON(x)   (((x) & 0xFFU) >> 0U)
 /** @} */
 
+/*!
+ * @name SCMI misc num log flags
+ */
+/** @{ */
+/*! Number of remaining log words */
+#define SCMI_MISC_NUM_LOG_FLAGS_REMAING_LOGS(x)  (((x) & 0xFFF00000U) >> 20U)
+/*! Number of log words that are returned by this call */
+#define SCMI_MISC_NUM_LOG_FLAGS_NUM_LOGS(x)      (((x) & 0xFFFU) >> 0U)
+/** @} */
+
 /* Functions */
 
 /*!
@@ -198,16 +228,17 @@ int32_t SCMI_MiscProtocolVersion(uint32_t channel, uint32_t *version);
  *
  * @param[in]     channel     A2P channel for comms
  * @param[out]    attributes  Protocol attributes:<BR>
- *                            Bits[31:24] Reserved, must be zero.<BR>
+ *                            Bits[31:24] Number of board controls.<BR>
  *                            Bits[23:16] Number of reasons.<BR>
- *                            Bits[15:0] Number of controls
+ *                            Bits[15:0] Number of device controls
  *
  * This function returns the implementation details associated with this
  * protocol.
  *
  * Access macros:
+ * - ::SCMI_MISC_PROTO_ATTR_NUM_BRD_CTRL() - Number of board controls
  * - ::SCMI_MISC_PROTO_ATTR_NUM_REASON() - Number of reasons
- * - ::SCMI_MISC_PROTO_ATTR_NUM_CTRL() - Number of controls
+ * - ::SCMI_MISC_PROTO_ATTR_NUM_DEV_CTRL() - Number of device controls
  *
  * @return Returns the status (::SCMI_ERR_SUCCESS = success).
  */
@@ -246,9 +277,11 @@ int32_t SCMI_MiscProtocolMessageAttributes(uint32_t channel,
  * @param[in]     numVal   Size of the value data
  * @param[in]     val      Value data array
  *
- * This allows the calling agent to set a control value. No aggregation is done
- * and controls are exclusively access controlled. Max number of data words is
- * ::SCMI_MISC_MAX_VAL_T.
+ * This function allows the calling agent to set a control value. No
+ * aggregation is done and controls are exclusively access controlled. Max
+ * number of data words is ::SCMI_MISC_MAX_VAL_T. The \a ctrlId parameter is a
+ * device control unless the ::SCMI_MISC_CTRL_FLAG_BRD bit is set to make it a
+ * board control.
  *
  * @return Returns the status (::SCMI_ERR_SUCCESS = success).
  *
@@ -270,7 +303,9 @@ int32_t SCMI_MiscControlSet(uint32_t channel, uint32_t ctrlId,
  * @param[out]    val      Return data array
  *
  * This function allows the calling agent to get a control value. Max number of
- * data words is ::SCMI_MISC_MAX_VAL.
+ * data words is ::SCMI_MISC_MAX_VAL. The \a ctrlId parameter is a device
+ * control unless the ::SCMI_MISC_CTRL_FLAG_BRD bit is set to make it a board
+ * control.
  *
  * @return Returns the status (::SCMI_ERR_SUCCESS = success).
  *
@@ -297,7 +332,8 @@ int32_t SCMI_MiscControlGet(uint32_t channel, uint32_t ctrlId,
  * This function allows the calling agent to initiate an action on a control.
  * Actions and action parameters are specific to a control. Max number of
  * argument words is ::SCMI_MISC_MAX_ARG_T. Max number of return words is
- * ::SCMI_MISC_MAX_RTN.
+ * ::SCMI_MISC_MAX_RTN. The \a ctrlId parameter is a device control unless the
+ * ::SCMI_MISC_CTRL_FLAG_BRD bit is set to make it a board control.
  *
  * @return Returns the status (::SCMI_ERR_SUCCESS = success).
  *
@@ -364,6 +400,8 @@ int32_t SCMI_MiscRomPassoverGet(uint32_t channel, uint32_t *numPassover,
  * @param[in]     flags    Notification flags, varies by control
  *
  * This function allows an agent to enable/disable notification for a control.
+ * The \a ctrlId parameter is a device control unless the
+ * ::SCMI_MISC_CTRL_FLAG_BRD bit is set to make it a board control.
  *
  * @return Returns the status (::SCMI_ERR_SUCCESS = success).
  *
@@ -496,6 +534,58 @@ int32_t SCMI_MiscResetReason(uint32_t channel, uint32_t flags,
  */
 int32_t SCMI_MiscSiInfo(uint32_t channel, uint32_t *deviceId,
     uint32_t *siRev, uint32_t *partNum, uint8_t *siName);
+
+/*!
+ * Get build config name.
+ *
+ * @param[in]     channel  A2P channel for comms
+ * @param[out]    mSel     Mode selector value
+ * @param[out]    cfgName  Config (cfg) file basename
+ *
+ * This function returns the basename of the SM configuration (cfg) file and
+ * the mSel value.
+ *
+ * @return Returns the status (::SCMI_ERR_SUCCESS = success).
+ *
+ * Return errors (see @ref SCMI_STATUS "SCMI error codes"):
+ * - ::SCMI_ERR_SUCCESS: in case the cfg name is returned.
+ * - ::SCMI_ERR_NOT_SUPPORTED: if the name is not available.
+ */
+int32_t SCMI_MiscCfgInfo(uint32_t channel, uint32_t *mSel,
+    uint8_t *cfgName);
+
+/*!
+ * Get system log.
+ *
+ * @param[in]     channel      A2P channel for comms
+ * @param[in]     flags        Device specific flags that might impact the data
+ *                             returned or clearing of the data
+ * @param[in]     logIndex     Index to the first log word. Will be the first
+ *                             element in the return array
+ * @param[out]    numLogFlags  Descriptor for the log data returned by this
+ *                             call.<BR>
+ *                             Bits[31:20] Number of remaining log words.<BR>
+ *                             Bits[15:12] Reserved, must be zero.<BR>
+ *                             Bits[11:0] Number of log words that are returned
+ *                             by this call
+ * @param[out]    syslog       Log data array
+ *
+ * This function returns the system log. The format of this log is device
+ * specific.
+ *
+ * Access macros:
+ * - ::SCMI_MISC_NUM_LOG_FLAGS_REMAING_LOGS() - Number of remaining log words
+ * - ::SCMI_MISC_NUM_LOG_FLAGS_NUM_LOGS() - Number of log words that are
+ *   returned by this call
+ *
+ * @return Returns the status (::SCMI_ERR_SUCCESS = success).
+ *
+ * Return errors (see @ref SCMI_STATUS "SCMI error codes"):
+ * - ::SCMI_ERR_SUCCESS: if the syslog returned sucessfully.
+ * - ::SCMI_ERR_NOT_SUPPORTED: if the syslog is not available.
+ */
+int32_t SCMI_MiscSyslog(uint32_t channel, uint32_t flags, uint32_t logIndex,
+    uint32_t *numLogFlags, uint32_t *syslog);
 
 /*!
  * Negotiate the protocol version.

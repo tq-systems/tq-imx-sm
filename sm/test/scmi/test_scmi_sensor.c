@@ -72,7 +72,7 @@ void TEST_ScmiSensor(void)
     uint32_t agentId, channel, sensorId, lmId;
     uint32_t numSensors;
 
-    /* Sensor tests */
+    /* RPC_00010 RPC_00110 RPC_00160 Sensor tests */
     printf("**** Sensor Protocol Tests ***\n\n");
 
     /* Test protocol version */
@@ -89,7 +89,6 @@ void TEST_ScmiSensor(void)
     /* Test protocol attributes */
     {
         uint32_t attributes = 0U;
-        uint32_t maxPending = 0U;
         uint32_t sensorRegAddressLow = 1U;
         uint32_t sensorRegAddressHigh = 1U;
         uint32_t sensorRegLen = 1U;
@@ -100,10 +99,10 @@ void TEST_ScmiSensor(void)
             &attributes, NULL, NULL, NULL));
 
         numSensors = SCMI_SENSOR_PROTO_ATTR_NUM_SENSORS(attributes);
-        maxPending = SCMI_SENSOR_PROTO_ATTR_MAX_PENDING(attributes);
 
         printf("  numSensors=%u\n", numSensors);
-        printf("  maxPending=%u\n", maxPending);
+        printf("  maxPending=%u\n",
+            SCMI_SENSOR_PROTO_ATTR_MAX_PENDING(attributes));
 
         printf("SCMISensorProtocolAttributes(%u)\n",
             SM_TEST_DEFAULT_CHN);
@@ -158,10 +157,9 @@ void TEST_ScmiSensor(void)
     /* Test coverage of exceeding max amount of sensors in
        SensorReadingGet */
     {
-        uint32_t sensorEventControl = SCMI_SENSOR_TP_EV_CTRL(3U);
-
         printf("SCMI_SensorTripPointConfig(%u, %u, %u, %d, %d)\n",
-            SM_TEST_DEFAULT_CHN, numSensors, sensorEventControl, 0, 0);
+            SM_TEST_DEFAULT_CHN, numSensors, SCMI_SENSOR_TP_EV_CTRL(3U),
+            0, 0);
         NCHECK(SCMI_SensorReadingGet(SM_TEST_DEFAULT_CHN, numSensors,
             0, NULL));
 
@@ -234,9 +232,8 @@ void TEST_ScmiSensor(void)
             SCMI_SENSOR_NUM_SENSOR_FLAGS_REMAINING_DESCS
                 (numSensorFlags));
 
-        uint32_t numData =
-            SCMI_SENSOR_NUM_SENSOR_FLAGS_NUM_DESCS(numSensorFlags);
-        printf(" numData=%u\n", numData);
+        printf(" numData=%u\n",
+            SCMI_SENSOR_NUM_SENSOR_FLAGS_NUM_DESCS(numSensorFlags));
     }
 
     /* Testing functionality of SensorDescriptionGet */
@@ -262,7 +259,7 @@ void TEST_ScmiSensor(void)
                 SCMI_SENSOR_NUM_SENSOR_FLAGS_NUM_DESCS(numSensorFlags);
             printf(" numData=%u\n", numData);
 
-            for(uint16_t loopIndex = 0U; loopIndex<numData; loopIndex++)
+            for (uint16_t loopIndex = 0U; loopIndex<numData; loopIndex++)
             {
                 printf(" upper 32 data[%u]= %u\n lower 32 data[%u]= %u\n",
                     loopIndex + descIndex,
@@ -272,7 +269,7 @@ void TEST_ScmiSensor(void)
             }
             descIndex += numData;
         }
-        while(SCMI_SENSOR_NUM_SENSOR_FLAGS_REMAINING_DESCS(numSensorFlags)
+        while (SCMI_SENSOR_NUM_SENSOR_FLAGS_REMAINING_DESCS(numSensorFlags)
             > 0U);
     }
 
@@ -286,7 +283,7 @@ void TEST_ScmiSensor(void)
         lmm_rpc_trigger_t trigger = { 0 };
 
         printf("RPC_SCMI_SensorDispatchNotification()\n");
-        RPC_SCMI_SensorDispatchNotification(msgId, &trigger);
+        NCHECK(RPC_SCMI_SensorDispatchNotification(msgId, &trigger));
     }
 
     /* Loop over sensor tests */
@@ -299,7 +296,7 @@ void TEST_ScmiSensor(void)
         /* Test functions with NONE perm required */
         TEST_ScmiSensorNone(channel, sensorId);
 
-        /* Test functions with NOTIFY perm required */
+        /* RPC_00170 Test functions with NOTIFY perm required */
         TEST_ScmiSensorNotify(perm >= SM_SCMI_PERM_NOTIFY, channel,
             sensorId);
 
@@ -385,7 +382,7 @@ static void TEST_ScmiSensorSet(bool pass, uint32_t channel,
     uint32_t descIndex = 0U;
 
     /* Find sensor descriptor */
-    while(sensorId != s_desc[descIndex].sensorId)
+    while (sensorId != s_desc[descIndex].sensorId)
     {
         descIndex++;
     }

@@ -366,7 +366,7 @@ int32_t RPC_SCMI_SensorDispatchCommand(scmi_caller_t *caller,
     uint32_t lenOut = sizeof(scmi_msg_status_t);
 
     /* Handle standard messages */
-    switch(messageId)
+    switch (messageId)
     {
         case COMMAND_PROTOCOL_VERSION:
             lenOut = sizeof(msg_tsensor0_t);
@@ -443,7 +443,7 @@ int32_t RPC_SCMI_SensorDispatchNotification(scmi_msg_id_t msgId,
     int32_t status = SM_ERR_SUCCESS;
 
     /* Handle notifications */
-    switch(msgId.messageId)
+    switch (msgId.messageId)
     {
         case RPC_SCMI_NOTIFY_SENSOR_TRIP_POINT_EVENT:
             status = SensorTripPointEvent(msgId, trigger);
@@ -477,7 +477,13 @@ int32_t RPC_SCMI_SensorDispatchReset(uint32_t lmId, uint32_t agentId,
 
 /* Local variables */
 
+static uint32_t s_sensorState[SM_NUM_SENSOR];
 static uint32_t s_sensorNotify[SM_SCMI_NUM_AGNT];
+
+/* Local functions */
+
+static int32_t SensorConfigUpdate(uint32_t lmId, uint32_t agentId,
+    uint32_t sensorId, bool enable, bool timeStamp);
 
 /*--------------------------------------------------------------------------*/
 /* Get protocol version                                                     */
@@ -727,7 +733,7 @@ static int32_t SensorDescriptionGet(const scmi_caller_t *caller,
                     (uint32_t) lmmDesc.numTripPoints);
                 if (lmmDesc.timestampSupport)
                 {
-                    attributes |= SENSOR_ATTR_LOW_TIME_SUPPORT(1U);
+                    attributes |= SENSOR_ATTR_LOW_TIME_SUPPORT(1UL);
                     attributes |= SENSOR_ATTR_LOW_TIME_EXP(
                         (uint32_t) lmmDesc.timestampExponent);
                 }
@@ -915,7 +921,7 @@ static int32_t SensorTripPointConfig(const scmi_caller_t *caller,
             = (uint8_t) SENSOR_TP_EV_CTRL_TRIP_ID(in->tripPointEvCtrl);
         uint8_t eventControl
             = (uint8_t) SENSOR_TP_EV_CTRL(in->tripPointEvCtrl);
-        uint64_t tp = (int64_t) ((((uint64_t) in->tripPointValHigh)
+        uint64_t tp = ((((uint64_t) in->tripPointValHigh)
             << 32U) | (uint64_t) in->tripPointValLow);
         int64_t tpValue = (int64_t) tp;
 
@@ -1011,9 +1017,13 @@ static int32_t SensorReadingGet(const scmi_caller_t *caller,
 
     if (status == SM_ERR_SUCCESS)
     {
+        uint64_t uSensorValue = (uint64_t) sensorValue;
+        uint32_t uSensorValueHigh = SM_UINT64_H(uSensorValue);
+        uint32_t uSensorValueLow = SM_UINT64_L(uSensorValue);
+
         /* Record result */
-        out->readings[0].sensorValueHigh = SM_INT64_H(sensorValue);
-        out->readings[0].sensorValueLow = SM_INT64_L(sensorValue);
+        out->readings[0].sensorValueHigh = (int32_t) uSensorValueHigh;
+        out->readings[0].sensorValueLow = (int32_t) uSensorValueLow;
         out->readings[0].timestampHigh = SM_UINT64_H(sensorTimestamp);
         out->readings[0].timestampLow = SM_UINT64_L(sensorTimestamp);
 
@@ -1178,6 +1188,7 @@ static int32_t SensorConfigSet(const scmi_caller_t *caller,
     const msg_rsensor10_t *in, const scmi_msg_status_t *out)
 {
     int32_t status = SM_ERR_SUCCESS;
+    uint32_t agentId = caller->agentId;
     bool enable = SENSOR_CONFIG_SET_ENABLE(in->sensorConfig) != 0U;
     bool timestampReporting
         = SENSOR_CONFIG_SET_TS_ENABLE(in->sensorConfig) != 0U;
@@ -1196,7 +1207,7 @@ static int32_t SensorConfigSet(const scmi_caller_t *caller,
 
     /* Check permissions */
     if ((status == SM_ERR_SUCCESS)
-        && (g_scmiAgentConfig[caller->agentId].sensorPerms[in->sensorId]
+        && (g_scmiAgentConfig[agentId].sensorPerms[in->sensorId]
         < SM_SCMI_PERM_SET))
     {
         status = SM_ERR_DENIED;
@@ -1204,8 +1215,8 @@ static int32_t SensorConfigSet(const scmi_caller_t *caller,
 
     if (status == SM_ERR_SUCCESS)
     {
-        status = LMM_SensorEnable(caller->lmId, in->sensorId, enable,
-            timestampReporting);
+        status = SensorConfigUpdate(caller->lmId, agentId, in->sensorId,
+            enable, timestampReporting);
     }
 
     /* Return status */
@@ -1317,10 +1328,61 @@ static int32_t SensorResetAgentConfig(uint32_t lmId, uint32_t agentId,
 {
     int32_t status = SM_ERR_SUCCESS;
 
+    /* Loop over all sensors */
+    for (uint32_t sensorId = 0U; sensorId < SM_NUM_SENSOR; sensorId++)
+    {
+        /* Disable sensor */
+        if ((s_sensorState[sensorId] & (1UL << agentId)) != 0U)
+        {
+            (void) SensorConfigUpdate(lmId, agentId, sensorId,
+                false, false);
+        }
+    }
+
     /* Disable notifications */
     s_sensorNotify[agentId] = 0U;
 
     /* Return status */
     return status;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Aggregate and update the sensor enable                                   */
+/*                                                                          */
+/* Parameters:                                                              */
+/* - lmId: LM to update                                                     */
+/* - agentId: Message to update                                             */
+/* - domainId: Voltage domain                                               */
+/* - enable: New sensor enable                                              */
+/*--------------------------------------------------------------------------*/
+static int32_t SensorConfigUpdate(uint32_t lmId, uint32_t agentId,
+    uint32_t sensorId, bool enable, bool timeStamp)
+{
+    uint32_t scmiInst = g_scmiAgentConfig[agentId].scmiInst;
+    uint32_t firstAgent = g_scmiConfig[scmiInst].firstAgent;
+    uint32_t numAgents = g_scmiConfig[scmiInst].numAgents;
+    uint32_t mask;
+    uint32_t sensorState;
+    bool sensorEnable;
+
+    /* Record state of sensor by agent */
+    if (enable)
+    {
+        /* Mark as enabled */
+        s_sensorState[sensorId] |= (1UL << agentId);
+    }
+    else
+    {
+        /* Mark as disabled */
+        s_sensorState[sensorId] &= ~(1UL << agentId);
+    }
+
+    /* Extract enable */
+    mask = ((1UL << numAgents) - 1UL) << firstAgent;
+    sensorState = s_sensorState[sensorId] & mask;
+    sensorEnable = (sensorState != 0U);
+
+    /* Inform LMM of sensor state, LMM will check if changed */
+    return LMM_SensorEnable(lmId, sensorId, sensorEnable, timeStamp);
 }
 

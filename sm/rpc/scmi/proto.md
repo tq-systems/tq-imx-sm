@@ -99,11 +99,10 @@ and some of the optional messages are supported.
 | Pinctrl | 0x19 | [PROTOCOL_ATTRIBUTES](@ref SCMI_PROTO_PINCTRL_PROTOCOL_ATTRIBUTES) | 0x1 |  |
 | Pinctrl | 0x19 | [PROTOCOL_MESSAGE_ATTRIBUTES](@ref SCMI_PROTO_PINCTRL_PROTOCOL_MESSAGE_ATTRIBUTES) | 0x2 |  |
 | Pinctrl | 0x19 | [PINCTRL_ATTRIBUTES](@ref SCMI_PROTO_PINCTRL_PINCTRL_ATTRIBUTES) | 0x3 |  |
-| Pinctrl | 0x19 | [PINCTRL_CONFIG_GET](@ref SCMI_PROTO_PINCTRL_PINCTRL_CONFIG_GET) | 0x5 |  |
-| Pinctrl | 0x19 | [PINCTRL_CONFIG_SET](@ref SCMI_PROTO_PINCTRL_PINCTRL_CONFIG_SET) | 0x6 | EXCLUSIVE |
-| Pinctrl | 0x19 | [PINCTRL_FUNCTION_SELECT](@ref SCMI_PROTO_PINCTRL_PINCTRL_FUNCTION_SELECT) | 0x7 | EXCLUSIVE |
-| Pinctrl | 0x19 | [PINCTRL_REQUEST](@ref SCMI_PROTO_PINCTRL_PINCTRL_REQUEST) | 0x8 | EXCLUSIVE |
-| Pinctrl | 0x19 | [PINCTRL_RELEASE](@ref SCMI_PROTO_PINCTRL_PINCTRL_RELEASE) | 0x9 |  |
+| Pinctrl | 0x19 | [PINCTRL_SETTINGS_GET](@ref SCMI_PROTO_PINCTRL_PINCTRL_SETTINGS_GET) | 0x5 |  |
+| Pinctrl | 0x19 | [PINCTRL_SETTINGS_CONFIGURE](@ref SCMI_PROTO_PINCTRL_PINCTRL_SETTINGS_CONFIGURE) | 0x6 | EXCLUSIVE |
+| Pinctrl | 0x19 | [PINCTRL_REQUEST](@ref SCMI_PROTO_PINCTRL_PINCTRL_REQUEST) | 0x7 | EXCLUSIVE |
+| Pinctrl | 0x19 | [PINCTRL_RELEASE](@ref SCMI_PROTO_PINCTRL_PINCTRL_RELEASE) | 0x8 |  |
 | Pinctrl | 0x19 | [NEGOTIATE_PROTOCOL_VERSION](@ref SCMI_PROTO_PINCTRL_NEGOTIATE_PROTOCOL_VERSION) | 0x10 |  |
 | Lmm | 0x80 | [PROTOCOL_VERSION](@ref SCMI_PROTO_LMM_PROTOCOL_VERSION) | 0x0 |  |
 | Lmm | 0x80 | [PROTOCOL_ATTRIBUTES](@ref SCMI_PROTO_LMM_PROTOCOL_ATTRIBUTES) | 0x1 |  |
@@ -116,6 +115,7 @@ and some of the optional messages are supported.
 | Lmm | 0x80 | [LMM_SUSPEND](@ref SCMI_PROTO_LMM_LMM_SUSPEND) | 0x8 | PRIV |
 | Lmm | 0x80 | [LMM_NOTIFY](@ref SCMI_PROTO_LMM_LMM_NOTIFY) | 0x9 | NOTIFY |
 | Lmm | 0x80 | [LMM_RESET_REASON](@ref SCMI_PROTO_LMM_LMM_RESET_REASON) | 0xA | GET |
+| Lmm | 0x80 | [LMM_POWER_ON](@ref SCMI_PROTO_LMM_LMM_POWER_ON) | 0xB | PRIV |
 | Lmm | 0x80 | [NEGOTIATE_PROTOCOL_VERSION](@ref SCMI_PROTO_LMM_NEGOTIATE_PROTOCOL_VERSION) | 0x10 |  |
 | Lmm\n(notification) | 0x80 | [LMM_EVENT](@ref SCMI_PROTO_LMM_LMM_EVENT) | 0x0 |  |
 | Bbm | 0x81 | [PROTOCOL_VERSION](@ref SCMI_PROTO_BBM_PROTOCOL_VERSION) | 0x0 |  |
@@ -145,23 +145,22 @@ and some of the optional messages are supported.
 | Cpu | 0x82 | [CPU_NON_IRQ_WAKE_SET](@ref SCMI_PROTO_CPU_CPU_NON_IRQ_WAKE_SET) | 0x9 | EXCLUSIVE |
 | Cpu | 0x82 | [CPU_PD_LPM_CONFIG_SET](@ref SCMI_PROTO_CPU_CPU_PD_LPM_CONFIG_SET) | 0xA | EXCLUSIVE |
 | Cpu | 0x82 | [CPU_PER_LPM_CONFIG_SET](@ref SCMI_PROTO_CPU_CPU_PER_LPM_CONFIG_SET) | 0xB | EXCLUSIVE |
+| Cpu | 0x82 | [CPU_INFO_GET](@ref SCMI_PROTO_CPU_CPU_INFO_GET) | 0xC |  |
 | Cpu | 0x82 | [NEGOTIATE_PROTOCOL_VERSION](@ref SCMI_PROTO_CPU_NEGOTIATE_PROTOCOL_VERSION) | 0x10 |  |
 | Fusa | 0x83 | [PROTOCOL_VERSION](@ref SCMI_PROTO_FUSA_PROTOCOL_VERSION) | 0x0 |  |
 | Fusa | 0x83 | [PROTOCOL_ATTRIBUTES](@ref SCMI_PROTO_FUSA_PROTOCOL_ATTRIBUTES) | 0x1 |  |
 | Fusa | 0x83 | [PROTOCOL_MESSAGE_ATTRIBUTES](@ref SCMI_PROTO_FUSA_PROTOCOL_MESSAGE_ATTRIBUTES) | 0x2 |  |
 | Fusa | 0x83 | [FUSA_FEENV_STATE_GET](@ref SCMI_PROTO_FUSA_FUSA_FEENV_STATE_GET) | 0x3 | GET |
-| Fusa | 0x83 | [FUSA_FEENV_STATE_SET](@ref SCMI_PROTO_FUSA_FUSA_FEENV_STATE_SET) | 0x4 | SET |
 | Fusa | 0x83 | [FUSA_FEENV_STATE_NOTIFY](@ref SCMI_PROTO_FUSA_FUSA_FEENV_STATE_NOTIFY) | 0x5 | NOTIFY |
 | Fusa | 0x83 | [FUSA_SEENV_STATE_GET](@ref SCMI_PROTO_FUSA_FUSA_SEENV_STATE_GET) | 0x6 |  |
 | Fusa | 0x83 | [FUSA_SEENV_STATE_SET](@ref SCMI_PROTO_FUSA_FUSA_SEENV_STATE_SET) | 0x7 |  |
 | Fusa | 0x83 | [FUSA_FAULT_GET](@ref SCMI_PROTO_FUSA_FUSA_FAULT_GET) | 0x8 | GET |
-| Fusa | 0x83 | [FUSA_FAULT_SET](@ref SCMI_PROTO_FUSA_FUSA_FAULT_SET) | 0x9 | SET |
+| Fusa | 0x83 | [FUSA_FAULT_SET](@ref SCMI_PROTO_FUSA_FUSA_FAULT_SET) | 0x9 | EXCLUSIVE |
 | Fusa | 0x83 | [FUSA_FAULT_GROUP_NOTIFY](@ref SCMI_PROTO_FUSA_FUSA_FAULT_GROUP_NOTIFY) | 0xA | NOTIFY |
 | Fusa | 0x83 | [FUSA_SCHECK_EVNTRIG](@ref SCMI_PROTO_FUSA_FUSA_SCHECK_EVNTRIG) | 0xB |  |
-| Fusa | 0x83 | [FUSA_CRC_CALCULATE](@ref SCMI_PROTO_FUSA_FUSA_CRC_CALCULATE) | 0xC | SET |
-| Fusa | 0x83 | [FUSA_CRC_RESULT_GET](@ref SCMI_PROTO_FUSA_FUSA_CRC_RESULT_GET) | 0xD | SET |
+| Fusa | 0x83 | [FUSA_SCHECK_TEST_EXEC](@ref SCMI_PROTO_FUSA_FUSA_SCHECK_TEST_EXEC) | 0xE | EXCLUSIVE |
 | Fusa | 0x83 | [NEGOTIATE_PROTOCOL_VERSION](@ref SCMI_PROTO_FUSA_NEGOTIATE_PROTOCOL_VERSION) | 0x10 |  |
-| Fusa\n(notification) | 0x83 | [FUSA_FEENV_STATE_EVENT](@ref SCMI_PROTO_FUSA_FUSA_FEENV_STATE_EVENT) | 0x0 |  |
+| Fusa\n(notification) | 0x83 | [FUSA_FEENV_STATE_EVENT](@ref SCMI_PROTO_FUSA_FUSA_FEENV_STATE_EVENT) | 0x0 | EXCLUSIVE |
 | Fusa\n(notification) | 0x83 | [FUSA_SEENV_STATE_REQ_EVENT](@ref SCMI_PROTO_FUSA_FUSA_SEENV_STATE_REQ_EVENT) | 0x1 |  |
 | Fusa\n(notification) | 0x83 | [FUSA_FAULT_EVENT](@ref SCMI_PROTO_FUSA_FUSA_FAULT_EVENT) | 0x2 |  |
 | Misc | 0x84 | [PROTOCOL_VERSION](@ref SCMI_PROTO_MISC_PROTOCOL_VERSION) | 0x0 |  |
@@ -176,6 +175,8 @@ and some of the optional messages are supported.
 | Misc | 0x84 | [MISC_REASON_ATTRIBUTES](@ref SCMI_PROTO_MISC_MISC_REASON_ATTRIBUTES) | 0x9 |  |
 | Misc | 0x84 | [MISC_RESET_REASON](@ref SCMI_PROTO_MISC_MISC_RESET_REASON) | 0xA |  |
 | Misc | 0x84 | [MISC_SI_INFO](@ref SCMI_PROTO_MISC_MISC_SI_INFO) | 0xB |  |
+| Misc | 0x84 | [MISC_CFG_INFO](@ref SCMI_PROTO_MISC_MISC_CFG_INFO) | 0xC |  |
+| Misc | 0x84 | [MISC_SYSLOG](@ref SCMI_PROTO_MISC_MISC_SYSLOG) | 0xD |  |
 | Misc | 0x84 | [NEGOTIATE_PROTOCOL_VERSION](@ref SCMI_PROTO_MISC_NEGOTIATE_PROTOCOL_VERSION) | 0x10 |  |
 | Misc\n(notification) | 0x84 | [MISC_CONTROL_EVENT](@ref SCMI_PROTO_MISC_MISC_CONTROL_EVENT) | 0x0 |  |
 
@@ -1816,9 +1817,9 @@ See SCMI_PinctrlAttributes() for details.
     | uint8          | name[16]                                                     |
     ---------------------------------------------------------------------------------
 
-## Pinctrl: PINCTRL_CONFIG_GET ## {#SCMI_PROTO_PINCTRL_PINCTRL_CONFIG_GET}
+## Pinctrl: PINCTRL_SETTINGS_GET ## {#SCMI_PROTO_PINCTRL_PINCTRL_SETTINGS_GET}
 
-See SCMI_PinctrlConfigGet() for details.
+See SCMI_PinctrlSettingsGet() for details.
 
     Send
     ---------------------------------------------------------------------------------
@@ -1834,21 +1835,25 @@ See SCMI_PinctrlConfigGet() for details.
     | uint32         | header (type=0, proto=0x99/0x19, msg=0x5                     |
     ---------------------------------------------------------------------------------
     | int32          | status                                                       |
+    ---------------------------------------------------------------------------------
+    | uint32         | function_selected                                            |
     ---------------------------------------------------------------------------------
     | uint32         | num_configs                                                  |
     ---------------------------------------------------------------------------------
     | PIN_CONFIG     | configs[N]                                                   |
     ---------------------------------------------------------------------------------
 
-## Pinctrl: PINCTRL_CONFIG_SET ## {#SCMI_PROTO_PINCTRL_PINCTRL_CONFIG_SET}
+## Pinctrl: PINCTRL_SETTINGS_CONFIGURE ## {#SCMI_PROTO_PINCTRL_PINCTRL_SETTINGS_CONFIGURE}
 
-See SCMI_PinctrlConfigSet() for details.
+See SCMI_PinctrlSettingsConfigure() for details.
 
     Send
     ---------------------------------------------------------------------------------
     | uint32         | header (type=0, proto=0x99/0x19, msg=0x6                     |
     ---------------------------------------------------------------------------------
     | uint32         | identifier                                                   |
+    ---------------------------------------------------------------------------------
+    | uint32         | function_id                                                  |
     ---------------------------------------------------------------------------------
     | uint32         | attributes                                                   |
     ---------------------------------------------------------------------------------
@@ -1858,28 +1863,6 @@ See SCMI_PinctrlConfigSet() for details.
     Receive
     ---------------------------------------------------------------------------------
     | uint32         | header (type=0, proto=0x99/0x19, msg=0x6                     |
-    ---------------------------------------------------------------------------------
-    | int32          | status                                                       |
-    ---------------------------------------------------------------------------------
-
-## Pinctrl: PINCTRL_FUNCTION_SELECT ## {#SCMI_PROTO_PINCTRL_PINCTRL_FUNCTION_SELECT}
-
-See SCMI_PinctrlFunctionSelect() for details.
-
-    Send
-    ---------------------------------------------------------------------------------
-    | uint32         | header (type=0, proto=0x99/0x19, msg=0x7                     |
-    ---------------------------------------------------------------------------------
-    | uint32         | identifier                                                   |
-    ---------------------------------------------------------------------------------
-    | uint32         | function_id                                                  |
-    ---------------------------------------------------------------------------------
-    | uint32         | flags                                                        |
-    ---------------------------------------------------------------------------------
-
-    Receive
-    ---------------------------------------------------------------------------------
-    | uint32         | header (type=0, proto=0x99/0x19, msg=0x7                     |
     ---------------------------------------------------------------------------------
     | int32          | status                                                       |
     ---------------------------------------------------------------------------------
@@ -1890,7 +1873,7 @@ See SCMI_PinctrlRequest() for details.
 
     Send
     ---------------------------------------------------------------------------------
-    | uint32         | header (type=0, proto=0x99/0x19, msg=0x8                     |
+    | uint32         | header (type=0, proto=0x99/0x19, msg=0x7                     |
     ---------------------------------------------------------------------------------
     | uint32         | identifier                                                   |
     ---------------------------------------------------------------------------------
@@ -1899,7 +1882,7 @@ See SCMI_PinctrlRequest() for details.
 
     Receive
     ---------------------------------------------------------------------------------
-    | uint32         | header (type=0, proto=0x99/0x19, msg=0x8                     |
+    | uint32         | header (type=0, proto=0x99/0x19, msg=0x7                     |
     ---------------------------------------------------------------------------------
     | int32          | status                                                       |
     ---------------------------------------------------------------------------------
@@ -1910,7 +1893,7 @@ See SCMI_PinctrlRelease() for details.
 
     Send
     ---------------------------------------------------------------------------------
-    | uint32         | header (type=0, proto=0x99/0x19, msg=0x9                     |
+    | uint32         | header (type=0, proto=0x99/0x19, msg=0x8                     |
     ---------------------------------------------------------------------------------
     | uint32         | identifier                                                   |
     ---------------------------------------------------------------------------------
@@ -1919,7 +1902,7 @@ See SCMI_PinctrlRelease() for details.
 
     Receive
     ---------------------------------------------------------------------------------
-    | uint32         | header (type=0, proto=0x99/0x19, msg=0x9                     |
+    | uint32         | header (type=0, proto=0x99/0x19, msg=0x8                     |
     ---------------------------------------------------------------------------------
     | int32          | status                                                       |
     ---------------------------------------------------------------------------------
@@ -2162,6 +2145,24 @@ See SCMI_LmmResetReason() for details.
     | uint32         | shutdown_flags                                               |
     ---------------------------------------------------------------------------------
     | uint32         | ext_info[N]                                                  |
+    ---------------------------------------------------------------------------------
+
+## Lmm: LMM_POWER_ON ## {#SCMI_PROTO_LMM_LMM_POWER_ON}
+
+See SCMI_LmmPowerOn() for details.
+
+    Send
+    ---------------------------------------------------------------------------------
+    | uint32         | header (type=0, proto=0x80, msg=0xB                          |
+    ---------------------------------------------------------------------------------
+    | uint32         | lm_id                                                        |
+    ---------------------------------------------------------------------------------
+
+    Receive
+    ---------------------------------------------------------------------------------
+    | uint32         | header (type=0, proto=0x80, msg=0xB                          |
+    ---------------------------------------------------------------------------------
+    | int32          | status                                                       |
     ---------------------------------------------------------------------------------
 
 ## Lmm: NEGOTIATE_PROTOCOL_VERSION ## {#SCMI_PROTO_LMM_NEGOTIATE_PROTOCOL_VERSION}
@@ -2744,6 +2745,32 @@ See SCMI_CpuPerLpmConfigSet() for details.
     | int32          | status                                                       |
     ---------------------------------------------------------------------------------
 
+## Cpu: CPU_INFO_GET ## {#SCMI_PROTO_CPU_CPU_INFO_GET}
+
+See SCMI_CpuInfoGet() for details.
+
+    Send
+    ---------------------------------------------------------------------------------
+    | uint32         | header (type=0, proto=0x82, msg=0xC                          |
+    ---------------------------------------------------------------------------------
+    | uint32         | cpu_id                                                       |
+    ---------------------------------------------------------------------------------
+
+    Receive
+    ---------------------------------------------------------------------------------
+    | uint32         | header (type=0, proto=0x82, msg=0xC                          |
+    ---------------------------------------------------------------------------------
+    | int32          | status                                                       |
+    ---------------------------------------------------------------------------------
+    | uint32         | run_mode                                                     |
+    ---------------------------------------------------------------------------------
+    | uint32         | sleep_mode                                                   |
+    ---------------------------------------------------------------------------------
+    | uint32         | reset_vector_low                                             |
+    ---------------------------------------------------------------------------------
+    | uint32         | reset_vector_high                                            |
+    ---------------------------------------------------------------------------------
+
 ## Cpu: NEGOTIATE_PROTOCOL_VERSION ## {#SCMI_PROTO_CPU_NEGOTIATE_PROTOCOL_VERSION}
 
 See SCMI_CpuNegotiateProtocolVersion() for details.
@@ -2840,26 +2867,6 @@ See SCMI_FusaFeenvStateGet() for details.
     | uint32         | msel_mode                                                    |
     ---------------------------------------------------------------------------------
 
-## Fusa: FUSA_FEENV_STATE_SET ## {#SCMI_PROTO_FUSA_FUSA_FEENV_STATE_SET}
-
-See SCMI_FusaFeenvStateSet() for details.
-
-    Send
-    ---------------------------------------------------------------------------------
-    | uint32         | header (type=0, proto=0x83, msg=0x4                          |
-    ---------------------------------------------------------------------------------
-    | uint32         | feenv_state                                                  |
-    ---------------------------------------------------------------------------------
-    | uint32         | flags                                                        |
-    ---------------------------------------------------------------------------------
-
-    Receive
-    ---------------------------------------------------------------------------------
-    | uint32         | header (type=0, proto=0x83, msg=0x4                          |
-    ---------------------------------------------------------------------------------
-    | int32          | status                                                       |
-    ---------------------------------------------------------------------------------
-
 ## Fusa: FUSA_FEENV_STATE_NOTIFY ## {#SCMI_PROTO_FUSA_FUSA_FEENV_STATE_NOTIFY}
 
 See SCMI_FusaFeenvStateNotify() for details.
@@ -2886,12 +2893,18 @@ See SCMI_FusaSeenvStateGet() for details.
     ---------------------------------------------------------------------------------
     | uint32         | header (type=0, proto=0x83, msg=0x6                          |
     ---------------------------------------------------------------------------------
+    | uint32         | seenv_id                                                     |
+    ---------------------------------------------------------------------------------
 
     Receive
     ---------------------------------------------------------------------------------
     | uint32         | header (type=0, proto=0x83, msg=0x6                          |
     ---------------------------------------------------------------------------------
     | int32          | status                                                       |
+    ---------------------------------------------------------------------------------
+    | uint32         | seenv_id                                                     |
+    ---------------------------------------------------------------------------------
+    | uint32         | lm_id                                                        |
     ---------------------------------------------------------------------------------
     | uint32         | seenv_state                                                  |
     ---------------------------------------------------------------------------------
@@ -2907,8 +2920,6 @@ See SCMI_FusaSeenvStateSet() for details.
     | uint32         | seenv_state                                                  |
     ---------------------------------------------------------------------------------
     | uint32         | ping_cookie                                                  |
-    ---------------------------------------------------------------------------------
-    | uint32         | scst_signature                                               |
     ---------------------------------------------------------------------------------
 
     Receive
@@ -3000,56 +3011,22 @@ See SCMI_FusaScheckEvntrig() for details.
     | int32          | status                                                       |
     ---------------------------------------------------------------------------------
 
-## Fusa: FUSA_CRC_CALCULATE ## {#SCMI_PROTO_FUSA_FUSA_CRC_CALCULATE}
+## Fusa: FUSA_SCHECK_TEST_EXEC ## {#SCMI_PROTO_FUSA_FUSA_SCHECK_TEST_EXEC}
 
-See SCMI_FusaCrcCalculate() for details.
+See SCMI_FusaScheckTestExec() for details.
 
     Send
     ---------------------------------------------------------------------------------
-    | uint32         | header (type=0, proto=0x83, msg=0xC                          |
+    | uint32         | header (type=0, proto=0x83, msg=0xE                          |
     ---------------------------------------------------------------------------------
-    | uint32         | crc_channel                                                  |
-    ---------------------------------------------------------------------------------
-    | uint32         | crc_cfg                                                      |
-    ---------------------------------------------------------------------------------
-    | uint32         | mem_start_low                                                |
-    ---------------------------------------------------------------------------------
-    | uint32         | mem_start_high                                               |
-    ---------------------------------------------------------------------------------
-    | uint32         | mem_size                                                     |
+    | uint32         | target_test_id                                               |
     ---------------------------------------------------------------------------------
 
     Receive
     ---------------------------------------------------------------------------------
-    | uint32         | header (type=0, proto=0x83, msg=0xC                          |
+    | uint32         | header (type=0, proto=0x83, msg=0xE                          |
     ---------------------------------------------------------------------------------
     | int32          | status                                                       |
-    ---------------------------------------------------------------------------------
-
-## Fusa: FUSA_CRC_RESULT_GET ## {#SCMI_PROTO_FUSA_FUSA_CRC_RESULT_GET}
-
-See SCMI_FusaCrcResultGet() for details.
-
-    Send
-    ---------------------------------------------------------------------------------
-    | uint32         | header (type=0, proto=0x83, msg=0xD                          |
-    ---------------------------------------------------------------------------------
-    | uint32         | crc_channel                                                  |
-    ---------------------------------------------------------------------------------
-
-    Receive
-    ---------------------------------------------------------------------------------
-    | uint32         | header (type=0, proto=0x83, msg=0xD                          |
-    ---------------------------------------------------------------------------------
-    | int32          | status                                                       |
-    ---------------------------------------------------------------------------------
-    | uint32         | mem_start_low                                                |
-    ---------------------------------------------------------------------------------
-    | uint32         | mem_start_high                                               |
-    ---------------------------------------------------------------------------------
-    | uint32         | mem_size                                                     |
-    ---------------------------------------------------------------------------------
-    | uint32         | crc_result                                                   |
     ---------------------------------------------------------------------------------
 
 ## Fusa: NEGOTIATE_PROTOCOL_VERSION ## {#SCMI_PROTO_FUSA_NEGOTIATE_PROTOCOL_VERSION}
@@ -3382,6 +3359,50 @@ See SCMI_MiscSiInfo() for details.
     | uint32         | part_num                                                     |
     ---------------------------------------------------------------------------------
     | uint8          | si_name[16]                                                  |
+    ---------------------------------------------------------------------------------
+
+## Misc: MISC_CFG_INFO ## {#SCMI_PROTO_MISC_MISC_CFG_INFO}
+
+See SCMI_MiscCfgInfo() for details.
+
+    Send
+    ---------------------------------------------------------------------------------
+    | uint32         | header (type=0, proto=0x84, msg=0xC                          |
+    ---------------------------------------------------------------------------------
+
+    Receive
+    ---------------------------------------------------------------------------------
+    | uint32         | header (type=0, proto=0x84, msg=0xC                          |
+    ---------------------------------------------------------------------------------
+    | int32          | status                                                       |
+    ---------------------------------------------------------------------------------
+    | uint32         | mSel                                                         |
+    ---------------------------------------------------------------------------------
+    | uint8          | cfg_name[16]                                                 |
+    ---------------------------------------------------------------------------------
+
+## Misc: MISC_SYSLOG ## {#SCMI_PROTO_MISC_MISC_SYSLOG}
+
+See SCMI_MiscSyslog() for details.
+
+    Send
+    ---------------------------------------------------------------------------------
+    | uint32         | header (type=0, proto=0x84, msg=0xD                          |
+    ---------------------------------------------------------------------------------
+    | uint32         | flags                                                        |
+    ---------------------------------------------------------------------------------
+    | uint32         | log_index                                                    |
+    ---------------------------------------------------------------------------------
+
+    Receive
+    ---------------------------------------------------------------------------------
+    | uint32         | header (type=0, proto=0x84, msg=0xD                          |
+    ---------------------------------------------------------------------------------
+    | int32          | status                                                       |
+    ---------------------------------------------------------------------------------
+    | uint32         | num_log_flags                                                |
+    ---------------------------------------------------------------------------------
+    | uint32         | syslog[N]                                                    |
     ---------------------------------------------------------------------------------
 
 ## Misc: NEGOTIATE_PROTOCOL_VERSION ## {#SCMI_PROTO_MISC_NEGOTIATE_PROTOCOL_VERSION}

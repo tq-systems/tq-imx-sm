@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 NXP
+ * Copyright 2023-2024 NXP
  *
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
@@ -38,9 +38,11 @@
 /*! @file */
 
 /* Includes */
+
 #include "fsl_common.h"
 
 /* Defines */
+
 #define PWR_NUM_MIX_SLICE               23UL
 
 #define PWR_MIX_SLICE_IDX_ANA           0U
@@ -66,6 +68,8 @@
 #define PWR_MIX_SLICE_IDX_NPU           20U
 #define PWR_MIX_SLICE_IDX_VPU           21U
 #define PWR_MIX_SLICE_IDX_WAKEUP        22U
+
+#define PWR_NUM_MEM_SLICE               21UL
 
 #define PWR_MEM_SLICE_IDX_AON           0U
 #define PWR_MEM_SLICE_IDX_CAMERA        1U
@@ -212,10 +216,12 @@
 
 
 /* Types */
+
 typedef struct
 {
     uint32_t flags;
     uint32_t memMask;
+    uint32_t retainMask;
     uint32_t cpuMask;
     uint32_t ipIsoMask;
     uint32_t gpcReqMaskRst;
@@ -232,6 +238,7 @@ typedef struct
 } pwr_lp_hs_mode;
 
 /* Functions */
+
 bool PWR_Init(uint32_t srcMixIdx);
 bool PWR_IsParentPowered(uint32_t srcMixIdx);
 bool PWR_AnyChildPowered(uint32_t srcMixIdx);

@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-** Copyright 2023 NXP
+** Copyright 2023-2024 NXP
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -51,11 +51,12 @@
 /* Local variables */
 
 static uint8_t s_voltMode[DEV_SM_NUM_VOLT];
-static int32_t s_voltLevel[DEV_SM_NUM_VOLT];
+static uint32_t s_voltLevel[DEV_SM_NUM_VOLT];
 
 /*--------------------------------------------------------------------------*/
 /* Init board                                                               */
 /*--------------------------------------------------------------------------*/
+// coverity[misra_c_2012_directive_4_6_violation:FALSE]
 int32_t BRD_SM_Init(int argc, const char * const argv[], uint32_t *mSel)
 {
     int32_t status = SM_ERR_SUCCESS;
@@ -63,7 +64,8 @@ int32_t BRD_SM_Init(int argc, const char * const argv[], uint32_t *mSel)
     /* Get the boot mode select */
     if (argc > 1)
     {
-        *mSel = atoi(argv[1]);
+        // coverity[misra_c_2012_rule_21_7_violation:FALSE]
+        *mSel = (uint32_t) atoi(argv[1]);
     }
 
     /* Init the device */
@@ -76,9 +78,10 @@ int32_t BRD_SM_Init(int argc, const char * const argv[], uint32_t *mSel)
 /*--------------------------------------------------------------------------*/
 /* Exit function                                                            */
 /*--------------------------------------------------------------------------*/
-void BRD_SM_Exit(int32_t status)
+void BRD_SM_Exit(int32_t status, uint32_t pc)
 {
-    printf("exit %d\n", status);
+    printf("exit %d, 0x%08X\n", status, pc);
+    // coverity[misra_c_2012_rule_21_8_violation:FALSE]
     exit(status);
 }
 
@@ -121,16 +124,25 @@ int32_t BRD_SM_Custom(int32_t argc, const char * const argv[])
 /* Get fault reaction                                                       */
 /*--------------------------------------------------------------------------*/
 int32_t BRD_SM_FaultReactionGet(dev_sm_rst_rec_t resetRec,
+    // coverity[misra_c_2012_rule_8_13_violation:FALSE]
     uint32_t *reaction, uint32_t *lm)
 {
     int32_t status = SM_ERR_SUCCESS;
 
     /* Print reaction */
-    switch(*reaction)
+    switch (*reaction)
     {
         case LMM_REACT_SYS_RESET:
         case LMM_REACT_SYS_SHUTDOWN:
             ; /* Intentional empty as will print elsewhere */
+            break;
+        case LMM_REACT_GRP_RESET:
+            printf("\nReset group %u", *lm);
+            BRD_SM_ResetRecordPrint(",", resetRec);
+            break;
+        case LMM_REACT_GRP_SHUTDOWN:
+            printf("\nShutdown group %u", *lm);
+            BRD_SM_ResetRecordPrint(",", resetRec);
             break;
         case LMM_REACT_LM_RESET:
             printf("\nReset LM %u", *lm);

@@ -44,7 +44,7 @@ typedef struct
 /*!
  * @brief TMPSNS status flags.
  */
-enum tmpsns_status_flags
+enum
 {
     kTMPSNS_Idle = TMPSNS_STAT1_IDLE(1U),           /*!< Conversion/idle */
     kTMPSNS_DRrdy1If = TMPSNS_STAT1_DRDY1_IF(1U),   /*!< Data event */
@@ -61,7 +61,7 @@ enum tmpsns_status_flags
 /*!
  * @brief TMPSNS interrupt source to enable.
  */
-enum tmpsns_interrupt_enable
+enum
 {
     kTMPSNS_Thr0IE = TMPSNS_CTRL0_THR0_IE(1U),      /*!< THR0 interrupt */
     kTMPSNS_Thr1IE = TMPSNS_CTRL0_THR1_IE(1U),      /*!< THR1 interrupt */
@@ -71,7 +71,7 @@ enum tmpsns_interrupt_enable
 /*!
  * @brief TMPSNS threshold modes.
  */
-enum tmpsns_thr_modes
+enum
 {
     kTMPSNS_ThrModeLow = 0U,          /*!< Less than or equal to threshold */
     kTMPSNS_ThrModeHigh = 1U,         /*!< Greater than threshold */
@@ -118,6 +118,13 @@ void TMPSNS_InitNs(TMPSNS_Type *base, const tmpsns_config_t *config);
 void TMPSNS_Deinit(TMPSNS_Type *base);
 
 /*!
+ * @brief Enable/start a TMPSNS module.
+ *
+ * @param base TMPSNS peripheral base address.
+ */
+void TMPSNS_Enable(TMPSNS_Type *base);
+
+/*!
  * @brief Gets the default configuration structure.
  *
  * @param config Pointer to a configuration structure.
@@ -127,14 +134,24 @@ void TMPSNS_GetDefaultConfig(tmpsns_config_t *config);
 /** @} */
 
 /*!
- * @brief Gets the TMPSNS status flags.
+ * @brief Gets the TMPSNS enabled state.
  *
- * This function returns a bit mask of the TMPSNS status flags.
- * See #tmpsns_status_flags.
+ * This function returns the enable state of the TMPSNS.
  *
  * @param base    TMPSNS peripheral base address.
  *
- * @return Bit mask of the TMPSNS status flags, see #tmpsns_status_flags.
+ * @return Bool indicating the enable state.
+ */
+bool TMPSNS_Enabled(const TMPSNS_Type *base);
+
+/*!
+ * @brief Gets the TMPSNS status flags.
+ *
+ * This function returns a bit mask of the TMPSNS status flags.
+ *
+ * @param base    TMPSNS peripheral base address.
+ *
+ * @return Bit mask of the TMPSNS status flags.
  */
 uint32_t TMPSNS_GetStatusFlags(const TMPSNS_Type *base);
 
@@ -142,10 +159,10 @@ uint32_t TMPSNS_GetStatusFlags(const TMPSNS_Type *base);
  * @brief Clears the specific TMPSNS status flags.
  *
  * This function clears the specific TMPSNS status flags. The flags to clear should
- * be passed in as bit mask. See #tmpsns_status_flags.
+ * be passed in as bit mask.
  *
  * @param base TMPSNS peripheral base address.
- * @param flags Bit mask of the TMPSNS status flags. See #tmpsns_status_flags. Only the
+ * @param flags Bit mask of the TMPSNS status flags. Only the
  * following flags can be cleared by software, other flags are cleared by hardware:
  * - #kTMPSNS_Thr0If
  * - #kTMPSNS_Thr1If
@@ -157,10 +174,10 @@ void TMPSNS_ClearStatusFlags(TMPSNS_Type *base, uint32_t flags);
  * @brief Enables the specific TMPSNS interrupts.
  *
  * This function enables the specific TMPSNS interrupts. The interrupts to enable
- * should be passed in as a bit mask. See #tmpsns_interrupt_enable.
+ * should be passed in as a bit mask.
  *
  * @param base TMPSNS peripheral base address.
- * @param interrupts  Bit mask of the TMPSNS interrupts. See #tmpsns_interrupt_enable.
+ * @param interrupts  Bit mask of the TMPSNS interrupts.
  */
 void TMPSNS_EnableInterrupts(TMPSNS_Type *base, uint32_t interrupts);
 
@@ -168,10 +185,10 @@ void TMPSNS_EnableInterrupts(TMPSNS_Type *base, uint32_t interrupts);
  * @brief Disables the specific TMPSNS interrupts.
  *
  * This function disables the specific TMPSNS interrupts. The interrupts to disable
- * should be passed in as a bit mask. See #tmpsns_interrupt_enable.
+ * should be passed in as a bit mask.
  *
  * @param base TMPSNS peripheral base address.
- * @param interrupts  Bit mask of the TMPSNS interrupts. See #tmpsns_interrupt_enable.
+ * @param interrupts  Bit mask of the TMPSNS interrupts.
  */
 void TMPSNS_DisableInterrupts(TMPSNS_Type *base, uint32_t interrupts);
 
@@ -195,7 +212,7 @@ int16_t TMPSNS_GetDataNonBlocking(const TMPSNS_Type *base);
  * @param base TMPSNS peripheral base address.
  * @param thresholdIdx Index into the thresholds.
  * @param value Compare value (signed, 1/64 degree).
- * @param mode Trigger direction. See #tmpsns_thr_modes.
+ * @param mode Trigger direction.
  */
 void TMPSNS_SetThreshold(TMPSNS_Type *base, uint8_t thresholdIdx,
     int16_t value, uint8_t mode);

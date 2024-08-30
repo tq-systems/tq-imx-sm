@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-** Copyright 2023 NXP
+** Copyright 2023-2024 NXP
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -48,8 +48,6 @@
 #include "crc.h"
 
 /* Local defines */
-
-#define SMT_MAX_CHN   24U
 
 #define SMT_FREE      (1UL << 0U)
 #define SMT_ERROR     (1UL << 1U)
@@ -267,8 +265,8 @@ int32_t SMT_Tx(uint32_t smtChannel, uint32_t len, bool callee,
         MU_Type *base = s_muBases[inst];
 
         /* Trigger GI interrupt */
-        MU_TriggerInterrupts(base, ((uint32_t) kMU_GenInt0InterruptTrigger)
-                << db);
+        (void) MU_TriggerInterrupts(base,
+            ((uint32_t) kMU_GenInt0InterruptTrigger) << db);
 #else
         /* Call SMT server */
         status = MB_LOOPBACK_DoorbellRing(inst, db);

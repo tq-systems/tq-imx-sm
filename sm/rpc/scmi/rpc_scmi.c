@@ -52,10 +52,11 @@
 /* Local macros */
 
 /* SCMI header creation */
+#define SCMI_HEADER_TOKEN_MASK  0x3FFU
 #define SCMI_HEADER_MSG(x)  (((x) & 0xFFU) << 0U)
 #define SCMI_HEADER_TYPE(x)  (((x) & 0x3U) << 8U)
 #define SCMI_HEADER_PROTOCOL(x)  (((x) & 0xFFU) << 10U)
-#define SCMI_HEADER_TOKEN(x)  (((x) & 0x3FFU) << 18U)
+#define SCMI_HEADER_TOKEN(x)  (((x) & SCMI_HEADER_TOKEN_MASK) << 18U)
 
 /* SCMI header extraction */
 #define SCMI_HEADER_MSG_EX(x)  (((x) & 0xFFU) >> 0U)
@@ -95,7 +96,9 @@ static const uint8_t s_protocolList[] =
     (uint8_t) SCMI_PROTOCOL_LMM,
     (uint8_t) SCMI_PROTOCOL_BBM,
     (uint8_t) SCMI_PROTOCOL_CPU,
+#ifdef USES_FUSA
     (uint8_t) SCMI_PROTOCOL_FUSA,
+#endif
     (uint8_t) SCMI_PROTOCOL_MISC
 };
 
@@ -136,16 +139,43 @@ int32_t RPC_SCMI_Init(uint8_t scmiInst)
 
     if (status == SM_ERR_SUCCESS)
     {
-        uint32_t initCount[SM_NUM_AGENT] = { 0 };
+        /* Init each agent for instance */
+        for (uint32_t agentId = 0U; agentId < SM_SCMI_NUM_AGNT; agentId++)
+        {
+            /* Agent belong to instance? */
+            if (g_scmiAgentConfig[agentId].scmiInst == scmiInst)
+            {
+                status = RPC_SCMI_AgentInit(agentId);
+            }
+        }
+    }
 
-        /* Init transport for each instance channel */
+    return status;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Init SCMI agent                                                          */
+/*--------------------------------------------------------------------------*/
+int32_t RPC_SCMI_AgentInit(uint32_t agentId)
+{
+    int32_t status = SM_ERR_SUCCESS;
+
+    /* Check agent */
+    if (agentId >= SM_SCMI_NUM_AGNT)
+    {
+        status = SM_ERR_OUT_OF_RANGE;
+    }
+
+    if (status == SM_ERR_SUCCESS)
+    {
+        uint32_t initCount = 0U;
+
+        /* Init transport for each agent channel */
         for (uint32_t scmiChannel = 0U; scmiChannel < SM_SCMI_NUM_CHN;
             scmiChannel++)
         {
-            uint32_t agentId = g_scmiChannelConfig[scmiChannel].agentId;
-
-            /* Agent belong to instance? */
-            if (g_scmiAgentConfig[agentId].scmiInst == scmiInst)
+            /* Channel belong to agent? */
+            if (g_scmiChannelConfig[scmiChannel].agentId == agentId)
             {
                 bool noIrq = (g_scmiChannelConfig[scmiChannel].type
                     == SM_SCMI_CHN_P2A);
@@ -169,14 +199,8 @@ int32_t RPC_SCMI_Init(uint8_t scmiInst)
                 }
 
                 /* First channel for this agent? */
-                if (initCount[agentId] == 0U)
+                if (initCount == 0U)
                 {
-                    /* Reset P2A tokens */
-                    s_token[s_agent2channel[agentId][SCMI_NOTIFY_Q]]
-                        = 0U;
-                    s_token[s_agent2channel[agentId][SCMI_PRIORITY_Q]]
-                        = 0U;
-
                     /* Reset P2A queues */
                     s_queue[agentId][SCMI_NOTIFY_Q].head = 0U;
                     s_queue[agentId][SCMI_NOTIFY_Q].tail = 0U;
@@ -186,14 +210,17 @@ int32_t RPC_SCMI_Init(uint8_t scmiInst)
                     s_queue[agentId][SCMI_PRIORITY_Q].count = 0U;
                 }
 
+                /* Reset token */
+                s_token[scmiChannel] = 0U;
+
                 /* Reset transport */
                 switch (g_scmiChannelConfig[scmiChannel].xportType)
                 {
                     case SM_XPORT_SMT:
                         /* Init SMT channel */
-                        RPC_SMT_Init(
+                        status = RPC_SMT_Init(
                             g_scmiChannelConfig[scmiChannel].xportChannel,
-                            noIrq, initCount[agentId]);
+                            noIrq, initCount);
                         break;
                     default:
                         status = SM_ERR_INVALID_PARAMETERS;
@@ -201,7 +228,7 @@ int32_t RPC_SCMI_Init(uint8_t scmiInst)
                 }
 
                 /* Increment init count for an agent */
-                initCount[agentId]++;
+                initCount++;
             }
         }
     }
@@ -210,52 +237,20 @@ int32_t RPC_SCMI_Init(uint8_t scmiInst)
 }
 
 /*--------------------------------------------------------------------------*/
-/* Get transport buffer address                                             */
-/*--------------------------------------------------------------------------*/
-int32_t RPC_SCMI_BufInit(uint32_t scmiChannel, void **msg)
-{
-    int32_t status = SM_ERR_SUCCESS;
-
-    /* Wait until channel is free */
-    while (!RPC_SCMI_ChannelFree(scmiChannel))
-    {
-        ; /* Intentional empty while */
-    }
-
-    /* Get header address */
-    *msg = RPC_SCMI_HdrAddrGet(scmiChannel);
-    if (*msg == NULL)
-    {
-        status = SM_ERR_INVALID_PARAMETERS;
-    }
-
-    /* Return status */
-    return status;
-}
-
-/*--------------------------------------------------------------------------*/
 /* Dispatch SCMI doorbell                                                   */
 /*--------------------------------------------------------------------------*/
 void RPC_SCMI_Dispatch(uint32_t scmiChannel)
 {
-    bool channelFree = RPC_SCMI_ChannelFree(scmiChannel);
-
     /* Check channel type */
-    switch(g_scmiChannelConfig[scmiChannel].type)
+    switch (g_scmiChannelConfig[scmiChannel].type)
     {
         case SM_SCMI_CHN_A2P:
-            if (!channelFree)
-            {
-                RPC_SCMI_A2pDispatch(scmiChannel);
-            }
+            RPC_SCMI_A2pDispatch(scmiChannel);
             break;
         case SM_SCMI_CHN_P2A:
         case SM_SCMI_CHN_P2A_NOTIFY:
         case SM_SCMI_CHN_P2A_PRIORITY:
-            if (channelFree)
-            {
-                RPC_SCMI_P2aDispatch(scmiChannel);
-            }
+            RPC_SCMI_P2aDispatch(scmiChannel);
             break;
         default:
             ; /* Intentional empty default */
@@ -287,6 +282,7 @@ int32_t RPC_SCMI_P2aTx(uint32_t scmiChannel, uint32_t protocolId,
 
     /* Increment token */
     s_token[scmiChannel]++;
+    s_token[scmiChannel] &= SCMI_HEADER_TOKEN_MASK;
 
     /* Send message via transport */
     switch (g_scmiChannelConfig[scmiChannel].xportType)
@@ -438,26 +434,23 @@ int32_t RPC_SCMI_ProtocolListGet(uint32_t skip, uint32_t numWords,
 /*--------------------------------------------------------------------------*/
 int32_t RPC_SCMI_Reset(uint8_t scmiInst)
 {
-    int32_t status;
-
-    /* Reset instance communication */
-    status = RPC_SCMI_Init(scmiInst);
+    int32_t status = SM_ERR_SUCCESS;
 
     /* Reset all agents of this instance */
     for (uint32_t agentId = 0U; agentId < SM_SCMI_NUM_AGNT; agentId++)
     {
-        /* Exit on error */
-        if (status != SM_ERR_SUCCESS)
-        {
-            break;
-        }
-
         /* Reset SCMI state */
         if (g_scmiAgentConfig[agentId].scmiInst == scmiInst)
         {
             /* Reset agent */
             status = RPC_SCMI_BaseDispatchReset(g_scmiConfig[scmiInst].lmId,
                 agentId, true);
+        }
+
+        /* Exit on error */
+        if (status != SM_ERR_SUCCESS)
+        {
+            break;
         }
     }
 
@@ -502,6 +495,7 @@ int32_t RPC_SCMI_Trigger(const lmm_rpc_trigger_t *trigger)
             msgId.messageId = RPC_SCMI_NOTIFY_BBM_BUTTON_EVENT;
             status = RPC_SCMI_BbmDispatchNotification(msgId, trigger);
             break;
+#ifdef USES_FUSA
         case LMM_TRIGGER_FUSA_FEENV:
             msgId.protocolId = SCMI_PROTOCOL_FUSA;
             msgId.messageId = RPC_SCMI_NOTIFY_FUSA_FEENV_STATE_EVENT;
@@ -517,6 +511,7 @@ int32_t RPC_SCMI_Trigger(const lmm_rpc_trigger_t *trigger)
             msgId.messageId = RPC_SCMI_NOTIFY_FUSA_FAULT_EVENT;
             status = RPC_SCMI_FusaDispatchNotification(msgId, trigger);
             break;
+#endif
         case LMM_TRIGGER_CTRL:
             msgId.protocolId = SCMI_PROTOCOL_MISC;
             msgId.messageId = RPC_SCMI_NOTIFY_MISC_CONTROL_EVENT;
@@ -654,16 +649,19 @@ static void RPC_SCMI_A2pDispatch(uint32_t scmiChannel)
     caller.scmiChannel = scmiChannel;
 
     /* Map channel to agent */
-    caller.agentId = g_scmiChannelConfig[scmiChannel].agentId;
+    caller.agentId = (uint32_t) g_scmiChannelConfig[scmiChannel].agentId;
 
     /* Map agent to instance */
-    caller.scmiInst= g_scmiAgentConfig[caller.agentId].scmiInst;
+    caller.scmiInst= (uint32_t) g_scmiAgentConfig[caller.agentId].scmiInst;
 
     /* Map instance to LM */
     caller.lmId= g_scmiConfig[caller.scmiInst].lmId;
 
     /* Record safety type */
-    caller.safeType= g_lmmConfig[caller.lmId].safeType;
+    caller.safeType= (uint32_t) g_lmmConfig[caller.lmId].safeType;
+
+    /* Record S-EENV ID */
+    caller.seenvId= (uint32_t) g_scmiAgentConfig[caller.agentId].seenvId;
 
     /* Map agent to instance agent */
     caller.instAgentId = caller.agentId + 1U
@@ -711,10 +709,12 @@ static void RPC_SCMI_A2pDispatch(uint32_t scmiChannel)
         {
             uint32_t protocolId;
             uint32_t messageId;
+            uint32_t token;
 
             /* Decompose header */
             protocolId = SCMI_HEADER_PROTOCOL_EX(caller.header);
             messageId = SCMI_HEADER_MSG_EX(caller.header);
+            token = SCMI_HEADER_TOKEN_EX(caller.header);
 
             /* Protocol extension? */
             if (protocolId >= 0x90U)
@@ -723,15 +723,33 @@ static void RPC_SCMI_A2pDispatch(uint32_t scmiChannel)
                 protocolId -= 0x80U;
             }
 
-            /* Dispatch subrequest */
-            status = RPC_SCMI_A2pSubDispatch(&caller, protocolId,
-                messageId);
+            /* SCMI token sequence check? */
+            if (g_scmiChannelConfig[scmiChannel].sequence
+                == SM_SCMI_SEQ_TOKEN)
+            {
+                /* Check token */
+                if (token != s_token[scmiChannel])
+                {
+                    status = SM_ERR_SEQ_ERROR;
+                }
+            }
+
+            /* Increment token */
+            s_token[scmiChannel]++;
+            s_token[scmiChannel] &= SCMI_HEADER_TOKEN_MASK;
+
+            if (status == SM_ERR_SUCCESS)
+            {
+                /* Dispatch subrequest */
+                status = RPC_SCMI_A2pSubDispatch(&caller, protocolId,
+                    messageId);
+            }
         }
 
         /* Send response */
         if (caller.lenMsg > 0U)
         {
-            RPC_SCMI_A2pTx(&caller, caller.lenMsg, status);
+            (void) RPC_SCMI_A2pTx(&caller, caller.lenMsg, status);
         }
     }
 }
@@ -744,7 +762,7 @@ static int32_t RPC_SCMI_A2pSubDispatch(scmi_caller_t *caller,
 {
     int32_t status = SM_ERR_SUCCESS;
 
-    switch(protocolId)
+    switch (protocolId)
     {
         case SCMI_PROTOCOL_BASE:
             status = RPC_SCMI_BaseDispatchCommand(caller, messageId);
@@ -782,9 +800,11 @@ static int32_t RPC_SCMI_A2pSubDispatch(scmi_caller_t *caller,
         case SCMI_PROTOCOL_CPU:
             status = RPC_SCMI_CpuDispatchCommand(caller, messageId);
             break;
+#ifdef USES_FUSA
         case SCMI_PROTOCOL_FUSA:
             status = RPC_SCMI_FusaDispatchCommand(caller, messageId);
             break;
+#endif
         case SCMI_PROTOCOL_MISC:
             status = RPC_SCMI_MiscDispatchCommand(caller, messageId);
             break;
@@ -891,7 +911,7 @@ static int32_t RPC_SCMI_A2pRx(scmi_caller_t *caller, void* msgRx,
         case SM_XPORT_SMT:
             status = RPC_SMT_Rx(
                 g_scmiChannelConfig[scmiChannel].xportChannel,
-                msgRx, &size);
+                msgRx, &size, true);
             break;
         default:
             status = SM_ERR_NOT_SUPPORTED;

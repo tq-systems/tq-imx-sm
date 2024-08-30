@@ -53,6 +53,7 @@ static uint64_t s_bootVector[SM_NUM_CPU];
 static uint64_t s_startVector[SM_NUM_CPU];
 static bool s_bootFlags[SM_NUM_CPU];
 static bool s_startFlags[SM_NUM_CPU];
+static uint32_t s_cpuRetMask[SM_NUM_CPU];
 
 /*--------------------------------------------------------------------------*/
 /* Init LMM CPU management                                                  */
@@ -186,8 +187,56 @@ int32_t LMM_CpuHold(uint32_t lmId, uint32_t cpuId)
 /*--------------------------------------------------------------------------*/
 int32_t LMM_CpuStop(uint32_t lmId, uint32_t cpuId)
 {
-    /* Just passthru to board/device */
-    return SM_CPUSTOP(cpuId);
+    int32_t status = SM_ERR_SUCCESS;
+
+    /* Check CPU */
+    if (cpuId >= DEV_SM_NUM_CPU)
+    {
+        status = SM_ERR_NOT_FOUND;
+    }
+
+    if (status == SM_ERR_SUCCESS)
+    {
+        uint32_t domainId = 0U;
+
+        /* Stop the CPU */
+        status = SM_CPUSTOP(cpuId);
+
+        /* Loop over power domains */
+        while ((s_cpuRetMask[cpuId] != 0U) && (domainId < SM_NUM_POWER))
+        {
+            uint32_t pdMask = 0U;
+
+            /* Get PD mask */
+            if (SM_POWERRETMASKGET(domainId, &pdMask) == SM_ERR_SUCCESS)
+            {
+                /* CPU set mask? */
+                if ((s_cpuRetMask[cpuId] & pdMask) != 0U)
+                {
+                    uint32_t newRetMask = 0U;
+
+                    /* Record new state */
+                    s_cpuRetMask[cpuId] = s_cpuRetMask[cpuId] & ~pdMask;
+
+                    /* Aggregate CPU retention masks */
+                    for (uint32_t cpu = 0U; cpu < SM_NUM_CPU; cpu++)
+                    {
+                        newRetMask |= s_cpuRetMask[cpu];
+                    }
+
+                    /* Inform device of config */
+                    (void) SM_POWERRETMODESET(domainId, newRetMask
+                        & pdMask);
+                }
+            }
+
+            /* Next power domain */
+            domainId++;
+        }
+    }
+
+    /* Return status */
+    return status;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -261,6 +310,15 @@ int32_t LMM_CpuSleepModeSet(uint32_t lmId, uint32_t cpuId,
 }
 
 /*--------------------------------------------------------------------------*/
+/* Get CPU info                                                             */
+/*--------------------------------------------------------------------------*/
+int32_t LMM_CpuInfoGet(uint32_t lmId, uint32_t cpuId, uint32_t *runMode,
+    uint32_t *sleepMode, uint64_t *vector)
+{
+    return SM_CPUINFOGET(cpuId, runMode, sleepMode, vector);
+}
+
+/*--------------------------------------------------------------------------*/
 /* Set CPU IRQ wake mask                                                    */
 /*--------------------------------------------------------------------------*/
 int32_t LMM_CpuIrqWakeSet(uint32_t lmId, uint32_t cpuId, uint32_t maskIdx,
@@ -285,7 +343,7 @@ int32_t LMM_CpuPdLpmConfigSet(uint32_t lmId, uint32_t cpuId,
     uint32_t domainId, uint32_t lpmSetting, uint32_t retMask)
 {
     int32_t status = SM_ERR_SUCCESS;
-    uint32_t pdMask;
+    uint32_t pdMask = 0U;
 
     /* Check parameters */
     if ((cpuId >= SM_NUM_CPU) || (domainId >= SM_NUM_POWER))
@@ -307,7 +365,6 @@ int32_t LMM_CpuPdLpmConfigSet(uint32_t lmId, uint32_t cpuId,
 
     if (status == SM_ERR_SUCCESS)
     {
-        static uint32_t s_cpuRetMask[SM_NUM_CPU];
         uint32_t newRetMask = 0U;
 
         /* Record new state */

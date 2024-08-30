@@ -51,6 +51,21 @@
 
 #include "board.h"
 
+/* Types */
+
+/*! Dynamic IRQ priority structure */
+typedef struct
+{
+    /*! IRQ number */
+    IRQn_Type irqId;
+    /*! IRQ counter */
+    uint32_t irqCntr;
+    /*! IRQ base priority */
+    uint32_t basePrio;
+    /*! Dynamic priority enable */
+    bool dynPrioEn;
+} irq_prio_info_t;
+
 /* Functions */
 
 /*!
@@ -97,11 +112,6 @@ void UsageFault_Handler(const uint32_t *sp);
  * SYSTICK interrupt handler.
  */
 void SysTick_Handler(void);
-
-/*!
- * GPIO 1 interrupt 0 handler.
- */
-void GPIO1_0_IRQHandler(void);
 
 /*!
  * SM watchdog interrupt handler.
@@ -256,17 +266,7 @@ void MU6_B_IRQHandler(void);
 /*!
  * FCCU Interrupt Reaction 0 IRQ handler.
  */
-void FCCU0_IRQHandler(void);
-
-/*!
- * FCCU Interrupt Reaction 1 IRQ handler.
- */
-void FCCU1_IRQHandler(void);
-
-/*!
- * FCCU Interrupt Reaction 2 IRQ handler.
- */
-void FCCU2_IRQHandler(void);
+void FCCU_INT0_IRQHandler(void);
 
 /*!
  * GPC SM Request IRQ handler.
@@ -286,6 +286,84 @@ void SWI_Trigger(void);
  * @return Returns the time in milliseconds.
  */
 uint64_t DEV_SM_GetTimerMsec(void);
+
+/*!
+ * Update dynamic IRQ base priority.
+ *
+ * @param[in]     irq      IRQ index
+ * @param[in]     basePrio Base IRQ priority
+ *
+ * This function updates the base priority for an IRQ participating
+ * in dynamic prioritization.
+ *
+ * @return Returns the status (::SM_ERR_SUCCESS = success).
+ *
+ * Return errors (see @ref STATUS "SM error codes"):
+ * - ::SM_ERR_NOT_FOUND: if IRQ is not valid.
+ */
+int32_t DEV_SM_IrqPrioBaseSet(IRQn_Type irq, uint32_t basePrio);
+
+/*!
+ * Get dynamic IRQ base priority.
+ *
+ * @param[in]     irq      IRQ index
+ * @param[out]    basePrio Base IRQ priority
+ *
+ * This function gets the base priority for an IRQ participating
+ * in dynamic prioritization.
+ *
+ * @return Returns the status (::SM_ERR_SUCCESS = success).
+ *
+ * Return errors (see @ref STATUS "SM error codes"):
+ * - ::SM_ERR_NOT_FOUND: if IRQ is not valid.
+ */
+int32_t DEV_SM_IrqPrioBaseGet(IRQn_Type irq, uint32_t *basePrio);
+
+/*!
+ * Update dynamic IRQ occurrence counter.
+ *
+ * @param[in]     irq      IRQ index
+ * @param[in]     irqCntr  Value for IRQ counter
+ *
+ * This function updates the occurrence counter for an IRQ participating
+ * in dynamic prioritization.
+ *
+ * @return Returns the status (::SM_ERR_SUCCESS = success).
+ *
+ * Return errors (see @ref STATUS "SM error codes"):
+ * - ::SM_ERR_NOT_FOUND: if IRQ is not valid.
+ */
+int32_t DEV_SM_IrqPrioCntrSet(IRQn_Type irq, uint32_t irqCntr);
+
+/*!
+ * Get dynamic IRQ occurrence counter.
+ *
+ * @param[in]     irq      IRQ index
+ * @param[out]    irqCntr  Value for IRQ counter
+ *
+ * This function gets the occurrence counter for an IRQ participating
+ * in dynamic prioritization.
+ *
+ * @return Returns the status (::SM_ERR_SUCCESS = success).
+ *
+ * Return errors (see @ref STATUS "SM error codes"):
+ * - ::SM_ERR_NOT_FOUND: if IRQ is not valid.
+ */
+int32_t DEV_SM_IrqPrioCntrGet(IRQn_Type irq, uint32_t *irqCntr);
+
+/*!
+ * Update dynamic priority of active IRQ.
+ *
+ * This function updates the priority for an IRQ participating
+ * in dynamic prioritization.
+ *
+ * @return Returns the status (::SM_ERR_SUCCESS = success).
+ *
+ * Return errors (see @ref STATUS "SM error codes"):
+ * - ::SM_ERR_NOT_FOUND: if IRQ is not valid.
+ */
+int32_t DEV_SM_IrqPrioUpdate(void);
+
 
 #endif /* DEV_SM_HANDLERS_H */
 

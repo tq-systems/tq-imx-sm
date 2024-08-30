@@ -1,6 +1,6 @@
 ## ###################################################################
 ##
-## Copyright 2023 NXP
+## Copyright 2023-2024 NXP
 ##
 ## Redistribution and use in source and binary forms, with or without modification,
 ## are permitted provided that the following conditions are met:
@@ -53,7 +53,8 @@ ifndef T
 	FLAGS += -DLMM_INIT_FLAGS=1
 else
 	FLAGS += -DLMM_INIT_FLAGS=0 -DRUN_TEST
-	INC_LIBC = 1
+	DEBUG ?= 1
+	INC_LIBC ?= 1
 endif
 ifeq ($(T),all)
 	FLAGS += -DTEST_ALL
@@ -69,7 +70,7 @@ endif
 M ?= 1
 ifeq ($(M),1)
 	FLAGS += -DMONITOR
-	INC_LIBC = 1
+	INC_LIBC ?= 1
 endif
 
 # Configure Console output
@@ -83,6 +84,15 @@ ifeq ($(C),1)
 endif
 
 INC_LIBC ?= 0
+DEBUG ?= 0
+
+ifeq ($(DEBUG),1)
+    FLAGS += -DDEBUG
+endif
+
+ifeq ($(INC_LIBC),1)
+    FLAGS += -DINC_LIBC
+endif
 
 # Configure RDC
 ifdef r
@@ -112,6 +122,11 @@ INCLUDE = -I$(OUT)
 
 # Defaults
 ROM_IMG ?= none
+USES_FUSA ?= 0
+
+ifeq ($(USES_FUSA),1)
+	FLAGS += -DUSES_FUSA
+endif
 
 INCLUDE += -I$(ROOT_DIR)/configs/$(CONFIG)
 
@@ -151,7 +166,7 @@ ifeq ($(BUILD_EMU), 1)
 	FLAGS += -DBUILD_EMU
 endif
 
-img : $(TARGETS)
+img : cfg.exists $(TARGETS)
 
 # prevent clean and img running in parallel
 all:
@@ -163,6 +178,9 @@ all:
 DEPS := $(OBJS:.o=.d)
 
 -include $(DEPS)
+
+cfg.exists:
+	@if [ ! -d "$(ROOT_DIR)/configs/$(CONFIG)" ]; then (echo "Incorrect/missing $(CONFIG) config"; exit 1); fi
 
 $(OUT)/%.o : %.c $(OUT)/build_info.h
 	@echo "Compiling $<"

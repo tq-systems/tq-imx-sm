@@ -163,7 +163,7 @@ int32_t DEV_SM_VoltageModeSet(uint32_t domainId, uint8_t voltMode)
     /* Check domain */
     if (domainId < DEV_SM_NUM_VOLT)
     {
-        /* Set level */
+        /* Set mode */
         status = BRD_SM_SupplyModeSet(domainId, voltMode);
     }
     else
@@ -186,7 +186,7 @@ int32_t DEV_SM_VoltageModeGet(uint32_t domainId, uint8_t *voltMode)
     /* Check domain */
     if (domainId < DEV_SM_NUM_VOLT)
     {
-        /* Get level */
+        /* Get mode */
         status = BRD_SM_SupplyModeGet(domainId, &mode);
     }
     else

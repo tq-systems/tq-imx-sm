@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-** Copyright 2023 NXP
+** Copyright 2023-024 NXP
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -64,7 +64,9 @@
 #include "lmm_cpu.h"
 #include "lmm_misc.h"
 #include "lmm_fault.h"
+#ifdef USES_FUSA
 #include "lmm_fusa.h"
+#endif
 
 /* Defines */
 
@@ -114,19 +116,19 @@ typedef struct
 /*!
  * LMM initialization.
  *
+ * @param[in,out] mSel          Boot mode selection
+ * @param[in]     lmmInitFlags  Init flags from makefile
+ *
  * This function initializes the various LMM submodules such as the LMM
  * clock function via LMM_ClockInit(). It then loops over the LMs and
  * initializes the associated RPC (e.g. RPC_SCMI_Init()).
  *
  * @return Returns the status (::SM_ERR_SUCCESS = success).
  */
-int32_t LMM_Init(void);
+int32_t LMM_Init(uint32_t *mSel, uint32_t lmmInitFlags);
 
 /*!
  * LMM boot.
- *
- * @param[in]     mSel  Boot mode selection
- * @param[in]     lmmInitFlags  Number of arguments
  *
  * Boots all the LM as specified in the LMM configuration structure.
  * (lmm_config_t ::g_lmmConfig[]). The *boot* member indicates the boot order
@@ -135,7 +137,16 @@ int32_t LMM_Init(void);
  *
  * @return Returns the status (::SM_ERR_SUCCESS = success).
  */
-int32_t LMM_Boot(uint32_t mSel, uint32_t lmmInitFlags);
+int32_t LMM_Boot(void);
+
+/*!
+ * LMM post-boot complete.
+ *
+ * Do any housekeeping after booting all LM.
+ *
+ * @return Returns the status (::SM_ERR_SUCCESS = success).
+ */
+int32_t LMM_PostBoot(void);
 
 /*!
  * Get LM name.
@@ -201,6 +212,17 @@ void LMM_Handler(void);
  * @return Returns the time in uS the LM last booted.
  */
 uint64_t LMM_BootTimeGet(uint32_t lmId);
+
+/*!
+ * Get config info.
+ *
+ * @param[out]    mSel          Returned mSel value used to boot
+ *
+ * Returns the cfg file name as specified in the LMM config header.
+ *
+ * @return Returns a pointer to the name.
+ */
+string LMM_CfgInfoGet(uint32_t *mSel);
 
 /** @} */
 

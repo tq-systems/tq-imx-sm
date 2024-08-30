@@ -128,6 +128,11 @@ static int32_t MONITOR_CmdFuse(int32_t argc, const char * const argv[],
 static int32_t MONITOR_CmdPmic(int32_t argc, const char * const argv[],
     int32_t rw);
 #endif
+static int32_t MONITOR_CmdIdle(int32_t argc, const char * const argv[]);
+static int32_t MONITOR_CmdAssert(int32_t argc, const char * const argv[]);
+static int32_t MONITOR_CmdSyslog(int32_t argc, const char * const argv[]);
+static int32_t MONITOR_CmdGroup(int32_t argc, const char * const argv[]);
+static int32_t MONITOR_CmdSpm(int32_t argc, const char * const argv[]);
 static int32_t MONITOR_CmdCustom(int32_t argc, const char * const argv[]);
 
 /* Local Variables */
@@ -193,6 +198,11 @@ int32_t MONITOR_Dispatch(char *line)
         "fuse.w",
         "pmic.r",
         "pmic.w",
+        "idle",
+        "assert",
+        "syslog",
+        "grp",
+        "spm",
         "custom"
     };
 
@@ -355,7 +365,22 @@ int32_t MONITOR_Dispatch(char *line)
                 status = MONITOR_CmdPmic(argc - 1, &argv[1], WRITE);
                 break;
 #endif
-            case 47:  /* custom */
+            case 47:  /* idle */
+                status = MONITOR_CmdIdle(argc - 1, &argv[1]);
+                break;
+            case 48:  /* assert */
+                status = MONITOR_CmdAssert(argc - 1, &argv[1]);
+                break;
+            case 49:  /* syslog */
+                status = MONITOR_CmdSyslog(argc - 1, &argv[1]);
+                break;
+            case 50:  /* group */
+                status = MONITOR_CmdGroup(argc - 1, &argv[1]);
+                break;
+            case 51:  /* spm */
+                status = MONITOR_CmdSpm(argc - 1, &argv[1]);
+                break;
+            case 52:  /* custom */
                 status = MONITOR_CmdCustom(argc - 1, &argv[1]);
                 break;
             default:
@@ -382,9 +407,16 @@ static int32_t MONITOR_CmdInfo(int32_t argc, const char * const argv[])
     uint32_t deviceId;
     uint32_t siRev;
     uint32_t partNum;
+    string cfgName;
+    uint32_t mSel = 0U;
 
     printf("SM Version    = Build %u", buildNum);
     printf(", Commit %08x\n", buildCommit);
+
+    /* Display the cfg info */
+    cfgName = LMM_CfgInfoGet(&mSel);
+    printf("SM Config     = %s, mSel=%u\n", cfgName, mSel);
+
     printf("Platform      = %s\n", SCMI_SUB_VENDOR);
 
     /* Get the silicon info */
@@ -1020,24 +1052,27 @@ static int32_t MONITOR_CmdLm(int32_t argc, const char * const argv[])
         "reset",
         "wake",
         "suspend",
-        "reason"
+        "reason",
+        "power"
     };
 
     /* Check argument */
     if (argc != 0)
     {
-        int32_t temp_status;
         int32_t arg = 0;
 
-        temp_status = MONITOR_NameToId(argv[0], &lm,
-            LMM_LmNameGet, SM_NUM_LM);
-        if (temp_status == SM_ERR_SUCCESS)
+        if (argc > 1)
         {
-            arg++;
-        }
-        else
-        {
-            lm = s_lm;
+            int32_t temp_status = MONITOR_NameToId(argv[0], &lm,
+                LMM_LmNameGet, SM_NUM_LM);
+            if (temp_status == SM_ERR_SUCCESS)
+            {
+                arg++;
+            }
+            else
+            {
+                lm = s_lm;
+            }
         }
 
         if (arg >= argc)
@@ -1087,6 +1122,9 @@ static int32_t MONITOR_CmdLm(int32_t argc, const char * const argv[])
                     status = MONITOR_CmdLmReason(argc - arg, &argv[arg],
                         lm);
                     break;
+                case 8:  /* power */
+                    status = LMM_SystemLmPowerOn(0U, 0U, lm);
+                    break;
                 default:
                     status = SM_ERR_INVALID_PARAMETERS;
                     break;
@@ -1129,6 +1167,7 @@ static int32_t MONITOR_CmdLmInfo(int32_t argc, const char * const argv[])
                 "off",
                 "on",
                 "suspend",
+                "powered"
             };
 
             printf("%03u: %*s = %s", lm, -wName, name, stateText[state]);
@@ -1457,66 +1496,114 @@ static int32_t MONITOR_CmdClock(int32_t argc, const char * const argv[],
                     string const subCmds[] =
                     {
                         "range",
-                        "parent"
+                        "parent",
+                        "ext"
                     };
 
                     uint8_t subCmd = (uint8_t) MONITOR_Find(subCmds,
                         (int32_t) ARRAY_SIZE(subCmds), argv[0]);
-                    if (subCmd < ARRAY_SIZE(subCmds))
+
+                    switch (subCmd)
                     {
-                        for (uint32_t clockId = 0U; clockId < SM_NUM_CLOCK;
-                            clockId++)
-                        {
-                            string clockNameAddr;
-                            int32_t wName = 0;
-
-                            status = LMM_ClockNameGet(s_lm, clockId,
-                                &clockNameAddr, &wName);
-
-                            if (status == SM_ERR_SUCCESS)
+                        /* range/parent */
+                        case 0:
+                        case 1:
+                            for (uint32_t clockId = 0U; clockId < SM_NUM_CLOCK;
+                                clockId++)
                             {
-                                if (subCmd == 0U)
+                                string clockNameAddr;
+                                int32_t wName = 0;
+
+                                status = LMM_ClockNameGet(s_lm, clockId,
+                                    &clockNameAddr, &wName);
+
+                                if (status == SM_ERR_SUCCESS)
                                 {
-                                    dev_sm_clock_range_t range;
-                                    status = LMM_ClockDescribe(s_lm,
-                                        clockId, &range);
-                                    if (status == SM_ERR_SUCCESS)
+                                    if (subCmd == 0U)
                                     {
-                                        uint32_t maxKHz = SM_UINT64_L(
-                                            range.highestRate/1000UL);
-                                        uint32_t minKHz = SM_UINT64_L(
-                                            range.lowestRate/1000UL);
-                                        printf("%03u: %*s MAX = %7uKHz,"
-                                            " MIN = %7uKHz\n",
-                                            clockId, -wName, clockNameAddr,
-                                            maxKHz, minKHz);
-                                    }
-                                }
-                                else
-                                {
-                                    uint32_t parent;
-                                    status = LMM_ClockParentGet(s_lm,
-                                        clockId, &parent);
-                                    if (status == SM_ERR_SUCCESS)
-                                    {
-                                        string parentNameAddr;
-                                        if (LMM_ClockNameGet(s_lm, parent,
-                                            &parentNameAddr, NULL)
-                                            == SM_ERR_SUCCESS)
+                                        dev_sm_clock_range_t range;
+                                        status = LMM_ClockDescribe(s_lm,
+                                            clockId, &range);
+
+                                        if (status == SM_ERR_SUCCESS)
                                         {
-                                            printf("%03u: %*s parent "
-                                                "= %u (%s)\n",
-                                                clockId, -wName, clockNameAddr,
-                                                parent, parentNameAddr);
+                                            uint32_t maxKHz = SM_UINT64_L(
+                                                range.highestRate/1000UL);
+                                            uint32_t minKHz = SM_UINT64_L(
+                                                range.lowestRate/1000UL);
+                                            printf("%03u: %*s MAX = %7uKHz,"
+                                                " MIN = %7uKHz\n", clockId,
+                                                -wName, clockNameAddr, maxKHz,
+                                                minKHz);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        uint32_t parent;
+                                        status = LMM_ClockParentGet(s_lm,
+                                            clockId, &parent);
+
+                                        if (status == SM_ERR_SUCCESS)
+                                        {
+                                            string parentNameAddr;
+                                            if (LMM_ClockNameGet(s_lm, parent,
+                                                &parentNameAddr, NULL)
+                                                == SM_ERR_SUCCESS)
+                                            {
+                                                printf("%03u: %*s parent "
+                                                    "= %u (%s)\n",
+                                                    clockId, -wName,
+                                                    clockNameAddr, parent,
+                                                    parentNameAddr);
+                                            }
                                         }
                                     }
                                 }
                             }
-                        }
-                    }
-                    else
-                    {
-                        status = SM_ERR_INVALID_PARAMETERS;
+                            break;
+
+                        /* ext */
+                        case 2:
+                            {
+                                errno = 0;
+                                uint32_t ext = strtoul(argv[1], NULL, 0);
+
+                                if (errno == 0)
+                                {
+                                    for (uint32_t clockId = 0U;
+                                        clockId < SM_NUM_CLOCK; clockId++)
+                                    {
+                                        uint32_t extCfgValue = 0U;
+
+                                        status = LMM_ClockExtendedGet(s_lm,
+                                            clockId, ext, &extCfgValue);
+
+                                        if (status == SM_ERR_SUCCESS)
+                                        {
+                                            string clockNameAddr;
+                                            int32_t wName = 0;
+
+                                            status = LMM_ClockNameGet(s_lm,
+                                                clockId, &clockNameAddr,
+                                                &wName);
+
+                                            printf("%03u: %*s = 0x%08X \n",
+                                                clockId, -wName, clockNameAddr,
+                                                extCfgValue);
+                                        }
+                                    }
+                                    status = SM_ERR_SUCCESS;
+                                }
+                                else
+                                {
+                                    status = SM_ERR_INVALID_PARAMETERS;
+                                }
+                            }
+                            break;
+
+                        default:
+                            status = SM_ERR_INVALID_PARAMETERS;
+                            break;
                     }
                 }
             }
@@ -1530,7 +1617,8 @@ static int32_t MONITOR_CmdClock(int32_t argc, const char * const argv[],
                     "off",
                     "on",
                     "reparent",
-                    "rate"
+                    "rate",
+                    "ext"
                 };
 
 
@@ -1549,7 +1637,7 @@ static int32_t MONITOR_CmdClock(int32_t argc, const char * const argv[],
                     uint8_t clockMode = (uint8_t) MONITOR_Find(clockModes,
                         (int32_t) ARRAY_SIZE(clockModes), argv[1]);
 
-                    switch(clockMode)
+                    switch (clockMode)
                     {
                         /* on/off */
                         case 0:
@@ -1621,6 +1709,40 @@ static int32_t MONITOR_CmdClock(int32_t argc, const char * const argv[],
                                             clockId, rate, roundRule);
                                     }
                                 }
+                            }
+                            break;
+
+                        /* ext */
+                        case 4:
+                            if (argc == 4)
+                            {
+                                errno = 0;
+                                uint32_t ext = strtoul(argv[2], NULL, 0);
+
+                                if (errno == 0)
+                                {
+                                    uint32_t extConfigValue = strtoul(argv[3],
+                                        NULL, 0);
+
+                                    if (errno == 0)
+                                    {
+                                        status = LMM_ClockExtendedSet(s_lm,
+                                            clockId, ext, extConfigValue);
+                                    }
+                                    else
+                                    {
+                                        status = SM_ERR_INVALID_PARAMETERS;
+                                    }
+                                }
+                                else
+                                {
+                                    status = SM_ERR_INVALID_PARAMETERS;
+                                }
+
+                            }
+                            else
+                            {
+                                status = SM_ERR_MISSING_PARAMETERS;
                             }
                             break;
 
@@ -2145,7 +2267,7 @@ static int32_t MONITOR_CmdCpu(int32_t argc, const char * const argv[],
 
                     if (status == SM_ERR_SUCCESS)
                     {
-                        status = SM_CPUINFOGET(cpuId, &runMode,
+                        status = LMM_CpuInfoGet(s_lm, cpuId, &runMode,
                             &sleepMode, &vector);
                     }
 
@@ -2207,7 +2329,7 @@ static int32_t MONITOR_CmdCpu(int32_t argc, const char * const argv[],
                     uint8_t subCmd = (uint8_t) MONITOR_Find(subCmds,
                         (int32_t) ARRAY_SIZE(subCmds), argv[1]);
 
-                    switch(subCmd)
+                    switch (subCmd)
                     {
                         /* start */
                         case 0U:
@@ -2277,7 +2399,16 @@ static int32_t MONITOR_CmdCtrl(int32_t argc, const char * const argv[],
                     status = LMM_MiscControlGet(s_lm, ctrl, &numRtn, rtn);
                     if (status == SM_ERR_SUCCESS)
                     {
-                        printf("%03u:", ctrl);
+                        if (ctrl < DEV_SM_NUM_CTRL)
+                        {
+                            printf("0x%04X:", ctrl);
+                        }
+                        else
+                        {
+                            printf("0x%04X:", (ctrl
+                                - (uint32_t) DEV_SM_NUM_CTRL)
+                                | LMM_CTRL_FLAG_BRD);
+                        }
                         for (uint32_t idx = 0U; idx < numRtn; idx++)
                         {
                             printf(" 0x%08X", rtn[idx]);
@@ -2297,6 +2428,12 @@ static int32_t MONITOR_CmdCtrl(int32_t argc, const char * const argv[],
                     uint32_t val[24] = { 0 };
 
                     status = MONITOR_ConvU32(argv[0], &ctrl);
+
+                    if ((ctrl & LMM_CTRL_FLAG_BRD) != 0U)
+                    {
+                        ctrl &= ~LMM_CTRL_FLAG_BRD;
+                        ctrl += DEV_SM_NUM_CTRL;
+                    }
 
                     while ((status == SM_ERR_SUCCESS) && (numVal <
                         ((uint32_t) argc) - 1U))
@@ -2738,6 +2875,210 @@ static int32_t MONITOR_CmdPmic(int32_t argc, const char * const argv[],
     return status;
 }
 #endif
+
+/*--------------------------------------------------------------------------*/
+/* System idle command                                                      */
+/*--------------------------------------------------------------------------*/
+static int32_t MONITOR_CmdIdle(int32_t argc, const char * const argv[])
+{
+#ifndef SIMU
+    int32_t status;
+    bool consoleResume = false;
+    const board_uart_config_t *uartConfig = BOARD_GetDebugUart();
+
+    /* Block waiting on console to resume */
+    do
+    {
+        /* Grab sleep count to detect idle/sleep */
+        uint32_t prevSleepCnt = g_syslog.sysSleepRecord.sleepCnt;
+
+        /* Enter system idle */
+        status = DEV_SM_SystemIdle();
+
+        /* Check if system idle succeeded */
+        if ((status == SM_ERR_SUCCESS) && (uartConfig != NULL))
+        {
+            /* Check if if system entered sleep */
+            if (prevSleepCnt != g_syslog.sysSleepRecord.sleepCnt)
+            {
+                /* Check if system sleep wake source was consule UART */
+                if (g_syslog.sysSleepRecord.wakeSource ==
+                    (uartConfig->irq + 16U))
+                {
+                    consoleResume = true;
+                }
+            }
+            else
+            {
+                /* Check for console character */
+                consoleResume = MONITOR_CharPending();
+            }
+        }
+    } while ((status == SM_ERR_SUCCESS) && !consoleResume);
+
+    /* Return status */
+    return status;
+#else
+    /* Return status */
+    return SM_ERR_NOT_SUPPORTED;
+#endif
+}
+
+/*--------------------------------------------------------------------------*/
+/* Assert command                                                           */
+/*--------------------------------------------------------------------------*/
+static int32_t MONITOR_CmdAssert(int32_t argc, const char * const argv[])
+{
+    int32_t status = SM_ERR_SUCCESS;
+
+    if (argc < 1)
+    {
+        status = SM_ERR_MISSING_PARAMETERS;
+    }
+    else
+    {
+        int32_t s;
+
+        /* Parse data */
+        s = strtol(argv[0], NULL, 0);
+
+        printf("Assert %d\n", s);
+
+        /* Do assert */
+        ASSERT(false, s);
+    }
+
+    /* Return status */
+    return status;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Syslog command                                                           */
+/*--------------------------------------------------------------------------*/
+static int32_t MONITOR_CmdSyslog(int32_t argc, const char * const argv[])
+{
+    int32_t status = SM_ERR_SUCCESS;
+    uint32_t flags = 0U;
+
+    if (argc > 0)
+    {
+        /* Parse data */
+        flags = strtoul(argv[0], NULL, 0);
+    }
+
+    /* Dump data */
+    status = SM_SYSLOGDUMP(flags);
+
+    /* Return status */
+    return status;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Group command                                                            */
+/*--------------------------------------------------------------------------*/
+static int32_t MONITOR_CmdGroup(int32_t argc, const char * const argv[])
+{
+    int32_t status = SM_ERR_SUCCESS;
+
+    static string cmds[] =
+    {
+        "boot",
+        "shutdown",
+        "reset"
+    };
+
+    /* Check argument */
+    if (argc != 0)
+    {
+        int32_t arg = 0;
+        uint32_t grp = 0U;
+
+        if (argc > 1)
+        {
+            int32_t temp_status = MONITOR_FindN(cmds,
+                (int32_t) ARRAY_SIZE(cmds), argv[0]);
+            if (temp_status == ARRAY_SIZE(cmds))
+            {
+                grp = strtoul(argv[0], NULL, 0);
+                arg++;
+            }
+            else
+            {
+                grp = 0U;
+            }
+        }
+
+        if (arg >= argc)
+        {
+            status = SM_ERR_MISSING_PARAMETERS;
+        }
+        else
+        {
+            bool graceful = false;
+
+            int32_t sub = MONITOR_FindN(cmds, (int32_t) ARRAY_SIZE(cmds),
+                argv[arg]);
+            arg++;
+
+            /* Graceful? */
+            if (arg < argc)
+            {
+                graceful = true;
+            }
+
+            switch (sub)
+            {
+                case 0:  /* boot */
+                    status = LMM_SystemGrpBoot(0U, 0U, &g_swReason, grp);
+                    break;
+                case 1:  /* shutdown */
+                    status = LMM_SystemGrpShutdown(0U, 0U, graceful,
+                        &g_swReason, grp);
+                    break;
+                case 2:  /* reset */
+                    status = LMM_SystemGrpReset(0U, 0U, graceful,
+                        &g_swReason, grp);
+                    break;
+                default:
+                    status = SM_ERR_INVALID_PARAMETERS;
+                    break;
+            }
+        }
+    }
+    else
+    {
+        status = SM_ERR_MISSING_PARAMETERS;
+    }
+
+    /* Return status */
+    return status;
+}
+
+/*--------------------------------------------------------------------------*/
+/* System power mode                                                        */
+/*--------------------------------------------------------------------------*/
+static int32_t MONITOR_CmdSpm(int32_t argc, const char * const argv[])
+{
+    int32_t status = SM_ERR_SUCCESS;
+
+    if (argc < 1)
+    {
+        status = SM_ERR_MISSING_PARAMETERS;
+    }
+    else
+    {
+        int32_t spm;
+
+        /* Parse data */
+        spm = strtol(argv[0], NULL, 0);
+
+        /* Set system power mode for the SM */
+        status = LMM_SystemPowerModeSet(0U, spm);
+    }
+
+    /* Return status */
+    return status;
+}
 
 /*--------------------------------------------------------------------------*/
 /* Custom command                                                           */

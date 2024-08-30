@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-**     Copyright 2023 NXP
+**     Copyright 2023-2024 NXP
 **
 **     Redistribution and use in source and binary forms, with or without modification,
 **     are permitted provided that the following conditions are met:
@@ -80,8 +80,8 @@
 #define DEV_SM_REASON_CM33_EXC     RST_REASON_CM33_EXC     /*!< 14: CM33 exception */
 #define DEV_SM_REASON_BBM          RST_REASON_UNUSED0      /*!< 15: BBM boot/shutdown */
 #define DEV_SM_REASON_SW           RST_REASON_UNUSED1      /*!< 16: SW requested */
-#define DEV_SM_REASON_UNUSED2      RST_REASON_UNUSED2      /*!< 17: Unused */
-#define DEV_SM_REASON_UNUSED3      RST_REASON_UNUSED3      /*!< 18: Unused */
+#define DEV_SM_REASON_SM_ERR       RST_REASON_UNUSED2      /*!< 17: SM error/exit */
+#define DEV_SM_REASON_FUSA_SRECO   RST_REASON_UNUSED3      /*!< 18: FuSa global recovery */
 #define DEV_SM_REASON_UNUSED4      RST_REASON_UNUSED4      /*!< 19: Unused */
 #define DEV_SM_REASON_UNUSED5      RST_REASON_UNUSED5      /*!< 20: Unused */
 #define DEV_SM_REASON_UNUSED6      RST_REASON_UNUSED6      /*!< 21: Unused */
@@ -123,14 +123,62 @@
         .valid = true \
     }
 
+/*!
+ * @name System power mode flags
+ */
+/** @{ */
+#define DEV_SM_SPM_SM_ACTIVE_MASK           (1U << 0U)  /*!< Keep SM active */
+#define DEV_SM_SPM_FRO_ACTIVE_MASK          (1U << 1U)  /*!< Keep FRO active */
+#define DEV_SM_SPM_SYSCTR_ACTIVE_MASK       (1U << 2U)  /*!< Keep SYSCTR active */
+#define DEV_SM_SPM_PMIC_STBY_INACTIVE_MASK  (1U << 3U)  /*!< No PMIC_STBY assertion */
+#define DEV_SM_SPM_OSC24M_ACTIVE_MASK       (1U << 4U)  /*!< Keep OSC24M active */
+#define DEV_SM_SPM_DRAM_ACTIVE_MASK         (1U << 5U)  /*!< Keep DRAM active */
+/** @} */
+
 /* Types */
 
+/*!
+ * System sleep record
+ */
+typedef struct
+{
+    /*! System sleep entry latency */
+    uint32_t sleepEntryUsec;
+
+    /*! System sleep exit latency */
+    uint32_t sleepExitUsec;
+
+    /*! System sleep counter */
+    uint32_t sleepCnt;
+
+    /*! IRQ/exception causing system wake */
+    uint32_t wakeSource;
+
+    /*! MIX power status */
+    uint32_t mixPwrStat;
+
+    /*! MEM power status */
+    uint32_t memPwrStat;
+
+    /*! PLL power status */
+    uint32_t pllPwrStat;
+
+    /*! System power mode */
+    uint32_t sysPwrMode;
+} dev_sm_sys_sleep_rec_t;
+
 /* Functions */
+
+/* Externs */
+
+/*! External pointer to the DRAM info */
+extern uint32_t *__DramInfo;
 
 /** @} */
 
 /* Include SM device API */
 
+// coverity[misra_c_2012_rule_20_1_violation:FALSE]
 #include "dev_sm_system_api.h"
 
 #endif /* DEV_SM_SYSTEM_H */

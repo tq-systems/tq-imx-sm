@@ -30,15 +30,15 @@
 ##
 ## ###################################################################
 
-SM_VERSION = imx_sm_2024q1
-SM_PREV_VER = imx_sm_2023q4_er2
+SM_VERSION = imx_sm_2024q2
+SM_PREV_VER = imx_sm_2024q1
 SM_SNAP = 0
 
 SM_DEVICES = i.MX95 (A0), i.MX95 (A1)
-SM_ELE_VER = 0.0.2
+SM_ELE_VER = 0.0.3
 
-MKIMAGE_BRANCH = lf-6.6.3_1.0.0
-MKIMAGE_BUILD = Linux_IMX_6.6.3_1.0.0
+MKIMAGE_BRANCH = lf-6.6.23_2.0.0
+MKIMAGE_BUILD = Linux_IMX_6.6.23_2.0.0_RC2
 MKIMAGE_N = latest
 
 $(OUT)/build_info.h :
@@ -99,5 +99,6 @@ rn_info.sed :
 	$(AT)/bin/echo "/g' rn.md" >> $@
 	$(AT)/bin/echo "sed -i 's/\#MKIMAGE_BRANCH/$(MKIMAGE_BRANCH)/g' rn.md" >> $@
 	$(AT)/bin/echo "sed -i 's/\#MKIMAGE_BUILD/$(MKIMAGE_BUILD)/g' rn.md" >> $@
+	$(AT)/bin/echo "sed -i 's/_RC[0-9]//g' rn.md" >> $@
 	$(AT)/bin/echo '' >> $@
 

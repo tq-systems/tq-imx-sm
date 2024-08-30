@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-**     Copyright 2023 NXP
+**     Copyright 2023-2024 NXP
 **
 **     Redistribution and use in source and binary forms, with or without modification,
 **     are permitted provided that the following conditions are met:
@@ -134,6 +134,9 @@
 #define DEV_SM_FAULT_ATU_M          71U  /*!< ATU_M lock-step error */
 /** @} */
 
+/*! SW fault for internal SM error */
+#define DEV_SM_FAULT_SM_ERR  DEV_SM_FAULT_SW5
+
 /*! Default init for fault record */
 #define DEV_SM_FAULT_REC_INIT(X) \
     { \
@@ -151,6 +154,7 @@
 
 /* Include SM device API */
 
+// coverity[misra_c_2012_rule_20_1_violation:FALSE]
 #include "dev_sm_fault_api.h"
 
 #endif /* DEV_SM_FAULT_H */

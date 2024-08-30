@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-**     Copyright 2023 NXP
+**     Copyright 2023-2024 NXP
 **
 **     Redistribution and use in source and binary forms, with or without modification,
 **     are permitted provided that the following conditions are met:
@@ -85,6 +85,11 @@ static const dev_sm_ctrl_t s_control[DEV_SM_NUM_CTRL] =
     {
         .addr = BLK_CTRL_WAKEUPMIX_BASE + 0x1CU,
         .mask = 0x07FC0000U,
+    },
+    [DEV_SM_CTRL_ADC_TEST] =
+    {
+        .addr = BLK_CTRL_BBSMMIX_BBSMMIX1_BASE + 0x4U,
+        .mask = 0x00000080U,
     }
 };
 
@@ -154,6 +159,7 @@ int32_t DEV_SM_ControlGet(uint32_t ctrlId, uint32_t *numRtn, uint32_t *rtn)
 /* Do a control action                                                      */
 /*--------------------------------------------------------------------------*/
 int32_t DEV_SM_ControlAction(uint32_t ctrlId, uint32_t action,
+    // coverity[misra_c_2012_rule_8_13_violation:FALSE]
     uint32_t numArg, const uint32_t *arg, uint32_t *numRtn, uint32_t *rtn)
 {
     int32_t status = SM_ERR_SUCCESS;

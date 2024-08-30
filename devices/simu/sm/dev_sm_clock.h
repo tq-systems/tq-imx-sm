@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-**     Copyright 2023 NXP
+**     Copyright 2023-2024 NXP
 **
 **     Redistribution and use in source and binary forms, with or without modification,
 **     are permitted provided that the following conditions are met:
@@ -75,6 +75,13 @@
 #define DEV_SM_CLOCK_ROUND_AUTO        0x2U   /*!< Automatically select closest rate */
 /** @} */
 
+/*!
+ * @name Device extended clock parameters
+ */
+/** @{ */
+#define DEV_SM_CLOCK_EXT_SSC  0x80U   /*!< Spread spectrum extended clock type */
+/** @} */
+
 /* Types */
 
 /* Functions */
@@ -83,8 +90,8 @@
 
 /* Include SM device API */
 
+// coverity[misra_c_2012_rule_20_1_violation:FALSE]
 #include "dev_sm_clock_api.h"
 
 #endif /* DEV_SM_CLOCK_H */
-
 

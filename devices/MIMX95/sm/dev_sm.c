@@ -95,6 +95,7 @@ int32_t DEV_SM_Init(uint32_t bootPerfLevel, uint32_t runPerfLevel)
     }
 
     /* Init ROM data */
+    // coverity[misra_c_2012_rule_2_2_violation:FALSE]
     DEV_SM_RomInit();
 
     /* Initialize CPU domains */
@@ -177,45 +178,6 @@ void DEV_SM_LmmInitGet(uint32_t *numClock, const uint32_t **clockList)
     /* List of clocks used by SM to be kept on */
     static const uint32_t clocks[] =
     {
-        DEV_SM_CLK_A55MTRBUS,
-        DEV_SM_CLK_BUSAON,
-        DEV_SM_CLK_BUSM7,
-        DEV_SM_CLK_BUSNETCMIX,
-        DEV_SM_CLK_BUSWAKEUP,
-        DEV_SM_CLK_CAMAPB,
-        DEV_SM_CLK_CAMAXI,
-        DEV_SM_CLK_DISPAPB,
-        DEV_SM_CLK_DISPAXI,
-        DEV_SM_CLK_ENET,
-        DEV_SM_CLK_FRO,
-        DEV_SM_CLK_GPU,
-        DEV_SM_CLK_GPUAPB,
-        DEV_SM_CLK_HSIO,
-        DEV_SM_CLK_NOC,
-        DEV_SM_CLK_NOCAPB,
-        DEV_SM_CLK_NPU,
-        DEV_SM_CLK_NPUAPB,
-        DEV_SM_CLK_ELE,
-        DEV_SM_CLK_SWOTRACE,
-        DEV_SM_CLK_OSC24M,
-        DEV_SM_CLK_OSC32K,
-        DEV_SM_CLK_SYSPLL1_PFD0,
-        DEV_SM_CLK_SYSPLL1_PFD0_DIV2,
-        DEV_SM_CLK_SYSPLL1_PFD0_UNGATED,
-        DEV_SM_CLK_SYSPLL1_PFD1,
-        DEV_SM_CLK_SYSPLL1_PFD1_DIV2,
-        DEV_SM_CLK_SYSPLL1_PFD1_UNGATED,
-        DEV_SM_CLK_SYSPLL1_PFD2,
-        DEV_SM_CLK_SYSPLL1_PFD2_DIV2,
-        DEV_SM_CLK_SYSPLL1_PFD2_UNGATED,
-        DEV_SM_CLK_SYSPLL1_VCO,
-        DEV_SM_CLK_TEMPSENSE_GPR_SEL,
-        DEV_SM_CLK_TMU,
-        DEV_SM_CLK_TSTMR1,
-        DEV_SM_CLK_VPU,
-        DEV_SM_CLK_VPUAPB,
-        DEV_SM_CLK_VPUJPEG,
-        DEV_SM_CLK_WAKEUPAXI
     };
 
     /* Return list */
@@ -311,6 +273,60 @@ int32_t DEV_SM_PowerUpPost(uint32_t domainId)
 }
 
 /*--------------------------------------------------------------------------*/
+/* Power domain postamble for power-up ACK sent to GPC/SRC                  */
+/*--------------------------------------------------------------------------*/
+int32_t DEV_SM_PowerUpAckComplete(uint32_t domainId)
+{
+    int32_t status = SM_ERR_SUCCESS;
+
+    switch (domainId)
+    {
+        case DEV_SM_PD_A55P:
+            {
+                /* Wait for A55P to fully wake */
+                bool rc;
+                uint32_t fsmState;
+                do
+                {
+                    rc = CPU_FsmStateGet(CPU_IDX_A55P, &fsmState);
+                } while (rc && (fsmState >= CPU_FSM_STATE_IDLE_SLEEP));
+
+                /* Query A55 CPU wake list */
+                uint32_t cpuWakeListA55;
+                if (DEV_SM_CpuWakeListGet(DEV_SM_CPU_A55P, &cpuWakeListA55)
+                    == SM_ERR_SUCCESS)
+                {
+                    /* Wake A55 CPUs recorded during sleep mode entry */
+                    while (cpuWakeListA55 != 0U)
+                    {
+                        /* Convert mask into index */
+                        uint8_t cpuIdx = 31U - __CLZ(cpuWakeListA55);
+
+                        (void) CPU_SwWakeup(cpuIdx);
+
+                        /* Clear wake list mask to mark done */
+                        cpuWakeListA55 &= (~(1UL << (cpuIdx)));
+                    }
+                }
+
+                /* Clear A55 wake list */
+                (void) DEV_SM_CpuWakeListSet(DEV_SM_CPU_A55P, 0U);
+            }
+            break;
+        default:
+            /* Only return error if domain out of range */
+            if (domainId >= DEV_SM_NUM_POWER)
+            {
+                status = SM_ERR_NOT_FOUND;
+            }
+            break;
+    }
+
+    /* Return status */
+    return status;
+}
+
+/*--------------------------------------------------------------------------*/
 /* Power domain preamble for power-down                                     */
 /*--------------------------------------------------------------------------*/
 int32_t DEV_SM_PowerDownPre(uint32_t domainId)
@@ -325,6 +341,9 @@ int32_t DEV_SM_PowerDownPre(uint32_t domainId)
             case DEV_SM_PD_A55P:
                 status = DEV_SM_A55pPowerDownPre();
                 break;
+            case DEV_SM_PD_DDR:
+                status = DEV_SM_DdrPowerDownPre();
+                break;
             case DEV_SM_PD_DISPLAY:
                 status = DEV_SM_DisplayPowerDownPre();
                 break;
@@ -335,7 +354,11 @@ int32_t DEV_SM_PowerDownPre(uint32_t domainId)
                 status = DEV_SM_M7PowerDownPre();
                 break;
             default:
-                status = SM_ERR_NOT_FOUND;
+                /* Only return error if domain out of range */
+                if (domainId >= DEV_SM_NUM_POWER)
+                {
+                    status = SM_ERR_NOT_FOUND;
+                }
                 break;
         }
     }
