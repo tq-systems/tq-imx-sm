@@ -34,18 +34,18 @@
 
 /*==========================================================================*/
 /*!
- * @addtogroup CONFIG_TQMA95XXSA
+ * @addtogroup CONFIG_TQMA95XXSA-M7
  * @{
  *
  * @file
  * @brief
  *
- * Header file containing coniguration info for the device block controls.
+ * Header file containing coniguration info for the board abstraction.
  */
 /*==========================================================================*/
 
-#ifndef CONFIG_BCTRL_H
-#define CONFIG_BCTRL_H
+#ifndef CONFIG_BOARD_H
+#define CONFIG_BOARD_H
 
 /* Includes */
 
@@ -53,48 +53,17 @@
 
 /* Defines */
 
-/*--------------------------------------------------------------------------*/
-/* BCTRL A Config                                                           */
-/*--------------------------------------------------------------------------*/
+/*! Config for UART instance */
+#define BOARD_DEBUG_UART_INSTANCE    1U
+/*! Config for UART baudrate */
+#define BOARD_DEBUG_UART_BAUDRATE    115200U
 
-/*! Config for BCTRL A */
-#define SM_BCTRL_A_CONFIG \
-    { \
-        SM_CFG_W1(0x00000008U), 0x00001808U, \
-        SM_CFG_W1(0x0000000CU), 0x0000E5E7U, \
-        SM_CFG_W1(0x00000010U), 0x0000E5E7U, \
-        SM_CFG_W1(0x00000014U), 0x0000E5E7U, \
-        SM_CFG_W1(0x00000018U), 0x0000E5E7U, \
-        SM_CFG_W1(0x0000001CU), 0x0000E5E7U, \
-        SM_CFG_W1(0x00000020U), 0x0000E5E7U, \
-        SM_CFG_W1(0x00000024U), 0x00000210U, \
-        SM_CFG_END \
-    }
+/*! Config for PMIC I2C instance */
+#define BOARD_I2C_INSTANCE           2U
+/*! Config for PMIC I2C baudrate */
+#define BOARD_I2C_BAUDRATE           400000U
 
-/*--------------------------------------------------------------------------*/
-/* BCTRL W Config                                                           */
-/*--------------------------------------------------------------------------*/
-
-/*! Config for BCTRL W */
-#define SM_BCTRL_W_CONFIG \
-    { \
-        SM_CFG_W1(0x00000030U), 0xFBFFFFFFU, \
-        SM_CFG_W1(0x00000034U), 0xFBFFFFFFU, \
-        SM_CFG_W1(0x00000038U), 0xFBFFFFFFU, \
-        SM_CFG_W1(0x0000003CU), 0xFBFFFFFFU, \
-        SM_CFG_W1(0x00000040U), 0xFBFFFFFFU, \
-        SM_CFG_W1(0x00000044U), 0xFBFFFFFFU, \
-        SM_CFG_W1(0x00000048U), 0x04000000U, \
-        SM_CFG_W1(0x00000050U), 0x00000001U, \
-        SM_CFG_W1(0x00000054U), 0x00000001U, \
-        SM_CFG_W1(0x00000058U), 0x00000001U, \
-        SM_CFG_W1(0x0000005CU), 0x00000001U, \
-        SM_CFG_W1(0x00000060U), 0x00000001U, \
-        SM_CFG_W1(0x00000064U), 0x00000001U, \
-        SM_CFG_END \
-    }
-
-#endif /* CONFIG_BCTRL_H */
+#endif /* CONFIG_BOARD_H */
 
 /** @} */
 

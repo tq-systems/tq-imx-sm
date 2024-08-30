@@ -34,67 +34,83 @@
 
 /*==========================================================================*/
 /*!
- * @addtogroup CONFIG_TQMA95XXSA
+ * @addtogroup CONFIG_TQMA95XXSA-M7
  * @{
  *
  * @file
  * @brief
  *
- * Header file containing coniguration info for the device block controls.
+ * Header file containing coniguration info for the MB_MU.
  */
 /*==========================================================================*/
 
-#ifndef CONFIG_BCTRL_H
-#define CONFIG_BCTRL_H
+#ifndef CONFIG_MB_MU_H
+#define CONFIG_MB_MU_H
 
 /* Includes */
 
-#include "config.h"
+#include "mb_mu_config.h"
 
 /* Defines */
 
 /*--------------------------------------------------------------------------*/
-/* BCTRL A Config                                                           */
+/* LM0 MB_MU Config (SM)                                                    */
 /*--------------------------------------------------------------------------*/
 
-/*! Config for BCTRL A */
-#define SM_BCTRL_A_CONFIG \
+/*--------------------------------------------------------------------------*/
+/* LM1 MB_MU Config (M7)                                                    */
+/*--------------------------------------------------------------------------*/
+
+/*! Config for MU9 MB */
+#define SM_MB_MU9_CONFIG \
     { \
-        SM_CFG_W1(0x00000008U), 0x00001808U, \
-        SM_CFG_W1(0x0000000CU), 0x0000E5E7U, \
-        SM_CFG_W1(0x00000010U), 0x0000E5E7U, \
-        SM_CFG_W1(0x00000014U), 0x0000E5E7U, \
-        SM_CFG_W1(0x00000018U), 0x0000E5E7U, \
-        SM_CFG_W1(0x0000001CU), 0x0000E5E7U, \
-        SM_CFG_W1(0x00000020U), 0x0000E5E7U, \
-        SM_CFG_W1(0x00000024U), 0x00000210U, \
-        SM_CFG_END \
+        .mu = 9U, \
+        .xportType[0] = SM_XPORT_SMT, \
+        .xportChannel[0] = 0U, \
+        .xportType[1] = SM_XPORT_SMT, \
+        .xportChannel[1] = 1U, \
+        .xportType[2] = SM_XPORT_SMT, \
+        .xportChannel[2] = 2U, \
     }
 
 /*--------------------------------------------------------------------------*/
-/* BCTRL W Config                                                           */
+/* LM2 MB_MU Config (AP)                                                    */
 /*--------------------------------------------------------------------------*/
 
-/*! Config for BCTRL W */
-#define SM_BCTRL_W_CONFIG \
+/*! Config for MU1 MB */
+#define SM_MB_MU1_CONFIG \
     { \
-        SM_CFG_W1(0x00000030U), 0xFBFFFFFFU, \
-        SM_CFG_W1(0x00000034U), 0xFBFFFFFFU, \
-        SM_CFG_W1(0x00000038U), 0xFBFFFFFFU, \
-        SM_CFG_W1(0x0000003CU), 0xFBFFFFFFU, \
-        SM_CFG_W1(0x00000040U), 0xFBFFFFFFU, \
-        SM_CFG_W1(0x00000044U), 0xFBFFFFFFU, \
-        SM_CFG_W1(0x00000048U), 0x04000000U, \
-        SM_CFG_W1(0x00000050U), 0x00000001U, \
-        SM_CFG_W1(0x00000054U), 0x00000001U, \
-        SM_CFG_W1(0x00000058U), 0x00000001U, \
-        SM_CFG_W1(0x0000005CU), 0x00000001U, \
-        SM_CFG_W1(0x00000060U), 0x00000001U, \
-        SM_CFG_W1(0x00000064U), 0x00000001U, \
-        SM_CFG_END \
+        .mu = 1U, \
+        .xportType[0] = SM_XPORT_SMT, \
+        .xportChannel[0] = 3U, \
+        .xportType[1] = SM_XPORT_SMT, \
+        .xportChannel[1] = 4U, \
     }
 
-#endif /* CONFIG_BCTRL_H */
+/*! Config for MU3 MB */
+#define SM_MB_MU3_CONFIG \
+    { \
+        .mu = 3U, \
+        .xportType[0] = SM_XPORT_SMT, \
+        .xportChannel[0] = 5U, \
+        .xportType[1] = SM_XPORT_SMT, \
+        .xportChannel[1] = 6U, \
+    }
+
+/*--------------------------------------------------------------------------*/
+/* MB MU Config                                                             */
+/*--------------------------------------------------------------------------*/
+
+/*! Config for number of MU MB */
+#define SM_NUM_MB_MU  3U
+
+/*! Config data array for MU MB */
+#define SM_MB_MU_CONFIG_DATA \
+    SM_MB_MU9_CONFIG, \
+    SM_MB_MU1_CONFIG, \
+    SM_MB_MU3_CONFIG
+
+#endif /* CONFIG_MB_MU_H */
 
 /** @} */
 
