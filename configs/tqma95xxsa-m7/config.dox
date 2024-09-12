@@ -39,9 +39,9 @@
 
 /*!
 
-@defgroup CONFIG_TQMA95XXSA-M7 CONFIG_TQMA95XXSA-M7: i.MX95 TQMa95xxSA with M7 Demo configuration data
+@defgroup CONFIG_TQMA95XXSA_2GB-M7 CONFIG_TQMA95XXSA_2GB-M7: i.MX95 TQMa95xxSA 2GiB with M7 Demo configuration data
 
-@brief Module for i.MX95 TQMa95xxSA with M7 Demo configuration data.
+@brief Module for i.MX95 TQMa95xxSA 2GiB with M7 Demo configuration data.
 
 */
 

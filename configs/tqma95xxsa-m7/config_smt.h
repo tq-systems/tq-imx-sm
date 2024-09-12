@@ -34,7 +34,7 @@
 
 /*==========================================================================*/
 /*!
- * @addtogroup CONFIG_TQMA95XXSA-M7
+ * @addtogroup CONFIG_TQMA95XXSA_2GB-M7
  * @{
  *
  * @file
