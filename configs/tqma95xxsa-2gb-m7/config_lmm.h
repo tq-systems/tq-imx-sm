@@ -118,7 +118,7 @@
 #define SM_LM_NUM_SEENV  1U
 
 /*! Config name */
-#define SM_LM_CFG_NAME  "tqma95xxsa-m7"
+#define SM_LM_CFG_NAME  "tqma95xxsa-2gb-"
 
 /*! Default LM for monitor */
 #define SM_LM_DEFAULT  2U
