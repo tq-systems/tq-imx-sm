@@ -34,7 +34,7 @@
 
 /*==========================================================================*/
 /*!
- * @addtogroup CONFIG_TQMA95XXSA
+ * @addtogroup CONFIG_TQMA95XXSA_4GB
  * @{
  *
  * @file
@@ -118,7 +118,7 @@
 #define SM_LM_NUM_SEENV  1U
 
 /*! Config name */
-#define SM_LM_CFG_NAME  "tqma95xxsa"
+#define SM_LM_CFG_NAME  "tqma95xxsa-4gb"
 
 /*! Default LM for monitor */
 #define SM_LM_DEFAULT  2U

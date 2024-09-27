@@ -34,7 +34,7 @@
 
 /*==========================================================================*/
 /*!
- * @addtogroup CONFIG_TQMA95XXSA-M7
+ * @addtogroup CONFIG_TQMA95XXSA_4GB
  * @{
  *
  * @file
@@ -956,7 +956,7 @@
         SM_CFG_W1(0x0001a348U), 0x08A00002U, \
         SM_CFG_W1(0x0001a34cU), 0x08DFFC01U, \
         SM_CFG_W1(0x0001a350U), 0x08E00001U, \
-        SM_CFG_W1(0x0001a354U), 0x0FFFFC11U, \
+        SM_CFG_W1(0x0001a354U), 0x1FFFFC11U, \
         SM_CFG_Z1(0x0001a35cU), \
         SM_CFG_W1(0x0001a440U), 0x08000001U, \
         SM_CFG_W1(0x0001a444U), 0x089FFC11U, \
@@ -988,7 +988,7 @@
         SM_CFG_W1(0x0001a958U), 0x08A00003U, \
         SM_CFG_W1(0x0001a95cU), 0x08DFFC01U, \
         SM_CFG_W1(0x0001a960U), 0x08E00003U, \
-        SM_CFG_W1(0x0001a964U), 0x0FFFFC01U, \
+        SM_CFG_W1(0x0001a964U), 0x1FFFFC01U, \
         SM_CFG_Z1(0x0001aa44U), \
         SM_CFG_Z1(0x0001aa4cU), \
         SM_CFG_Z1(0x0001aa54U), \
@@ -1165,7 +1165,6 @@
         SM_CFG_W1(0x000107a8U), 0x00000009U, \
         SM_CFG_W1(0x00010860U), 0x00090000U, \
         SM_CFG_W1(0x00010864U), 0x00909009U, \
-        SM_CFG_W1(0x0001086cU), 0x00000090U, \
         SM_CFG_W1(0x00010878U), 0x00090000U, \
         SM_CFG_Z1(0x00010a60U), \
         SM_CFG_Z1(0x00010c60U), \

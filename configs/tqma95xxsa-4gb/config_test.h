@@ -34,7 +34,7 @@
 
 /*==========================================================================*/
 /*!
- * @addtogroup CONFIG_TQMA95XXSA
+ * @addtogroup CONFIG_TQMA95XXSA_4GB
  * @{
  *
  * @file

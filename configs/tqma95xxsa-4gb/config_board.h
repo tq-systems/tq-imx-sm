@@ -32,18 +32,38 @@
 ** ###################################################################
 */
 
+/*==========================================================================*/
 /*!
- * @addtogroup SM_CONFIG
+ * @addtogroup CONFIG_TQMA95XXSA_4GB
  * @{
+ *
+ * @file
+ * @brief
+ *
+ * Header file containing coniguration info for the board abstraction.
  */
+/*==========================================================================*/
 
-/*!
+#ifndef CONFIG_BOARD_H
+#define CONFIG_BOARD_H
 
-@defgroup CONFIG_TQMA95XXSA-M7 CONFIG_TQMA95XXSA-M7: i.MX95 TQMa95xxSA with M7 Demo configuration data
+/* Includes */
 
-@brief Module for i.MX95 TQMa95xxSA with M7 Demo configuration data.
+#include "config.h"
 
-*/
+/* Defines */
+
+/*! Config for UART instance */
+#define BOARD_DEBUG_UART_INSTANCE    1U
+/*! Config for UART baudrate */
+#define BOARD_DEBUG_UART_BAUDRATE    115200U
+
+/*! Config for PMIC I2C instance */
+#define BOARD_I2C_INSTANCE           2U
+/*! Config for PMIC I2C baudrate */
+#define BOARD_I2C_BAUDRATE           400000U
+
+#endif /* CONFIG_BOARD_H */
 
 /** @} */
 

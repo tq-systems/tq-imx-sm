@@ -12,13 +12,29 @@ Supported development environments include Ubuntu 2020.04, 2022.04, and 2024.04.
 Download from GitHub
 ====================
 
-To download the repo from [GitHub](https://github.com/nxp-imx/imx-sm), first install git:
+To download from github, first install git:
 
+```
     sudo apt-get -y install git
+```
 
-Then clone the repo:
+To get started with the SM on an NXP board, download the [github](https://github.com/nxp-imx/imx-sm)
+repository.
 
+To get started with the SM on an TQ-Systems GmbH SoM, download the [github](https://github.com/tq-systems/tq-imx-sm)
+repository.
+
+To clone the repo for NXP EVK:
+
+```
 git clone https://github.com/nxp-imx/imx-sm
+```
+
+To clone the repo for TQ-Systems GmbH SoM:
+
+```
+git clone https://github.com/tq-systems/tq-imx-sm
+```
 
 Building the Documentation
 ==========================
@@ -68,25 +84,30 @@ See the *Release Notes* for the exact toolchain version the SM was tested with.
 Compiling an SM Image
 =====================
 
-To get started with the SM on an NXP board, download the [GitHub](https://github.com/nxp-imx/imx-sm)
-repository and then compile the SM for the target configuration.
+To get started with the SM you need to [download](#download-from-github) the source code.
 
-For example, in the top directory of the code base:
+To compile, see the following example to be executed from the top directory of the code base,
+use the right configuration for your SoM and use case:
 
-    make config=mx95evk all
+    `make config=tqma95xxsa-2gb all`
 
-Then copy the resulting binary image file, *build/mx95evk/m33_image.bin*, to the iMX95 directory of the
+Then copy the resulting binary image file, *build/tqma95xxsa-2gb/m33_image.bin*, to the iMX95 directory of the
 [mkimage tool](https://github.com/nxp-imx/imx-mkimage). Build a boot container using mkimage, program
 it to the boot device, and boot the board. The SM will display a debug monitor prompt on the M33 debug
 UART.
 
-The above config is for Linux+M7 system testing. Another config is delivered for MCUXpresso testing:
+The above config is for Linux system testing on SoM with 2GB RAM.
 
-    make config=mx95alt all
+Following configurations are supported in this release:
 
-Customers will usually create their own config that partitions resources between the AP and M7 for
-their use-case.
+| name               | purpose                                            |
+| :----------------- | : -----------------------------------------------: |
+| tqma95xxsa-2gb     | TQMa95xxSA 2 GiB LPDDR5, only Cortex-A55 supported |
+| tqma95xxsa-2gb-m7  | TQMa95xxSA 2 GiB LPDDR5, Cortex-A + Cortex-M7      |
+| tqma95xxsa-4gb     | TQMa95xxSA 4 GiB LPDDR5, only Cortex-A55 supported |
+
+Customers will usually need to create their own config that partitions resources between
+the AP (Cortex-A55) and Cortex-M7 for their use case.
 
 Complete documentation on compiling the SM, building a boot image, and programming the boot image is
 contained in the *Developer's Guide* section of the full doxygen-based RM described above.
-

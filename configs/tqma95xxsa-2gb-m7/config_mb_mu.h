@@ -34,134 +34,84 @@
 
 /*==========================================================================*/
 /*!
- * @addtogroup CONFIG_TQMA95XXSA
+ * @addtogroup CONFIG_TQMA95XXSA_2GB-M7
  * @{
  *
  * @file
  * @brief
  *
- * Header file containing coniguration info for the SMT.
+ * Header file containing coniguration info for the MB_MU.
  */
 /*==========================================================================*/
 
-#ifndef CONFIG_SMT_H
-#define CONFIG_SMT_H
+#ifndef CONFIG_MB_MU_H
+#define CONFIG_MB_MU_H
 
 /* Includes */
 
-#include "rpc_smt_config.h"
+#include "mb_mu_config.h"
 
 /* Defines */
 
 /*--------------------------------------------------------------------------*/
-/* LM0 SMT Config (SM)                                                      */
+/* LM0 MB_MU Config (SM)                                                    */
 /*--------------------------------------------------------------------------*/
 
 /*--------------------------------------------------------------------------*/
-/* LM1 SMT Config (M7)                                                      */
+/* LM1 MB_MU Config (M7)                                                    */
 /*--------------------------------------------------------------------------*/
 
-/*! Config for SMT channel 0 */
-#define SM_SMT_CHN0_CONFIG \
+/*! Config for MU9 MB */
+#define SM_MB_MU9_CONFIG \
     { \
-        .rpcType = SM_RPC_SCMI, \
-        .rpcChannel = 0U, \
-        .mbType = SM_MB_MU, \
-        .mbInst = 0U, \
-        .mbDoorbell = 0U, \
-        .crc = SM_SMT_CRC_CRC32, \
-    }
-
-/*! Config for SMT channel 1 */
-#define SM_SMT_CHN1_CONFIG \
-    { \
-        .rpcType = SM_RPC_SCMI, \
-        .rpcChannel = 1U, \
-        .mbType = SM_MB_MU, \
-        .mbInst = 0U, \
-        .mbDoorbell = 1U, \
-        .crc = SM_SMT_CRC_CRC32, \
-    }
-
-/*! Config for SMT channel 2 */
-#define SM_SMT_CHN2_CONFIG \
-    { \
-        .rpcType = SM_RPC_SCMI, \
-        .rpcChannel = 2U, \
-        .mbType = SM_MB_MU, \
-        .mbInst = 0U, \
-        .mbDoorbell = 2U, \
-        .crc = SM_SMT_CRC_CRC32, \
+        .mu = 9U, \
+        .priority = IRQ_PRIO_NOPREEMPT_HIGH, \
+        .xportType[0] = SM_XPORT_SMT, \
+        .xportChannel[0] = 0U, \
+        .xportType[1] = SM_XPORT_SMT, \
+        .xportChannel[1] = 1U, \
+        .xportType[2] = SM_XPORT_SMT, \
+        .xportChannel[2] = 2U, \
     }
 
 /*--------------------------------------------------------------------------*/
-/* LM2 SMT Config (AP)                                                      */
+/* LM2 MB_MU Config (AP)                                                    */
 /*--------------------------------------------------------------------------*/
 
-/*! Config for SMT channel 3 */
-#define SM_SMT_CHN3_CONFIG \
+/*! Config for MU1 MB */
+#define SM_MB_MU1_CONFIG \
     { \
-        .rpcType = SM_RPC_SCMI, \
-        .rpcChannel = 3U, \
-        .mbType = SM_MB_MU, \
-        .mbInst = 1U, \
-        .mbDoorbell = 0U, \
+        .mu = 1U, \
+        .xportType[0] = SM_XPORT_SMT, \
+        .xportChannel[0] = 3U, \
+        .xportType[1] = SM_XPORT_SMT, \
+        .xportChannel[1] = 4U, \
     }
 
-/*! Config for SMT channel 4 */
-#define SM_SMT_CHN4_CONFIG \
+/*! Config for MU3 MB */
+#define SM_MB_MU3_CONFIG \
     { \
-        .rpcType = SM_RPC_SCMI, \
-        .rpcChannel = 4U, \
-        .mbType = SM_MB_MU, \
-        .mbInst = 1U, \
-        .mbDoorbell = 1U, \
-    }
-
-/*! Config for SMT channel 5 */
-#define SM_SMT_CHN5_CONFIG \
-    { \
-        .rpcType = SM_RPC_SCMI, \
-        .rpcChannel = 5U, \
-        .mbType = SM_MB_MU, \
-        .mbInst = 2U, \
-        .mbDoorbell = 0U, \
-    }
-
-/*! Config for SMT channel 6 */
-#define SM_SMT_CHN6_CONFIG \
-    { \
-        .rpcType = SM_RPC_SCMI, \
-        .rpcChannel = 6U, \
-        .mbType = SM_MB_MU, \
-        .mbInst = 2U, \
-        .mbDoorbell = 1U, \
+        .mu = 3U, \
+        .xportType[0] = SM_XPORT_SMT, \
+        .xportChannel[0] = 5U, \
+        .xportType[1] = SM_XPORT_SMT, \
+        .xportChannel[1] = 6U, \
     }
 
 /*--------------------------------------------------------------------------*/
-/* SMT Config                                                               */
+/* MB MU Config                                                             */
 /*--------------------------------------------------------------------------*/
 
-/*! Config for number of SMT channels */
-#define SM_NUM_SMT_CHN  7U
+/*! Config for number of MU MB */
+#define SM_NUM_MB_MU  3U
 
-/*! Config data array for SMT channels */
-#define SM_SMT_CHN_CONFIG_DATA \
-    SM_SMT_CHN0_CONFIG, \
-    SM_SMT_CHN1_CONFIG, \
-    SM_SMT_CHN2_CONFIG, \
-    SM_SMT_CHN3_CONFIG, \
-    SM_SMT_CHN4_CONFIG, \
-    SM_SMT_CHN5_CONFIG, \
-    SM_SMT_CHN6_CONFIG
+/*! Config data array for MU MB */
+#define SM_MB_MU_CONFIG_DATA \
+    SM_MB_MU9_CONFIG, \
+    SM_MB_MU1_CONFIG, \
+    SM_MB_MU3_CONFIG
 
-/* Mailbox and CRC types to support */
-/*! Config for MB_MU USE */
-#define USES_MB_MU
-/*! Config for CRC32 CRC USE */
-#define USES_CRC_CRC32
-
-#endif /* CONFIG_SMT_H */
+#endif /* CONFIG_MB_MU_H */
 
 /** @} */
 
