@@ -61,6 +61,29 @@ void TEST_DevSm(void)
 
     printf("**** Device SM BBM API Tests ***\n\n");
 
+#ifdef SIMU
+    printf("PowerUpPost(DEV_SM_PD_0)\n");
+    CHECK(DEV_SM_PowerUpPost(DEV_SM_PD_0));
+
+    printf("PowerUpPost(DEV_SM_PD_1)\n");
+    CHECK(DEV_SM_PowerUpPost(DEV_SM_PD_1));
+
+    printf("PowerUpPost(DEV_SM_PD_2)\n");
+    CHECK(DEV_SM_PowerUpPost(DEV_SM_PD_2));
+
+    printf("PowerUpPost(DEV_SM_PD_3)\n");
+    CHECK(DEV_SM_PowerUpPost(DEV_SM_PD_3));
+
+    printf("PowerUpPost(DEV_SM_PD_4)\n");
+    CHECK(DEV_SM_PowerUpPost(DEV_SM_PD_4));
+
+    printf("PowerUpPost(DEV_SM_PD_5)\n");
+    CHECK(DEV_SM_PowerUpPost(DEV_SM_PD_5));
+
+    printf("PowerUpPost(DEV_SM_PD_6)\n");
+    CHECK(DEV_SM_PowerUpPost(DEV_SM_PD_6));
+
+#endif
     /* Test API bounds */
     printf("\n**** Device SM BBM API Err Tests ***\n\n");
 

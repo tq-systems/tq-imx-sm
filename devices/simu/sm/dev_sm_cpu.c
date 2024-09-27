@@ -78,6 +78,8 @@ int32_t DEV_SM_CpuNameGet(uint32_t cpuId, string *cpuNameAddr,
         *cpuNameAddr = s_name[cpuId];
     }
 
+    SM_TEST_MODE_ERR(SM_TEST_MODE_DEV_LVL1, SM_ERR_TEST)
+
     /* Return status */
     return status;
 }
@@ -91,9 +93,17 @@ int32_t DEV_SM_CpuInfoGet(uint32_t cpuId, uint32_t *runMode,
 {
     int32_t status = SM_ERR_SUCCESS;
 
-    *runMode = 0U;
-    *sleepMode = 0U;
-    *vector = 0ULL;
+    /* Check CPU */
+    if (cpuId >= DEV_SM_NUM_CPU)
+    {
+        status = SM_ERR_NOT_FOUND;
+    }
+    else
+    {
+        *runMode = 0U;
+        *sleepMode = 0U;
+        *vector = 0ULL;
+    }
 
     /* Return status */
     return status;

@@ -68,7 +68,7 @@ ifdef m
     M := $(m)
 endif
 M ?= 1
-ifeq ($(M),1)
+ifneq ($(M),0)
 	FLAGS += -DMONITOR
 	INC_LIBC ?= 1
 endif
@@ -85,6 +85,7 @@ endif
 
 INC_LIBC ?= 0
 DEBUG ?= 0
+FLAGS += -DMONITOR_MODE=$(M)
 
 ifeq ($(DEBUG),1)
     FLAGS += -DDEBUG
@@ -137,7 +138,7 @@ include $(ROOT_DIR)/sm/boot/Makefile
 include $(ROOT_DIR)/sm/utilities/config/Makefile
 
 # Include monitor
-ifeq ($(M),1)
+ifneq ($(M),0)
 	include $(ROOT_DIR)/sm/utilities/monitor/Makefile
 endif
 

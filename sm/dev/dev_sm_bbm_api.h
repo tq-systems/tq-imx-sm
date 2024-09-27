@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-**     Copyright 2023 NXP
+**     Copyright 2023-2024 NXP
 **
 **     Redistribution and use in source and binary forms, with or without modification,
 **     are permitted provided that the following conditions are met:
@@ -58,7 +58,7 @@
 /* Functions */
 
 /*!
- * Initialize the BBM.
+ * Initialize the BBM. Does not clear the status flags.
  *
  * @return Returns the status (::SM_ERR_SUCCESS = success).
  *
@@ -68,7 +68,17 @@
 int32_t DEV_SM_BbmInit(void);
 
 /*!
- * Write BBM boot status flags.
+ * Clear the BBM status flags.
+ *
+ * @return Returns the status (::SM_ERR_SUCCESS = success).
+ *
+ * Return errors (see @ref STATUS "SM error codes"):
+ * - ::SM_ERR_SUCCESS: if the BBM was cleared successfully.
+ */
+int32_t DEV_SM_BbmClear(void);
+
+/*!
+ * Read BBM boot status flags.
  *
  * @param[out]  flags    mask of boot status flags
  *
@@ -189,6 +199,22 @@ int32_t DEV_SM_BbmRtcTimeSet(uint32_t rtcId, uint64_t val, bool ticks);
  * - ::SM_ERR_NOT_FOUND: if \a rtcId pertains to a non-existent RTC.
  */
 int32_t DEV_SM_BbmRtcTimeGet(uint32_t rtcId, uint64_t *val, bool ticks);
+
+/*!
+ * Get a device RTC state.
+ *
+ * @param[in]     rtcId    Identifier of the RTC
+ * @param[out]    state    Bit mask of state flags
+ *
+ * This function allows a caller to read the RTC state.
+ *
+ * @return Returns the status (::SM_ERR_SUCCESS = success).
+ *
+ * Return errors (see @ref STATUS "SM error codes"):
+ * - ::SM_ERR_SUCCESS: if the RTC state was successfully read.
+ * - ::SM_ERR_NOT_FOUND: if \a rtcId pertains to a non-existent RTC.
+ */
+int32_t DEV_SM_BbmRtcStateGet(uint32_t rtcId, uint32_t *state);
 
 /*!
  * Set a device RTC alarm.

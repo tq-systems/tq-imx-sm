@@ -58,6 +58,7 @@ static uint64_t s_lmStartTime[SM_NUM_LM];
 /*--------------------------------------------------------------------------*/
 /* Init logical machine manager                                             */
 /*--------------------------------------------------------------------------*/
+// coverity[misra_c_2012_rule_8_13_violation:FALSE]
 int32_t LMM_Init(uint32_t *mSel, uint32_t lmmInitFlags)
 {
     int32_t status;
@@ -253,6 +254,8 @@ int32_t LMM_LmNameGet(uint32_t lmId, uint32_t lm, string *lmNameAddr,
     /* Return pointer to name */
     *lmNameAddr = g_lmmConfig[lm].name;
 
+    SM_TEST_MODE_ERR(SM_TEST_MODE_LMM_LVL2, SM_ERR_TEST)
+
     /* Return status */
     return status;
 }
@@ -377,6 +380,8 @@ void LMM_Handler(void)
 /*--------------------------------------------------------------------------*/
 uint64_t LMM_BootTimeGet(uint32_t lmId)
 {
+    SM_TEST_MODE_EXEC(SM_TEST_MODE_LMM_ALT1, s_lmStartTime[lmId] = 0ULL)
+
     return s_lmStartTime[lmId];
 }
 

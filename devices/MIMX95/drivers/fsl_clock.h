@@ -27,15 +27,20 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/*==========================================================================*/
+/*!
+ * @addtogroup MX95_CLOCK_driver
+ * @{
+ *
+ * @file
+ * @brief
+ *
+ * Header file containing the API for the MX95 Clock Driver.
+ */
+/*==========================================================================*/
+
 #ifndef FSL_CLOCK_H
 #define FSL_CLOCK_H
-
-/*!
- * @addtogroup CLOCK_driver
- * @{
- */
-
-/*! @file */
 
 /* Includes */
 
@@ -43,9 +48,11 @@
 
 /* Defines */
 
+#ifndef DOXYGEN
+
 #define CLOCK_OSC32K_HZ                     32768ULL
 #define CLOCK_OSC24M_HZ                     24000000ULL
-#define CLOCK_FRO_HZ                        300000000ULL
+#define CLOCK_FRO_HZ                        256000000ULL
 #define CLOCK_PLL_FREF_HZ                   CLOCK_OSC24M_HZ
 #define CLOCK_M_HZ                          1000000ULL
 #define CLOCK_K_HZ                          1000ULL
@@ -254,39 +261,191 @@
 #define CLOCK_ROUND_RULE_FLOOR              1U
 #define CLOCK_ROUND_RULE_CLOSEST            2U
 
+#endif
+
 /* Types */
+
+/*!
+ * PLL attribute structure
+ *
+ * Structure containing parameters to represent PLL attributes.
+ */
 typedef struct
 {
-    bool isFrac;
-    uint8_t numDFS;
+    bool isFrac;        /*!< Integer/Fractional PLL */
+    uint8_t numDFS;     /*!< PLL's number of DFS outputs */
 } pll_attr_t;
 
+/*!
+ * CCM clock source attribute structure
+ *
+ * Structure containing parameters to represent clock source attributes.
+ */
 typedef struct
 {
-    uint32_t selIdx;
-    uint32_t selMask;
-    uint32_t selShift;
-    uint32_t selMux[CLOCK_NUM_GPR_MUX_SEL];
+    bool hasParent;     /*!< Clock source has a parent */
+    uint32_t parent;    /*!< Clock source parent */
+} clkrc_attr_t;
+
+/*!
+ * Structure for CCM GPR-selected clock attributes
+ *
+ * Structure for CCM GPR-selected clocks, which can be clock sources or clock
+ * roots.
+ */
+typedef struct
+{
+    uint32_t selIdx;                        /*!< GPR select identifier */
+    uint32_t selMask;                       /*!< GPR select mask */
+    uint32_t selShift;                      /*!< GPR select shift */
+    uint32_t selMux[CLOCK_NUM_GPR_MUX_SEL]; /*!< GPR select mux configuration */
 } ccm_gpr_sel_attr_t;
 
 /* Functions */
 
+/*!
+ * @name Clock Driver functions
+ * @{
+ */
+
+/*!
+ * Get clock source enable status
+ *
+ * @param[in]       sourceIdx       Clock source identifier
+ *
+ * This function allows caller to get the enable status of given clock source.
+ * For the PLL clock sources, it queries the status from Fractional PLL driver
+ * API calls.
+ *
+ * @return Returns true if clock source is enabled and it's enable status is
+ * retrieved successfully, otherwise false.
+ */
 bool CLOCK_SourceGetEnable(uint32_t sourceIdx);
+
+/*!
+ * Set clock source enable status
+ *
+ * @param[in]       sourceIdx       Clock source identifier
+ * @param[in]       enable          Enable flag (1=enable, 0=disable)
+ *
+ * This function allows caller to set the enable status of given clock source.
+ * For the PLL clock sources, it calls Fractional PLL driver APIs to set
+ * enable flag.
+ *
+ * @return Returns true if enable flag is set successfully for given clock
+ * source, otherwise false.
+ */
 bool CLOCK_SourceSetEnable(uint32_t sourceIdx, bool enable);
+
+/*!
+ * Get clock source rate
+ *
+ * @param[in]       sourceIdx       Clock source identifier
+ *
+ * This function allows caller to get rate for the given clock source. For
+ * board-specific EXT clocks, previously stored rate via set rate calls is
+ * returned.
+ *
+ * @return Returns true if the rate is get successfully, otherwise false.
+ */
 uint64_t CLOCK_SourceGetRate(uint32_t sourceIdx);
+
+/*!
+ * Set clock source rate
+ *
+ * @param[in]       sourceIdx       Clock source identifier
+ * @param[in]       rate            Clock rate in hertz.
+ * @param[in]       roundRule       Round rule (CEIL/FLOOR/CLOSEST)
+ *
+ * This function allows caller to set rate for the given clock source. For
+ * board-specific EXT clocks, rate is stored and returned in subsequent
+ * get rate calls.
+ *
+ * @return Returns true if the rate is set successfully, otherwise false.
+ */
 bool CLOCK_SourceSetRate(uint32_t sourceIdx, uint64_t rate, uint32_t roundRule);
+
+/*!
+ * Get parent for CCM clock source
+ *
+ * @param[in]       sourceIdx   CCM clock source ID
+ * @param[out]      parentIdx   CCM clock source parent ID
+ *
+ * This function gets the parent ID (source input) of the given clock source.
+ *
+ * @return Returns true if a valid parent ID is found for the given
+ *         clock source.
+ */
+bool CLOCK_SourceGetParent(uint32_t sourceIdx, uint32_t *parentIdx);
+
+/*!
+ * Set parent for CCM clock source
+ *
+ * @param[in]       sourceIdx   CCM clock source ID
+ * @param[in]       parentIdx   CCM clock source parent ID
+ *
+ * This function sets the parent ID (source input) of the given clock source.
+ *
+ * @return Returns true if valid parent ID is set for the given
+ *         clock source.
+ */
+bool CLOCK_SourceSetParent(uint32_t sourceIdx, uint32_t parentIdx);
+
+/*!
+ * Set clock source spread spectrum configuration
+ *
+ * @param[in]       sourceIdx       Clock source identifier
+ * @param[in]       spreadPercent   Spread percentage
+ * @param[in]       modFreq         Modulation frequency
+ * @param[in]       enable          Enable flag (1=enable, 0=disable)
+ *
+ * This function allows caller to set spread spectrum configuration for the
+ * given clock source. Given \a sourceIdx represents VCO PLL to which the
+ * spread spectrum is applied and gets applied to all its derivative clocks.
+ * Saved spread spectrum configuration for the PLL is applied on next
+ * CLOCK_RATE_SET command.
+ *
+ * @return Returns true if spread spectrum configuration is set successfully,
+ * otherwise false.
+ */
 bool CLOCK_SourceSetSsc(uint32_t sourceIdx, uint32_t spreadPercent,
     uint32_t modFreq, uint32_t enable);
+
+/*!
+ * Get clock source spread spectrum configuration
+ *
+ * @param[in]       sourceIdx       Clock source identifier
+ * @param[out]      spreadPercent   Spread percentage
+ * @param[out]      modFreq         Modulation frequency
+ * @param[out]      enable          Enable flag (1=enable, 0=disable)
+ *
+ * This function allows caller to get spread spectrum configuration for the
+ * given clock source. Given \a sourceIdx represents VCO PLL to which the
+ * spread spectrum is applied and gets applied to all its derivative clocks.
+ *
+ * @return Returns true if spread spectrum configuration is retrieved
+ * successfully, otherwise false.
+ */
 bool CLOCK_SourceGetSsc(uint32_t sourceIdx, uint32_t *spreadPercent,
     uint32_t *modFreq, uint32_t *enable);
 
+/** @} */
+
 /* Externs */
 
+/*! Board-specific EXT clock */
 extern uint64_t g_clockExt1Rate;
+
+/*! PLL attributes */
 extern const pll_attr_t g_pllAttrs[];
+
+/*! Clock root mux select (parent clock source for the clock root)*/
 extern const uint8_t g_clockRootMux[][CLOCK_NUM_ROOT_MUX_SEL];
+
+/*! GPR-selected clocks (clock source/clock root) */
 extern const ccm_gpr_sel_attr_t g_clockGprSel[CLOCK_NUM_GPR_SEL];
 
 #endif /* FSL_CLOCK_H */
 
 /** @} */
+

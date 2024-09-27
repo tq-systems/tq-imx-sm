@@ -15,7 +15,8 @@ Download from GitHub
 To download from github, first install git:
 
 ```
-    sudo apt-get -y install git
+sudo apt update
+sudo apt -y install git
 ```
 
 To get started with the SM on an NXP board, download the [github](https://github.com/nxp-imx/imx-sm)
@@ -41,10 +42,11 @@ Building the Documentation
 
 To build the full documentation, install the required tools:
 
-    sudo apt-get -y install make doxygen texlive texlive-latex-extra
+    sudo apt -y install make doxygen texlive texlive-latex-extra
 
 Then change to the documentation directory (sm/doc) and execute the following:
 
+    make clean
     make html
 
 The output is written to the build directory (sm/doc/build/html). The top level for the html output
@@ -52,6 +54,7 @@ is the *index.html* file.
 
 To build the release notes:
 
+    make clean
     make rn
 
 The output is sm/doc/sm-rn.pdf (also an html version in sm/doc/build/html).
@@ -64,9 +67,9 @@ Installing the Toolchain
 Compiling requires an ARM cross-compiler. Download and install the required arm-none-eabi toolchain from
 the [Arm GNU Toolchain Downloads](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads)
 website. For example, from the x86_64 Linux hosted cross toolchains AArch32 bare-metal target
-(arm-none-eabi) section, download the *.xv file to a directory for the tool chain (e.g. tools) and then:
+(arm-none-eabi) section, download the *.xz file to a directory for the tool chain (e.g. tools) and then:
 
-    tar xvf *.xv
+    tar xvf *.xz
 
 Set the TOOLS shell variable to the directory the toolchain is installed in. For example:
 
@@ -77,7 +80,7 @@ When the toolchain is in a directory like arm-gnu-toolchain-12.3.rel1-x86_64-arm
 
 Also ensure the Linux installation is up-to-date and then install:
 
-    sudo apt-get -y install make gcc g++-multilib srecord
+    sudo apt -y install make gcc g++-multilib srecord
 
 See the *Release Notes* for the exact toolchain version the SM was tested with.
 
@@ -86,10 +89,10 @@ Compiling an SM Image
 
 To get started with the SM you need to [download](#download-from-github) the source code.
 
-To compile, see the following example to be executed from the top directory of the code base,
-use the right configuration for your SoM and use case:
+To compile, see the following example to be executed from the top directory of the code base.
+Use the right configuration for your SoM and use case:
 
-    `make config=tqma95xxsa-2gb all`
+`make config=tqma95xxsa-2gb all`
 
 Then copy the resulting binary image file, *build/tqma95xxsa-2gb/m33_image.bin*, to the iMX95 directory of the
 [mkimage tool](https://github.com/nxp-imx/imx-mkimage). Build a boot container using mkimage, program

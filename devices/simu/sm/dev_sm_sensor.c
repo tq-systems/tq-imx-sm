@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-**     Copyright 2023 NXP
+**     Copyright 2023-2024 NXP
 **
 **     Redistribution and use in source and binary forms, with or without modification,
 **     are permitted provided that the following conditions are met:
@@ -106,6 +106,8 @@ int32_t DEV_SM_SensorNameGet(uint32_t sensorId, string *sensorNameAddr,
         *sensorNameAddr = s_name[sensorId];
     }
 
+    SM_TEST_MODE_ERR(SM_TEST_MODE_DEV_LVL1, SM_ERR_TEST)
+
     /* Return status */
     return status;
 }
@@ -183,6 +185,8 @@ int32_t DEV_SM_SensorReadingGet(uint32_t sensorId, int64_t *sensorValue,
             status = SM_ERR_NOT_SUPPORTED;
         }
     }
+
+    SM_TEST_MODE_ERR(SM_TEST_MODE_DEV_LVL2, SM_ERR_TEST)
 
     /* Return status */
     return status;

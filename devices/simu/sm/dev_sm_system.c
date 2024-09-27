@@ -62,11 +62,12 @@ int32_t DEV_SM_SystemInit(void)
 }
 
 /*--------------------------------------------------------------------------*/
-/* Save power mode                                                          */
+/* Save sleep mode                                                          */
 /*--------------------------------------------------------------------------*/
-void DEV_SM_SystemPowerModeSet(uint32_t powerMode)
+void DEV_SM_SystemSleepModeSet(uint32_t sleepMode, uint32_t sleepFlags)
 {
-    g_syslog.sysPwrMode = powerMode;
+    g_syslog.sysSleepMode = sleepMode;
+    g_syslog.sysSleepFlags = sleepFlags;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -101,6 +102,33 @@ int32_t DEV_SM_SystemStageReset(uint32_t stage, uint32_t container)
     if (status == SM_ERR_SUCCESS)
     {
         printf("DEV_SM_SystemStageReset(%u, %u)\n", stage, container);
+
+        g_romPassover.bootStage = (uint8_t) stage;
+        g_romPassover.imgSetSel = (uint8_t) container;
+        g_romPassover.bootDevInst = 0U;
+
+        if (stage == DEV_SM_ROM_BS_PRIMARY)
+        {
+            g_romPassover.bootDevType = DEV_SM_ROM_BD_FLEXSPINOR;
+        }
+        else if (stage == DEV_SM_ROM_BS_SECONDARY)
+        {
+            g_romPassover.bootDevType = DEV_SM_ROM_BD_SD;
+        }
+        else if (stage == DEV_SM_ROM_BS_RECOVERY)
+        {
+            g_romPassover.bootDevType = DEV_SM_ROM_BD_USB;
+            g_romPassover.bootDevInst = 1U;
+        }
+        else if (stage == DEV_SM_ROM_BS_SERIAL)
+        {
+            g_romPassover.bootDevType = DEV_SM_ROM_BD_USB;
+            g_romPassover.bootDevInst = 3U;
+        }
+        else
+        {
+            g_romPassover.bootDevType = DEV_SM_ROM_BD_PRELOAD;
+        }
     }
 
     /* Return status */

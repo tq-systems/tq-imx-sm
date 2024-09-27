@@ -55,6 +55,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "build_info.h"
+#include "sm_test_mode.h"
 
 /* Defines */
 
@@ -264,6 +265,17 @@ int main(int argc, const char * const argv[]);
  * record the error information and reset the system.
  */
 void SM_Error(int32_t status);
+
+#ifdef HAS_SM_TEST_MODE
+/*!
+ * Set test mode.
+ *
+ * @param[in]     mode        New test mode
+ *
+ * Sets the global test mode.
+ */
+void SM_TestModeSet(uint32_t mode);
+#endif
 
 #if !defined(SIMU) && !defined(INC_LIBC)
 /*!

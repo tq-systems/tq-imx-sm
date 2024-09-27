@@ -28,6 +28,8 @@
  */
 
 /* Includes */
+
+#include "fsl_ccm.h"
 #include "fsl_cpu.h"
 #include "fsl_power.h"
 #include "fsl_reset.h"
@@ -39,6 +41,7 @@
 /* Local Types */
 
 /* Local Functions */
+
 static void SRC_MemSetLpMode(uint32_t srcMixIdx, bool enableLpMode);
 static bool SRC_MemRetentionModeInit(uint32_t srcMixIdx);
 static void SRC_MixSetA55HdskMode(uint32_t srcMixIdx, uint8_t hdskMode);
@@ -47,8 +50,11 @@ static void SRC_MixSetCpuWait(uint32_t srcMixIdx, bool enableCpuWait);
 static void SRC_MixSetCpuSleepMode(uint32_t srcMixIdx,uint32_t sleepMode);
 static bool SRC_MixPowerDownCompleted(uint32_t srcMixIdx);
 static bool SRC_MixPowerUpCompleted(uint32_t srcMixIdx);
+static bool SRC_MixPowerDownPoll(uint32_t srcMixIdx, uint32_t timeoutUsec);
+static bool SRC_MixRstExitPoll(uint32_t srcMixIdx, uint32_t timeoutUsec);
 
 /* Local Variables */
+
 static src_mix_slice_t *const s_srcMixPtrs[] = SRC_MIX_BASE_PTRS;
 static src_mem_slice_t *const s_srcMemPtrs[] = SRC_MEM_BASE_PTRS;
 
@@ -379,7 +385,7 @@ static void SRC_MixSetCpuSleepMode(uint32_t srcMixIdx, uint32_t sleepMode)
 }
 
 /*--------------------------------------------------------------------------*/
-/* Check if MIX power up sequence is complete.                              */
+/* Check if MIX power down sequence is complete.                              */
 /*--------------------------------------------------------------------------*/
 static bool SRC_MixPowerDownCompleted(uint32_t srcMixIdx)
 {
@@ -412,7 +418,7 @@ static bool SRC_MixPowerDownCompleted(uint32_t srcMixIdx)
 }
 
 /*--------------------------------------------------------------------------*/
-/* Check if MIX power down sequence is complete.                            */
+/* Check if MIX power up sequence is complete.                            */
 /*--------------------------------------------------------------------------*/
 static bool SRC_MixPowerUpCompleted(uint32_t srcMixIdx)
 {
@@ -438,6 +444,59 @@ static bool SRC_MixPowerUpCompleted(uint32_t srcMixIdx)
         if ((srcMix->FUNC_STAT & statMask) == statVal)
         {
             rc = true;
+        }
+    }
+
+    return rc;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Poll until MIX slice powered down completed or timeout reached           */
+/*--------------------------------------------------------------------------*/
+static bool SRC_MixPowerDownPoll(uint32_t srcMixIdx, uint32_t timeoutUsec)
+{
+    bool rc = false;
+
+    if (srcMixIdx < PWR_NUM_MIX_SLICE)
+    {
+        uint32_t pollUsec = 0U;
+
+        rc = SRC_MixPowerDownCompleted(srcMixIdx);
+
+        /* Poll until MIX power down complete or timeout reached */
+        while ((!rc) && (pollUsec < timeoutUsec))
+        {
+            SystemTimeDelay(1U);
+            ++pollUsec;
+            rc = SRC_MixPowerDownCompleted(srcMixIdx);
+        }
+    }
+
+    return rc;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Poll until MIX slice has exited the reset phase or timeout reached       */
+/*--------------------------------------------------------------------------*/
+static bool SRC_MixRstExitPoll(uint32_t srcMixIdx, uint32_t timeoutUsec)
+{
+    bool rc = false;
+
+    if (srcMixIdx < PWR_NUM_MIX_SLICE)
+    {
+        const src_mix_slice_t *srcMix = s_srcMixPtrs[srcMixIdx];
+        uint32_t pollUsec = 0U;
+
+        rc = ((srcMix->FSM_STAT & SRC_XSPR_FSM_STAT_RST_STAT_MASK) ==
+            (0x9U << SRC_XSPR_FSM_STAT_RST_STAT_SHIFT));
+
+        /* Block until MIX reset phase has exited or timeout reached */
+        while ((!rc) && (pollUsec < timeoutUsec))
+        {
+            SystemTimeDelay(1U);
+            ++pollUsec;
+            rc = ((srcMix->FSM_STAT & SRC_XSPR_FSM_STAT_RST_STAT_MASK) ==
+                (0x9U << SRC_XSPR_FSM_STAT_RST_STAT_SHIFT));
         }
     }
 
@@ -485,9 +544,24 @@ void SRC_MixSoftPowerDown(uint32_t srcMixIdx)
             srcMix->SLICE_SW_CTRL |= SLICE_SW_CTRL_PDN_SOFT_MASK;
 
             /* Wait for power down sequence to compete */
-            while (!SRC_MixPowerDownCompleted(srcMixIdx))
+            if ((g_pwrMixMgmtInfo[srcMixIdx].flags & PWR_MIX_FLAG_SSI_TIMEOUT) == 0U)
             {
-                ; /* Intentional empty while */
+                while (!SRC_MixPowerDownCompleted(srcMixIdx))
+                {
+                    ; /* Intentional empty while */
+                }
+            }
+            else
+            {
+                /* Poll MIX power down complete or timeout reached */
+                if (!SRC_MixPowerDownPoll(srcMixIdx, 100U))
+                {
+                    /* Use LPCG handshake timeout to complete power down */
+                    uint32_t lpcgIdx = g_pwrMixMgmtInfo[srcMixIdx].ssiLpcgIdx;
+                    (void) CCM_LpcgTimeoutSetEnable(lpcgIdx, true);
+                    (void) SRC_MixPowerDownPoll(srcMixIdx, 1U);
+                    (void) CCM_LpcgTimeoutSetEnable(lpcgIdx, false);
+                }
             }
 
             /* Restore A55 handshake */
@@ -571,6 +645,14 @@ bool SRC_MixSoftPowerUp(uint32_t srcMixIdx)
         if ((g_pwrMixMgmtInfo[srcMixIdx].authenCtrl &
             AUTHEN_CTRL_LPM_MODE_MASK) != 0U)
         {
+            /* Switching from SW to HW control requires LPM_SETTING to
+             * configured to a common value (not always on/off).  Restore
+             * default LPM_SETTING to meet this requirement.
+             */
+            uint64_t lpmSetting = g_pwrMixMgmtInfo[srcMixIdx].lpmSetting;
+            srcMix->LPM_SETTING_1 = UINT64_L(lpmSetting);
+            srcMix->LPM_SETTING_2 = UINT64_H(lpmSetting);
+
             (void) SRC_MixLpmModeSet(srcMixIdx, true);
         }
     }
@@ -604,6 +686,28 @@ bool SRC_MixIsPwrSwitchOn(uint32_t srcMixIdx)
 bool SRC_MixIsPwrReady(uint32_t srcMixIdx)
 {
     return SRC_MixPowerUpCompleted(srcMixIdx);
+}
+
+/*--------------------------------------------------------------------------*/
+/* Block until MIX slice reset phase exits                                  */
+/*--------------------------------------------------------------------------*/
+bool SRC_MixRstExit(uint32_t srcMixIdx, uint32_t timeoutUsec)
+{
+    /* Poll until MIX has exited reset phase or timeout reached */
+    bool rc = SRC_MixRstExitPoll(srcMixIdx, timeoutUsec);
+    if (!rc)
+    {
+        if ((g_pwrMixMgmtInfo[srcMixIdx].flags & PWR_MIX_FLAG_SSI_TIMEOUT) != 0U)
+        {
+            /* Use LPCG handshake timeout to complete reset exit */
+            uint32_t lpcgIdx = g_pwrMixMgmtInfo[srcMixIdx].ssiLpcgIdx;
+            (void) CCM_LpcgTimeoutSetEnable(lpcgIdx, true);
+            rc = SRC_MixRstExitPoll(srcMixIdx, 1U);
+            (void) CCM_LpcgTimeoutSetEnable(lpcgIdx, false);
+        }
+    }
+
+    return rc;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -712,8 +816,9 @@ bool SRC_MixGetResetLine(uint32_t lineIdx, uint32_t *resetType)
     return updateReset;
 }
 
+#ifdef SRC_GEN_SP_ISO_CTRL_COUNT
 /*--------------------------------------------------------------------------*/
-/* Disable isolation for certain PHYs in MIXes                              */
+/* Update isolation for certain PHYs in MIXes                               */
 /*--------------------------------------------------------------------------*/
 void SRC_MixIsolationSetup(uint32_t isoMask, bool enable)
 {
@@ -728,3 +833,5 @@ void SRC_MixIsolationSetup(uint32_t isoMask, bool enable)
         src->SP_ISO_CTRL &= ~isoMask;
     }
 }
+#endif
+

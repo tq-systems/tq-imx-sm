@@ -51,10 +51,12 @@
 #define BOARD_PCAL6408A_DEV_ADDR    0x20U
 #define BOARD_PF5301_DEV_ADDR       0x2AU
 #define BOARD_PF5302_DEV_ADDR       0x29U
+#define BOARD_PCA2131_DEV_ADDR      0x53U
 
 #define PCAL6408A_INPUT_PF53_ARM_PG  1U
 #define PCAL6408A_INPUT_PF53_SOC_PG  2U
 #define PCAL6408A_INPUT_PF09_INT     3U
+#define PCAL6408A_INPUT_PCA2131_INT  6U
 
 /* Local types */
 
@@ -66,6 +68,7 @@ PCAL6408A_Type pcal6408aDev;
 PF09_Type pf09Dev;
 PF53_Type pf5301Dev;
 PF53_Type pf5302Dev;
+PCA2131_Type pca2131Dev;
 
 irq_prio_info_t s_brdIrqPrioInfo[BOARD_NUM_IRQ_PRIO_IDX] =
 {
@@ -77,6 +80,8 @@ irq_prio_info_t s_brdIrqPrioInfo[BOARD_NUM_IRQ_PRIO_IDX] =
         .dynPrioEn = false
     }
 };
+
+bool pca2131Used = false;
 
 /* Local functions */
 
@@ -158,7 +163,7 @@ int32_t BRD_SM_SerialDevicesInit(void)
                 [PF09_MASK_IDX_STATUS1] = 0x08U
             };
 
-            if (!PF09_IntEnable(&pf09Dev, mask, false))
+            if (!PF09_IntEnable(&pf09Dev, mask, PF09_MASK_LEN, false))
             {
                 status = SM_ERR_HARDWARE_ERROR;
             }
@@ -200,6 +205,19 @@ int32_t BRD_SM_SerialDevicesInit(void)
 
     if (status == SM_ERR_SUCCESS)
     {
+        /* Fill in PCA2131 RTC handle */
+        pca2131Dev.i2cBase = s_i2cBases[BOARD_I2C_INSTANCE];
+        pca2131Dev.devAddr = BOARD_PCA2131_DEV_ADDR;
+
+        /* Inialize PCA2131 RTC */
+        if (!PCA2131_Init(&pca2131Dev))
+        {
+            status = SM_ERR_HARDWARE_ERROR;
+        }
+    }
+
+    if (status == SM_ERR_SUCCESS)
+    {
         rgpio_pin_config_t gpioConfig =
         {
             kRGPIO_DigitalInput,
@@ -210,6 +228,32 @@ int32_t BRD_SM_SerialDevicesInit(void)
         RGPIO_PinInit(GPIO1, 10U, &gpioConfig);
         RGPIO_SetPinInterruptConfig(GPIO1, 10U, kRGPIO_InterruptOutput0,
             kRGPIO_InterruptLogicZero);
+    }
+
+    /* Return status */
+    return status;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Set bus expander interrupt mask                                          */
+/*--------------------------------------------------------------------------*/
+int32_t BRD_SM_BusExpMaskSet(uint8_t val, uint8_t mask)
+{
+    int32_t status = SM_ERR_SUCCESS;
+    static uint8_t cachedMask = PCAL6408A_INITIAL_MASK;
+    uint8_t newMask = (cachedMask & ~mask) | val;
+
+    /* Mask changed? */
+    if (cachedMask != newMask)
+    {
+        if (PCAL6408A_IntMaskSet(&pcal6408aDev, newMask))
+        {
+            cachedMask = newMask;
+        }
+        else
+        {
+            status = SM_ERR_HARDWARE_ERROR;
+        }
     }
 
     /* Return status */
@@ -246,11 +290,19 @@ void GPIO1_0_IRQHandler(void)
         }
     }
 
-    /* Handle controls interrupts */
-    else
+    /* Handle PCA2131 interrupt */
+    if (pca2131Used && ((status & BIT8(PCAL6408A_INPUT_PCA2131_INT))
+        != 0U))
     {
-        BRD_SM_ControlHandler(status, val);
+        /* Asserts low */
+        if ((val & BIT8(PCAL6408A_INPUT_PCA2131_INT)) == 0U)
+        {
+            BRD_SM_BbmHandler();
+        }
     }
+
+    /* Handle controls interrupts */
+    BRD_SM_ControlHandler(status, val);
 
     /* Adjust dynamic IRQ priority */
     (void) DEV_SM_IrqPrioUpdate();
@@ -266,10 +318,10 @@ static void BRD_SM_Pf09Handler(void)
     uint8_t stat[PF09_MASK_LEN] = { 0 };
 
     /* Read status of interrupts */
-    (void) PF09_IntStatus(&pf09Dev, stat);
+    (void) PF09_IntStatus(&pf09Dev, stat, PF09_MASK_LEN);
 
     /* Clear pending */
-    (void) PF09_IntClear(&pf09Dev, stat);
+    (void) PF09_IntClear(&pf09Dev, stat, PF09_MASK_LEN);
 
     /* Handle pending temp interrupts */
     if ((stat[PF09_MASK_IDX_STATUS2] & 0x0FU) != 0U)

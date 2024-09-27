@@ -40,6 +40,7 @@
 #endif
 
 /* Local Defines */
+
 #define WHITELIST_VAL(cpuId)    (WHITELIST_MASK(CPU_IDX_M33P) | WHITELIST_MASK(cpuId))
 #define WHITELIST_ALL           (WHITELIST_MASK(CPU_IDX_M33P) | WHITELIST_MASK(CPU_IDX_M7P) | WHITELIST_MASK(CPU_IDX_A55P))
 
@@ -212,7 +213,7 @@ pwrmix_mgmt_info_t const g_pwrMixMgmtInfo[PWR_NUM_MIX_SLICE] =
 
     [PWR_MIX_SLICE_IDX_A55P] =
     {
-        .flags = PWR_MIX_FLAG_SWITCHABLE | PWR_MIX_FLAG_LPMSET,
+        .flags = PWR_MIX_FLAG_SWITCHABLE | PWR_MIX_FLAG_LPMSET | PWR_MIX_FLAG_SSI_TIMEOUT,
         .memMask = (1U << PWR_MEM_SLICE_IDX_A55P) |
                    (1U << PWR_MEM_SLICE_IDX_A55L3),
         .retainMask = 0U,
@@ -222,6 +223,7 @@ pwrmix_mgmt_info_t const g_pwrMixMgmtInfo[PWR_NUM_MIX_SLICE] =
         .gpcReqMaskPwr = (1U << PWR_GPC_HS_PWR_A55P),
         .authenCtrl = AUTHENCTRL_CPU(CPU_IDX_A55P),
         .lpmSetting = LPMSETTING_CPU(CPU_IDX_A55P),
+        .ssiLpcgIdx = 1U,
     },
 
     [PWR_MIX_SLICE_IDX_DDR] =
@@ -634,7 +636,8 @@ void PWR_LpHandshakeAck(void)
     /* Restore clock root divider for LP_HANDSHAKE module */
     if (rc)
     {
-        rc = CCM_RootSetDiv(CLOCK_ROOT_M33, oldDiv);
+        (void) CCM_RootSetDiv(CLOCK_ROOT_M33, oldDiv);
     }
 #endif
 }
+

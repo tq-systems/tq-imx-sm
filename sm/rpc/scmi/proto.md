@@ -130,6 +130,7 @@ and some of the optional messages are supported.
 | Bbm | 0x81 | [BBM_BUTTON_GET](@ref SCMI_PROTO_BBM_BBM_BUTTON_GET) | 0x9 |  |
 | Bbm | 0x81 | [BBM_RTC_NOTIFY](@ref SCMI_PROTO_BBM_BBM_RTC_NOTIFY) | 0xA | NOTIFY |
 | Bbm | 0x81 | [BBM_BUTTON_NOTIFY](@ref SCMI_PROTO_BBM_BBM_BUTTON_NOTIFY) | 0xB | NOTIFY |
+| Bbm | 0x81 | [BBM_RTC_STATE](@ref SCMI_PROTO_BBM_BBM_RTC_STATE) | 0xC |  |
 | Bbm | 0x81 | [NEGOTIATE_PROTOCOL_VERSION](@ref SCMI_PROTO_BBM_NEGOTIATE_PROTOCOL_VERSION) | 0x10 |  |
 | Bbm\n(notification) | 0x81 | [BBM_RTC_EVENT](@ref SCMI_PROTO_BBM_BBM_RTC_EVENT) | 0x0 |  |
 | Bbm\n(notification) | 0x81 | [BBM_BUTTON_EVENT](@ref SCMI_PROTO_BBM_BBM_BUTTON_EVENT) | 0x1 |  |
@@ -177,7 +178,10 @@ and some of the optional messages are supported.
 | Misc | 0x84 | [MISC_SI_INFO](@ref SCMI_PROTO_MISC_MISC_SI_INFO) | 0xB |  |
 | Misc | 0x84 | [MISC_CFG_INFO](@ref SCMI_PROTO_MISC_MISC_CFG_INFO) | 0xC |  |
 | Misc | 0x84 | [MISC_SYSLOG](@ref SCMI_PROTO_MISC_MISC_SYSLOG) | 0xD |  |
+| Misc | 0x84 | [MISC_BOARD_INFO](@ref SCMI_PROTO_MISC_MISC_BOARD_INFO) | 0xE |  |
 | Misc | 0x84 | [NEGOTIATE_PROTOCOL_VERSION](@ref SCMI_PROTO_MISC_NEGOTIATE_PROTOCOL_VERSION) | 0x10 |  |
+| Misc | 0x84 | [MISC_CONTROL_EXT_SET](@ref SCMI_PROTO_MISC_MISC_CONTROL_EXT_SET) | 0x20 |  |
+| Misc | 0x84 | [MISC_CONTROL_EXT_GET](@ref SCMI_PROTO_MISC_MISC_CONTROL_EXT_GET) | 0x21 |  |
 | Misc\n(notification) | 0x84 | [MISC_CONTROL_EVENT](@ref SCMI_PROTO_MISC_MISC_CONTROL_EVENT) | 0x0 |  |
 
 SCMI Payloads {#SCMI_PAYLOADS}
@@ -2443,6 +2447,26 @@ See SCMI_BbmButtonNotify() for details.
     | int32          | status                                                       |
     ---------------------------------------------------------------------------------
 
+## Bbm: BBM_RTC_STATE ## {#SCMI_PROTO_BBM_BBM_RTC_STATE}
+
+See SCMI_BbmRtcState() for details.
+
+    Send
+    ---------------------------------------------------------------------------------
+    | uint32         | header (type=0, proto=0x81, msg=0xC                          |
+    ---------------------------------------------------------------------------------
+    | uint32         | rtc_id                                                       |
+    ---------------------------------------------------------------------------------
+
+    Receive
+    ---------------------------------------------------------------------------------
+    | uint32         | header (type=0, proto=0x81, msg=0xC                          |
+    ---------------------------------------------------------------------------------
+    | int32          | status                                                       |
+    ---------------------------------------------------------------------------------
+    | uint32         | state                                                        |
+    ---------------------------------------------------------------------------------
+
 ## Bbm: NEGOTIATE_PROTOCOL_VERSION ## {#SCMI_PROTO_BBM_NEGOTIATE_PROTOCOL_VERSION}
 
 See SCMI_BbmNegotiateProtocolVersion() for details.
@@ -3405,6 +3429,26 @@ See SCMI_MiscSyslog() for details.
     | uint32         | syslog[N]                                                    |
     ---------------------------------------------------------------------------------
 
+## Misc: MISC_BOARD_INFO ## {#SCMI_PROTO_MISC_MISC_BOARD_INFO}
+
+See SCMI_MiscBoardInfo() for details.
+
+    Send
+    ---------------------------------------------------------------------------------
+    | uint32         | header (type=0, proto=0x84, msg=0xE                          |
+    ---------------------------------------------------------------------------------
+
+    Receive
+    ---------------------------------------------------------------------------------
+    | uint32         | header (type=0, proto=0x84, msg=0xE                          |
+    ---------------------------------------------------------------------------------
+    | int32          | status                                                       |
+    ---------------------------------------------------------------------------------
+    | uint32         | attributes                                                   |
+    ---------------------------------------------------------------------------------
+    | uint8          | brd_name[16]                                                 |
+    ---------------------------------------------------------------------------------
+
 ## Misc: NEGOTIATE_PROTOCOL_VERSION ## {#SCMI_PROTO_MISC_NEGOTIATE_PROTOCOL_VERSION}
 
 See SCMI_MiscNegotiateProtocolVersion() for details.
@@ -3421,6 +3465,58 @@ See SCMI_MiscNegotiateProtocolVersion() for details.
     | uint32         | header (type=0, proto=0x84, msg=0x10                         |
     ---------------------------------------------------------------------------------
     | int32          | status                                                       |
+    ---------------------------------------------------------------------------------
+
+## Misc: MISC_CONTROL_EXT_SET ## {#SCMI_PROTO_MISC_MISC_CONTROL_EXT_SET}
+
+See SCMI_MiscControlExtSet() for details.
+
+    Send
+    ---------------------------------------------------------------------------------
+    | uint32         | header (type=0, proto=0x84, msg=0x20                         |
+    ---------------------------------------------------------------------------------
+    | uint32         | ctrl_id                                                      |
+    ---------------------------------------------------------------------------------
+    | uint32         | addr                                                         |
+    ---------------------------------------------------------------------------------
+    | uint32         | len                                                          |
+    ---------------------------------------------------------------------------------
+    | uint32         | numVal                                                       |
+    ---------------------------------------------------------------------------------
+    | uint32         | extVal[N]                                                    |
+    ---------------------------------------------------------------------------------
+
+    Receive
+    ---------------------------------------------------------------------------------
+    | uint32         | header (type=0, proto=0x84, msg=0x20                         |
+    ---------------------------------------------------------------------------------
+    | int32          | status                                                       |
+    ---------------------------------------------------------------------------------
+
+## Misc: MISC_CONTROL_EXT_GET ## {#SCMI_PROTO_MISC_MISC_CONTROL_EXT_GET}
+
+See SCMI_MiscControlExtGet() for details.
+
+    Send
+    ---------------------------------------------------------------------------------
+    | uint32         | header (type=0, proto=0x84, msg=0x21                         |
+    ---------------------------------------------------------------------------------
+    | uint32         | ctrl_id                                                      |
+    ---------------------------------------------------------------------------------
+    | uint32         | addr                                                         |
+    ---------------------------------------------------------------------------------
+    | uint32         | len                                                          |
+    ---------------------------------------------------------------------------------
+
+    Receive
+    ---------------------------------------------------------------------------------
+    | uint32         | header (type=0, proto=0x84, msg=0x21                         |
+    ---------------------------------------------------------------------------------
+    | int32          | status                                                       |
+    ---------------------------------------------------------------------------------
+    | uint32         | numVal                                                       |
+    ---------------------------------------------------------------------------------
+    | uint32         | extVal[N]                                                    |
     ---------------------------------------------------------------------------------
 
 ## Misc: MISC_CONTROL_EVENT ## {#SCMI_PROTO_MISC_MISC_CONTROL_EVENT}

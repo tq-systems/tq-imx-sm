@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-**     Copyright 2023 NXP
+**     Copyright 2023-2024 NXP
 **
 **     Redistribution and use in source and binary forms, with or without modification,
 **     are permitted provided that the following conditions are met:
@@ -71,6 +71,10 @@ int32_t BRD_SM_ControlSet(uint32_t ctrlId, uint32_t numVal,
         {
             status = DEV_SM_ControlSet(ctrlId, numVal, val);
         }
+        else if (ctrlId == BRD_SM_CTRL_PCA2131)
+        {
+            status = SM_ERR_NOT_SUPPORTED;
+        }
         else if (ctrlId == BRD_SM_CTRL_TEST)
         {
             /* Test response to an reported SM error */
@@ -105,7 +109,8 @@ int32_t BRD_SM_ControlGet(uint32_t ctrlId, uint32_t *numRtn, uint32_t *rtn)
         {
             status = DEV_SM_ControlGet(ctrlId, numRtn, rtn);
         }
-        else if (ctrlId == BRD_SM_CTRL_TEST)
+        else if ((ctrlId == BRD_SM_CTRL_PCA2131)
+            || (ctrlId == BRD_SM_CTRL_TEST))
         {
             *numRtn = 0U;
             status = SM_ERR_NOT_SUPPORTED;
@@ -145,58 +150,121 @@ int32_t BRD_SM_ControlGet(uint32_t ctrlId, uint32_t *numRtn, uint32_t *rtn)
 }
 
 /*--------------------------------------------------------------------------*/
+/* Set an extended control value                                            */
+/*--------------------------------------------------------------------------*/
+int32_t BRD_SM_ControlExtSet(uint32_t ctrlId, uint32_t addr,
+    uint32_t numVal, const uint32_t *val)
+{
+    int32_t status = SM_ERR_SUCCESS;
+
+    /* Check to see if ctrlId is within bounds*/
+    if (ctrlId < SM_NUM_CTRL)
+    {
+        /* Check if device or board */
+        if (ctrlId < DEV_SM_NUM_CTRL)
+        {
+            status = DEV_SM_ControlExtSet(ctrlId, addr, numVal, val);
+        }
+        else if (ctrlId == BRD_SM_CTRL_PCA2131)
+        {
+            status = BRD_SM_BbmRtcWrite(addr, numVal, val);
+        }
+        else
+        {
+            status = SM_ERR_NOT_SUPPORTED;
+        }
+    }
+    else
+    {
+        status = SM_ERR_NOT_FOUND;
+    }
+
+    /* Return status */
+    return status;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Get an extended control value                                            */
+/*--------------------------------------------------------------------------*/
+int32_t BRD_SM_ControlExtGet(uint32_t ctrlId, uint32_t addr,
+    uint32_t numRtn, uint32_t *rtn)
+{
+    int32_t status = SM_ERR_SUCCESS;
+
+    /* Check to see if ctrlId is within bounds*/
+    if (ctrlId < SM_NUM_CTRL)
+    {
+        /* Check if device or board */
+        if (ctrlId < DEV_SM_NUM_CTRL)
+        {
+            status = DEV_SM_ControlExtGet(ctrlId, addr, numRtn, rtn);
+        }
+        else if (ctrlId == BRD_SM_CTRL_PCA2131)
+        {
+            status = BRD_SM_BbmRtcRead(addr, numRtn, rtn);
+        }
+        else
+        {
+            status = SM_ERR_NOT_SUPPORTED;
+        }
+    }
+    else
+    {
+        status = SM_ERR_NOT_FOUND;
+    }
+
+    /* Return status */
+    return status;
+}
+
+/*--------------------------------------------------------------------------*/
 /* Configure notification flags                                             */
 /*--------------------------------------------------------------------------*/
 int32_t BRD_SM_ControlFlagsSet(uint32_t ctrlId, uint32_t flags)
 {
     int32_t status = SM_ERR_SUCCESS;
-    uint8_t mask;
-    uint32_t val;
-    uint32_t enb = (flags != 0U) ? 0U : 1U;
 
-    switch (ctrlId)
+    /* Check if device or board */
+    if (ctrlId < DEV_SM_NUM_CTRL)
     {
-        case BRD_SM_CTRL_SD3_WAKE:
-            mask = BIT8(PCAL6408A_INPUT_SD3_WAKE);
-            val = (enb & 0x1U) << PCAL6408A_INPUT_SD3_WAKE;
-            break;
-        case BRD_SM_CTRL_PCIE1_WAKE:
-            mask = BIT8(PCAL6408A_INPUT_PCIE1_WAKE);
-            val = (enb & 0x1U) << PCAL6408A_INPUT_PCIE1_WAKE;
-            break;
-        case BRD_SM_CTRL_BT_WAKE:
-            mask = BIT8(PCAL6408A_INPUT_BT_WAKE);
-            val = (enb & 0x1U) << PCAL6408A_INPUT_BT_WAKE;
-            break;
-        case BRD_SM_CTRL_PCIE2_WAKE:
-            mask = BIT8(PCAL6408A_INPUT_PCIE2_WAKE);
-            val = (enb & 0x1U) << PCAL6408A_INPUT_PCIE2_WAKE;
-            break;
-        case BRD_SM_CTRL_BUTTON:
-            mask = BIT8(PCAL6408A_INPUT_BUTTON);
-            val = (enb & 0x1U) << PCAL6408A_INPUT_BUTTON;
-            break;
-        default:
-            status = SM_ERR_NOT_SUPPORTED;
-            break;
+        status = DEV_SM_ControlFlagsSet(ctrlId, flags);
     }
-
-    if (status == SM_ERR_SUCCESS)
+    else
     {
-        static uint8_t cachedMask = PCAL6408A_INITIAL_MASK;
-        uint8_t newMask = (cachedMask & ~mask) | ((uint8_t) val);
+        uint8_t mask;
+        uint32_t val;
+        uint32_t enb = (flags != 0U) ? 0U : 1U;
 
-        /* Mask changed? */
-        if (cachedMask != newMask)
+        switch (ctrlId)
         {
-            if (PCAL6408A_IntMaskSet(&pcal6408aDev, newMask))
-            {
-                cachedMask = newMask;
-            }
-            else
-            {
-                status = SM_ERR_HARDWARE_ERROR;
-            }
+            case BRD_SM_CTRL_SD3_WAKE:
+                mask = BIT8(PCAL6408A_INPUT_SD3_WAKE);
+                val = (enb & 0x1U) << PCAL6408A_INPUT_SD3_WAKE;
+                break;
+            case BRD_SM_CTRL_PCIE1_WAKE:
+                mask = BIT8(PCAL6408A_INPUT_PCIE1_WAKE);
+                val = (enb & 0x1U) << PCAL6408A_INPUT_PCIE1_WAKE;
+                break;
+            case BRD_SM_CTRL_BT_WAKE:
+                mask = BIT8(PCAL6408A_INPUT_BT_WAKE);
+                val = (enb & 0x1U) << PCAL6408A_INPUT_BT_WAKE;
+                break;
+            case BRD_SM_CTRL_PCIE2_WAKE:
+                mask = BIT8(PCAL6408A_INPUT_PCIE2_WAKE);
+                val = (enb & 0x1U) << PCAL6408A_INPUT_PCIE2_WAKE;
+                break;
+            case BRD_SM_CTRL_BUTTON:
+                mask = BIT8(PCAL6408A_INPUT_BUTTON);
+                val = (enb & 0x1U) << PCAL6408A_INPUT_BUTTON;
+                break;
+            default:
+                status = SM_ERR_NOT_FOUND;
+                break;
+        }
+
+        if (status == SM_ERR_SUCCESS)
+        {
+            status = BRD_SM_BusExpMaskSet((uint8_t) val, mask);
         }
     }
 
@@ -232,7 +300,8 @@ void BRD_SM_ControlHandler(uint8_t status, uint8_t val)
     }
 
     /* Handle PCIe2 wake */
-    if ((status & BIT8(PCAL6408A_INPUT_PCIE2_WAKE)) != 0U)
+    if (((status & BIT8(PCAL6408A_INPUT_PCIE2_WAKE)) != 0U)
+        && !pca2131Used)
     {
         LMM_MiscControlEvent(BRD_SM_CTRL_PCIE2_WAKE,
             ((data >> PCAL6408A_INPUT_PCIE2_WAKE) & 0x1U) + 1U);

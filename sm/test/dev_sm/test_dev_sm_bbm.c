@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-** Copyright 2023 NXP
+** Copyright 2023-2024 NXP
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -82,12 +82,18 @@ void TEST_DevSmBbm(void)
 
         printf("DEV_SM_BbmGetBootStatus\n");
         CHECK(DEV_SM_BbmGetBootStatus(&flags));
-        printf("   flags=(%u)", flags);
+        printf("   flags=(%u)\n", flags);
 
         BCHECK(flags == 0U);
     }
 
-    /* Test API bounds */
+    /* BBM RTC State Get */
+    {
+        uint32_t rtcId = 0U, state = 0U;
+        CHECK(DEV_SM_BbmRtcStateGet(rtcId, &state));
+    }
+
+    /* Test API Bounds */
     printf("\n**** Device SM BBM API Err Tests ***\n\n");
     {
         printf("DEV_SM_BbmGprSet(%lu, %u)\n", DEV_SM_NUM_GPR, 0U);

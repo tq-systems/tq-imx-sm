@@ -279,6 +279,8 @@ as follows:
   - *rpcType* - RPC type to link, for example ::SM_RPC_SCMI
   - *rpcInst* - RPC instance to link
   - *safeType* - safety classification, 0=NS-EENV, 1=F-EENV, 2=S-EENV
+  - *group* - LM group
+  - *autoBoot* - auto boot conditions, for example ::LMM_AUTO_NONE
   - *boot[]* - Array of boot order of LM (0=no boot, else 1, 2, 3, ...) per mSel
   - *bootSkip[]* - Array of allow boot skip if no image (1=skip, def=0) per mSel
   - *rtime* - boot time of LM in uS, relative to start of LM boot loop
@@ -292,7 +294,7 @@ as follows:
 - **SM_LM_CFG_NAME** - Basename of the cfg file
 - **SM_LM_DEFAULT** - default LM used by the debug monitor
 - **SM_LM_NUM_START** - total number of start array entries
-- **SM_LM_START_DATA** - fills in the s_lmmStart array of lmm_start_t
+- **SM_LM_START_DATA** - fills in the s_lmmStart array of lmm_startstop_t
   structures, one per start item
   - *lmId* - associated logical machine (LM)
   - *mSel* - mode select tor start command
@@ -301,12 +303,14 @@ as follows:
   - *numArg* - number of arguments
   - *arg* - array of 64-bit arguments
 - **SM_LM_NUM_STOP** - total number of stop array entries
-- **SM_LM_STOP_DATA** - fills in the s_lmmStop array of lmm_stop_t
+- **SM_LM_STOP_DATA** - fills in the s_lmmStop array of lmm_startstop_t
   structures, one per stop item
   - *lmId* - associated logical machine (LM)
   - *mSel* - mode select tor stop command
   - *ss* - start/stop command (see table below)
   - *rsrc* - resource command should apply to
+  - *numArg* - number of arguments
+  - *arg* - array of 64-bit arguments
 - **SM_LM_FAULT_DATA** - fills in the s_lmmfault array of lmm_fault_t
   - *reaction* - fault reaction
   - *lm* - associated logical machine (LM)
@@ -332,13 +336,19 @@ Start/stop commands supported are:
 | Command        | Start                            | Stop                     |
 |----------------|----------------------------------|--------------------------|
 | ::LMM_SS_PD    | Power on power domain            | Power off power domain   |
-| ::LMM_SS_PERF  | Set perf level to arg[0]         | Set perf level to arg[0] | 
+| ::LMM_SS_PERF  | Set perf level to arg[0]         | Same as start            | 
 | ::LMM_SS_CLK   | Set clock parent to arg[0], rate to arg[1] and enable | Disable clock |
 | ::LMM_SS_CPU   | Start CPU                        | Stop CPU                 |
+| ::LMM_SS_VOLT  | Set voltage mode to arg[0]       | Same as start            |
+| ::LMM_SS_RST   | Reset domain, toggle/negate to argv[0], state to argv[1] | Same as start |
+| ::LMM_SS_CTRL  | Set control to arg[]             | Same as start |
 
 Note for ::LMM_SS_CLK the arguments are optional. With none, the clock will just
 be enabled. Any argument less than the ::SM_NUM_CLOCK will also be set as the parent
 and any larger set as the rate.
+
+For ::LMM_SS_RST bit[0] of arg[0] = toggle, bit[1] of arg[0] = assertNegate, arg[1] =
+resetState (default COLD). See LMM_ResetDomain().
 
 Fault reactions supported are:
 
@@ -691,8 +701,9 @@ The configtool supports the following commands and key=value pairs in the input 
 |             | skip     | Optional, if not 0, ignore error on boot if no image in boot container |
 |             | rtime    | Optional, boot time of LM in uS, relative to start of LM boot loop, max 178 seconds |
 |             | did      | RDC DID for this LM |
-|             | safe     | Safety type is LMM_SAFE_TYPE_\<VAL\>, e.g. ::LMM_SAFE_TYPE_SEENV, deault is NSEENV |
+|             | safe     | Safety type is LMM_SAFE_TYPE_\<VAL\>, e.g. ::LMM_SAFE_TYPE_SEENV, default is NSEENV |
 |             | group    | LM group, deault is 0 |
+|             | auto     | Auto boot type is LMM_AUTO_\<VAL\>, e.g. ::LMM_AUTO_BUTTON, default is NONE |
 |             | default  | The deault LM for the debug monitor |
 | MODE        | msel     | Alternate boot config index |
 |             | boot     | Optional, boot order starting with 1, undefined/0 = do not boot |
@@ -814,7 +825,7 @@ Notes:
 - When the *api* key is used, it is replaced during processing with \<PROTO\> keys for each
   type of protocol resource found on the same line.
 - If no MBC/MRC resources are on the line then any *perm* key will be removed during
-  processing. The value is also erplaced with the numerical value defined in the TRDC
+  processing. The value is also replaced with the numerical value defined in the TRDC
   section in the SoC RM and listed below.
 - See the [LMM config file](@ref LMM_CONFIG) for start/stop commands associated with
   resource types. The parameter is of the format a|b|c where *a* is the order, *b* is
@@ -895,8 +906,8 @@ Below is an explanation of each line:
 - **Line 43** - Start a new LM section for the M7, RPC is SCMI, TRDC DID=4 (see SoC RM TRDC section)
 - **Lines 45-47** - Defines, OWNER and DATA used below, DFMT0 used in include files for CPU masters
 - **Line 51** - Indicates this core should start and stop when LM1 is booted and shutdown.
-- **Line 55** - Sart a new SCMI agent section with the specified name
-- **Line 56** - Sart a new mailbox section, type is MU, use SDK MU base pointer array index 9 for
+- **Line 55** - Start a new SCMI agent section with the specified name
+- **Line 56** - Start a new mailbox section, type is MU, use SDK MU base pointer array index 9 for
   the platform side and index 8 for the unit test side.
 - **Lines 57-58** - Define a channel on doorbell 0. Transport is SMT, use CRC32, linked RPC is SCMI,
   and the SCMI channel type is A2P (agent to platform). The channel is also the default to use for

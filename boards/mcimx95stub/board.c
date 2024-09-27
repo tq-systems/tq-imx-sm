@@ -42,6 +42,13 @@
 #define BOARD_WDOG_ANY_MASK         BLK_CTRL_S_AONMIX_WDOG_ANY_MASK_WDOG2_MASK
 #define BOARD_WDOG_IPG_DEBUG        BLK_CTRL_NS_AONMIX_IPG_DEBUG_CM33_WDOG2_MASK
 
+/* Board UART */
+#ifdef INC_LIBC
+#define BOARD_UART                  BOARD_DEBUG_UART_INSTANCE
+#else
+#define BOARD_UART                  0U
+#endif
+
 /*******************************************************************************
  * Variables
  ******************************************************************************/
@@ -84,12 +91,12 @@ static uint32_t const s_uartPerLpi[] =
 /* Debug UART configuration info */
 static board_uart_config_t const s_uartConfig =
 {
-    .base = s_uartBases[BOARD_DEBUG_UART_INSTANCE],
-    .irq = s_uartIrqs[BOARD_DEBUG_UART_INSTANCE],
-    .clockId = s_uartClks[BOARD_DEBUG_UART_INSTANCE],
-    .perLpiId = s_uartPerLpi[BOARD_DEBUG_UART_INSTANCE],
+    .base = s_uartBases[BOARD_UART],
+    .irq = s_uartIrqs[BOARD_UART],
+    .clockId = s_uartClks[BOARD_UART],
+    .perLpiId = s_uartPerLpi[BOARD_UART],
     .baud = BOARD_DEBUG_UART_BAUDRATE,
-    .inst = BOARD_DEBUG_UART_INSTANCE
+    .inst = BOARD_UART
 };
 
 /*******************************************************************************
@@ -237,9 +244,7 @@ void BOARD_ConfigMPU(void)
 /*--------------------------------------------------------------------------*/
 void BOARD_InitClocks(void)
 {
-    uint32_t fuseTrim = (uint32_t)((FSB->FUSE[FSB_FUSE_ANA_CFG4] &
-        FSB_FUSE_ANA_CFG4_FRO_TRIM_MASK) >>
-        FSB_FUSE_ANA_CFG4_FRO_TRIM_SHIFT);
+    uint32_t fuseTrim = FSB->FUSE[FSB_FUSE_ANA_CFG4];
 
     if (fuseTrim == 0U)
     {
@@ -462,7 +467,7 @@ void BOARD_InitSerialBus(void)
 /*--------------------------------------------------------------------------*/
 /* System sleep prepare                                                     */
 /*--------------------------------------------------------------------------*/
-void BOARD_SystemSleepPrepare(uint32_t sleepMode)
+void BOARD_SystemSleepPrepare(uint32_t sleepMode, uint32_t sleepFlags)
 {
     /* Configure SM LPUART for wakeup */
     if (s_uartConfig.base != NULL)
@@ -483,7 +488,7 @@ void BOARD_SystemSleepPrepare(uint32_t sleepMode)
 /*--------------------------------------------------------------------------*/
 /* System sleep entry                                                       */
 /*--------------------------------------------------------------------------*/
-void BOARD_SystemSleepEnter(uint32_t sleepMode)
+void BOARD_SystemSleepEnter(uint32_t sleepMode, uint32_t sleepFlags)
 {
     /* Disable SysTick */
     uint32_t sysTickMask = SysTick_CTRL_TICKINT_Msk | SysTick_CTRL_ENABLE_Msk;
@@ -508,7 +513,7 @@ void BOARD_SystemSleepEnter(uint32_t sleepMode)
 /*--------------------------------------------------------------------------*/
 /* System sleep exit                                                        */
 /*--------------------------------------------------------------------------*/
-void BOARD_SystemSleepExit(uint32_t sleepMode)
+void BOARD_SystemSleepExit(uint32_t sleepMode, uint32_t sleepFlags)
 {
     if (s_wdogConfig.enableWdog32)
     {
@@ -525,7 +530,7 @@ void BOARD_SystemSleepExit(uint32_t sleepMode)
 /*--------------------------------------------------------------------------*/
 /* System sleep unprepare                                                   */
 /*--------------------------------------------------------------------------*/
-void BOARD_SystemSleepUnprepare(uint32_t sleepMode)
+void BOARD_SystemSleepUnprepare(uint32_t sleepMode, uint32_t sleepFlags)
 {
     /* Service SM LPUART wakeup events */
     if (s_uartConfig.base != NULL)

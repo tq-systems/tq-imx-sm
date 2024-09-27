@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-**     Copyright 2023 NXP
+**     Copyright 2023-2024 NXP
 **
 **     Redistribution and use in source and binary forms, with or without modification,
 **     are permitted provided that the following conditions are met:
@@ -49,7 +49,7 @@
 
 /* Local variables */
 
-static bool s_initialized = false;
+static bool s_cleared = false;
 static uint32_t s_statusFlags = 0U;
 
 /*--------------------------------------------------------------------------*/
@@ -63,24 +63,39 @@ int32_t DEV_SM_BbmInit(void)
     /* Read status flags */
     flags = BBNSM_GetStatusFlags(BBNSM);
 
-    /* Disable interrupts */
-    BBNSM_DisableInterrupts(BBNSM, ((uint32_t) kBBNSM_RTC_AlarmInterrupt)
-        | ((uint32_t) kBBNSM_RTC_RolloverInterrupt));
-
-    /* Clear pending alarm */
-    (void) BBNSM_RTC_SetAlarm(BBNSM, (uint32_t) -1);
-
-    /* Clear status flags */
-    BBNSM_ClearStatusFlags(BBNSM, flags);
-
     /* Save flags if not already */
     if (s_statusFlags == 0U)
     {
         s_statusFlags = flags;
     }
 
-    /* Mark as done */
-    s_initialized = true;
+    /* Return status */
+    return status;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Clear BBM                                                                */
+/*--------------------------------------------------------------------------*/
+int32_t DEV_SM_BbmClear(void)
+{
+    int32_t status = SM_ERR_SUCCESS;
+
+    if (!s_cleared)
+    {
+        /* Disable interrupts */
+        BBNSM_DisableInterrupts(BBNSM,
+            ((uint32_t) kBBNSM_RTC_AlarmInterrupt)
+            | ((uint32_t) kBBNSM_RTC_RolloverInterrupt));
+
+        /* Clear pending alarm */
+        (void) BBNSM_RTC_SetAlarm(BBNSM, (uint32_t) -1);
+
+        /* Clear status flags */
+        BBNSM_ClearStatusFlags(BBNSM, s_statusFlags);
+
+        /* Mark as cleared */
+        s_cleared = true;
+    }
 
     /* Return status */
     return status;
@@ -195,7 +210,7 @@ int32_t DEV_SM_BbmRtcNameGet(uint32_t rtcId, string *rtcNameAddr,
 
     static string const s_name[DEV_SM_NUM_RTC] =
     {
-        [DEV_SM_RTC_BBM] = "bbm"
+        [DEV_SM_RTC_BBNSM] = "bbnsm"
     };
 
     /* Get max string width */
@@ -276,11 +291,28 @@ int32_t DEV_SM_BbmRtcTimeGet(uint32_t rtcId, uint64_t *val, bool ticks)
 }
 
 /*--------------------------------------------------------------------------*/
+/* Get BBM RTC state                                                        */
+/*--------------------------------------------------------------------------*/
+int32_t DEV_SM_BbmRtcStateGet(uint32_t rtcId, uint32_t *state)
+{
+    int32_t status = SM_ERR_SUCCESS;
+
+    /* Default state */
+    *state = 0U;
+
+    /* Return status */
+    return status;
+}
+
+/*--------------------------------------------------------------------------*/
 /* Set BBM RTC alarm                                                        */
 /*--------------------------------------------------------------------------*/
 int32_t DEV_SM_BbmRtcAlarmSet(uint32_t rtcId, bool enable, uint64_t val)
 {
-    int32_t status = SM_ERR_SUCCESS;
+    int32_t status;
+
+    /* Clear before allowing alarm set */
+    status = DEV_SM_BbmClear();
 
     /* Enable? */
     if (enable)
@@ -315,7 +347,10 @@ int32_t DEV_SM_BbmRtcAlarmSet(uint32_t rtcId, bool enable, uint64_t val)
 /*--------------------------------------------------------------------------*/
 int32_t DEV_SM_BbmRtcRollover(uint32_t rtcId)
 {
-    int32_t status = SM_ERR_SUCCESS;
+    int32_t status;
+
+    /* Clear before allowing alarm enable */
+    status = DEV_SM_BbmClear();
 
     /* Enable RTC rollover interrupt */
     BBNSM_EnableInterrupts(BBNSM, ((uint32_t) kBBNSM_RTC_RolloverInterrupt));
@@ -352,12 +387,12 @@ void DEV_SM_BbmHandler(void)
     /* Read status flags */
     flags = BBNSM_GetStatusFlags(BBNSM);
 
-    if (s_initialized)
+    if (s_cleared)
     {
         /* Handle alarm */
         if ((flags & ((uint32_t) kBBNSM_RTC_AlarmInterruptFlag)) != 0U)
         {
-            LMM_BbmRtcAlarmEvent(DEV_SM_RTC_BBM);
+            LMM_BbmRtcAlarmEvent(DEV_SM_RTC_BBNSM);
         }
 
         /* Handle rollover */
@@ -365,7 +400,7 @@ void DEV_SM_BbmHandler(void)
         {
             BBNSM_DisableInterrupts(BBNSM, ((uint32_t)
                 kBBNSM_RTC_RolloverInterrupt));
-            LMM_BbmRtcRolloverEvent(DEV_SM_RTC_BBM);
+            LMM_BbmRtcRolloverEvent(DEV_SM_RTC_BBNSM);
         }
 
         /* Handle button */

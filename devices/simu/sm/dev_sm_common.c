@@ -70,6 +70,9 @@ int32_t DEV_SM_SiInfoGet(uint32_t *deviceId, uint32_t *siRev,
     *partNum = 0U;
     *siNameAddr = siName;
 
+    SM_TEST_MODE_ERR(SM_TEST_MODE_DEV_LVL1, SM_ERR_TEST)
+
+    /* Return result */
     return status;
 }
 
@@ -79,12 +82,16 @@ int32_t DEV_SM_SiInfoGet(uint32_t *deviceId, uint32_t *siRev,
 int32_t DEV_SM_SyslogGet(uint32_t flags, const dev_sm_syslog_t **syslog,
     uint32_t *len)
 {
+    int32_t status = SM_ERR_SUCCESS;
+
     /* Return data */
     *syslog = &g_syslog;
     *len = sizeof(dev_sm_syslog_t);
 
+    SM_TEST_MODE_ERR(SM_TEST_MODE_DEV_LVL1, SM_ERR_TEST)
+
     /* Return result */
-    return SM_ERR_SUCCESS;
+    return status;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -92,7 +99,7 @@ int32_t DEV_SM_SyslogGet(uint32_t flags, const dev_sm_syslog_t **syslog,
 /*--------------------------------------------------------------------------*/
 int32_t DEV_SM_SyslogDump(uint32_t flags)
 {
-    int32_t status = SM_ERR_SUCCESS;
+    int32_t status;
     const dev_sm_syslog_t *syslog;
     uint32_t len;
 
@@ -101,8 +108,11 @@ int32_t DEV_SM_SyslogDump(uint32_t flags)
 
     if (status == SM_ERR_SUCCESS)
     {
-        printf("Sys power mode = 0x%08X\n", syslog->sysPwrMode);
+        printf("Sys sleep mode  = %u\n", syslog->sysSleepMode);
+        printf("Sys sleep flags = 0x%08X\n", syslog->sysSleepFlags);
     }
+
+    SM_TEST_MODE_ERR(SM_TEST_MODE_DEV_LVL1, SM_ERR_TEST)
 
     /* Return result */
     return status;
@@ -131,7 +141,20 @@ uint64_t DEV_SM_Usec64Get(void)
 // coverity[misra_c_2012_rule_8_13_violation:FALSE]
 int32_t DEV_SM_FuseInfoGet(uint32_t fuseWord, uint32_t *addr)
 {
-    return SM_ERR_NOT_SUPPORTED;
+    int32_t status = SM_ERR_SUCCESS;
+
+    if (fuseWord != 50U)
+    {
+        uint32_t val = 0x80008000U + (fuseWord * 4U);
+        *addr = val;
+    }
+    else
+    {
+        status = SM_ERR_INVALID_PARAMETERS;
+    }
+
+    /* Return result */
+    return status;
 }
 
 /*--------------------------------------------------------------------------*/

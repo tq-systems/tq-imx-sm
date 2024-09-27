@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-** Copyright 2023 NXP
+** Copyright 2023-2024 NXP
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -70,6 +70,53 @@ void TEST_LmmSys(void)
         NECHECK(LMM_SystemModeSelSet(SM_LM_NUM_MSEL),
             SM_ERR_INVALID_PARAMETERS);
     }
+
+#ifdef SIMU
+    /* SystemRstComp */
+    {
+        lmm_rst_rec_t rst_rec_t = {0};
+        printf("LMM_SystemRstComp\n");
+        CHECK(LMM_SystemRstComp(&rst_rec_t));
+    }
+
+    /* SystemLmCheck */
+    {
+        printf("LMM_SystemLmCheck\n");
+        CHECK(LMM_SystemLmCheck(1));
+    }
+
+    /* SystemLmWake */
+    {
+        uint32_t lmId = 1, agentId = 1, wakeLm = 2;
+        printf("LMM_SystemLmWake\n");
+        CHECK(LMM_SystemLmWake(lmId, agentId, wakeLm));
+    }
+
+    /* SystemGrpBoot */
+    {
+        uint32_t lmId = 1, agentId = 1;
+        lmm_rst_rec_t bootRec = {0};
+        uint8_t group = 1;
+        printf("LMM_SystemGrpBoot\n");
+        CHECK(LMM_SystemGrpBoot(lmId, agentId, &bootRec, group));
+    }
+
+    /* SystemSuspend Branch coverage */
+    {
+        NECHECK(LMM_SystemLmSuspend(0U, 0U, SM_NUM_LM), SM_ERR_NOT_FOUND);
+    }
+
+    /* SystemLmWake Branch coverage */
+    {
+        NECHECK(LMM_SystemLmWake(0U, 0U, SM_NUM_LM), SM_ERR_NOT_FOUND);
+    }
+
+    /* SystemLmReason Branch coverage */
+    {
+        NECHECK(LM_SystemLmReason(0U, SM_NUM_LM, NULL, NULL),
+            SM_ERR_NOT_FOUND);
+    }
+#endif
 
     printf("\n");
 }

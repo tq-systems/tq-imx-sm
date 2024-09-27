@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-** Copyright 2023 NXP
+** Copyright 2023-2024 NXP
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -80,6 +80,10 @@ void TEST_DevSmPower(void)
 
         CHECK(DEV_SM_PowerStateSet(domainId, powerState));
 
+#ifdef SIMU
+        CHECK(DEV_SM_PowerRetModeSet(domainId, retMask));
+#endif
+
         /* Ret Mask Get */
         CHECK(DEV_SM_PowerRetMaskGet(domainId, &retMask));
         printf("   retMask=%u\n", retMask);
@@ -96,7 +100,7 @@ void TEST_DevSmPower(void)
         printf("  len=%d\n", len);
     }
 
-    printf("**** Device SM Power API Err Tests ***\n\n");
+    printf("\n**** Device SM Power API Err Tests ***\n\n");
 
     /* Test API bounds */
     NECHECK(DEV_SM_PowerDomainNameGet(DEV_SM_NUM_POWER, &name, &len),
