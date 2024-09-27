@@ -121,26 +121,90 @@ int32_t BRD_SM_ControlGet(uint32_t ctrlId, uint32_t *numRtn, uint32_t *rtn)
 }
 
 /*--------------------------------------------------------------------------*/
+/* Set an extended control value                                            */
+/*--------------------------------------------------------------------------*/
+int32_t BRD_SM_ControlExtSet(uint32_t ctrlId, uint32_t addr,
+    uint32_t numVal, const uint32_t *val)
+{
+    int32_t status = SM_ERR_SUCCESS;
+
+    /* Check to see if ctrlId is within bounds*/
+    if (ctrlId < SM_NUM_CTRL)
+    {
+        /* Check if device or board */
+        if (ctrlId < DEV_SM_NUM_CTRL)
+        {
+            status = DEV_SM_ControlExtSet(ctrlId, addr, numVal, val);
+        }
+        else
+        {
+            status = SM_ERR_NOT_SUPPORTED;
+        }
+    }
+    else
+    {
+        status = SM_ERR_NOT_FOUND;
+    }
+
+    /* Return status */
+    return status;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Get an extended control value                                            */
+/*--------------------------------------------------------------------------*/
+int32_t BRD_SM_ControlExtGet(uint32_t ctrlId, uint32_t addr,
+    uint32_t numRtn, uint32_t *rtn)
+{
+    int32_t status = SM_ERR_SUCCESS;
+
+    /* Check to see if ctrlId is within bounds*/
+    if (ctrlId < SM_NUM_CTRL)
+    {
+        /* Check if device or board */
+        if (ctrlId < DEV_SM_NUM_CTRL)
+        {
+            status = DEV_SM_ControlExtGet(ctrlId, addr, numRtn, rtn);
+        }
+        else
+        {
+            status = SM_ERR_NOT_SUPPORTED;
+        }
+    }
+    else
+    {
+        status = SM_ERR_NOT_FOUND;
+    }
+
+    /* Return status */
+    return status;
+}
+
+/*--------------------------------------------------------------------------*/
 /* Configure notification flags                                             */
 /*--------------------------------------------------------------------------*/
 int32_t BRD_SM_ControlFlagsSet(uint32_t ctrlId, uint32_t flags)
 {
     int32_t status = SM_ERR_SUCCESS;
-    /* uint32_t enb = (flags != 0U) ? 0U : 1U; */
 
-    switch (ctrlId)
+    /* Check if device or board */
+    if (ctrlId < DEV_SM_NUM_CTRL)
     {
-        case BRD_SM_CTRL_TEST:
-            status = SM_ERR_NOT_SUPPORTED;
-            break;
-        default:
-            status = SM_ERR_NOT_SUPPORTED;
-            break;
+        status = DEV_SM_ControlFlagsSet(ctrlId, flags);
     }
-
-    if (status == SM_ERR_SUCCESS)
+    else
     {
-        /* TODO: */
+        /* TODO: after redesign GPIO expander handling here as needed */
+
+        switch (ctrlId)
+        {
+            case BRD_SM_CTRL_TEST:
+                status = SM_ERR_NOT_SUPPORTED;
+                break;
+            default:
+                status = SM_ERR_NOT_FOUND;
+                break;
+        }
     }
 
     return status;

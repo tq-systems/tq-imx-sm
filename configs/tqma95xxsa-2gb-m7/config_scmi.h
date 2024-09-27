@@ -89,7 +89,7 @@
         .perlpiPerms[DEV_SM_PERLPI_WDOG5] = SM_SCMI_PERM_ALL, \
         .pinPerms[DEV_SM_PIN_GPIO_IO00] = SM_SCMI_PERM_ALL, \
         .pinPerms[DEV_SM_PIN_GPIO_IO01] = SM_SCMI_PERM_ALL, \
-        .rtcPerms[DEV_SM_RTC_BBM] = SM_SCMI_PERM_PRIV, \
+        .rtcPerms[DEV_SM_RTC_BBNSM] = SM_SCMI_PERM_PRIV, \
         .sensorPerms[BRD_SM_SENSOR_TEMP_PF09] = SM_SCMI_PERM_SET, \
         .sensorPerms[BRD_SM_SENSOR_TEMP_PF5301] = SM_SCMI_PERM_SET, \
         .sensorPerms[BRD_SM_SENSOR_TEMP_PF5302] = SM_SCMI_PERM_SET, \
@@ -237,7 +237,6 @@
         .clkPerms[DEV_SM_CLK_AUDIOPLL2] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_AUDIOPLL2_VCO] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_AUDIOXCVR] = SM_SCMI_PERM_ALL, \
-        .clkPerms[DEV_SM_CLK_CAMISI] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_CAN1] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_CAN2] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_CAN3] = SM_SCMI_PERM_ALL, \
@@ -310,7 +309,6 @@
         .clkPerms[DEV_SM_CLK_USDHC1] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_USDHC2] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_USDHC3] = SM_SCMI_PERM_ALL, \
-        .clkPerms[DEV_SM_CLK_V2XPK] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_VIDEOPLL1] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_VIDEOPLL1_VCO] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_VPUDSP] = SM_SCMI_PERM_ALL, \
@@ -593,7 +591,7 @@
         .pinPerms[DEV_SM_PIN_XSPI1_SCLK] = SM_SCMI_PERM_ALL, \
         .pinPerms[DEV_SM_PIN_XSPI1_SS0_B] = SM_SCMI_PERM_ALL, \
         .pinPerms[DEV_SM_PIN_XSPI1_SS1_B] = SM_SCMI_PERM_ALL, \
-        .rtcPerms[DEV_SM_RTC_BBM] = SM_SCMI_PERM_ALL, \
+        .rtcPerms[DEV_SM_RTC_BBNSM] = SM_SCMI_PERM_ALL, \
         .sensorPerms[BRD_SM_SENSOR_TEMP_PF09] = SM_SCMI_PERM_ALL, \
         .sensorPerms[BRD_SM_SENSOR_TEMP_PF5301] = SM_SCMI_PERM_SET, \
         .sensorPerms[BRD_SM_SENSOR_TEMP_PF5302] = SM_SCMI_PERM_SET, \
