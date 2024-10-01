@@ -86,6 +86,13 @@ void TEST_ScmiSensor(void)
         BCHECK(ver == SCMI_SENSOR_PROT_VER);
     }
 
+    /* Negotiate Protocol Attributes */
+    {
+        printf("SCMI_SensorNegotiateProtocolVersion(%u)\n",
+            SM_TEST_DEFAULT_CHN);
+        CHECK(SCMI_SensorNegotiateProtocolVersion(SM_TEST_DEFAULT_CHN,
+            SCMI_SENSOR_PROT_VER));
+    }
     /* Test protocol attributes */
     {
         uint32_t attributes = 0U;
@@ -632,7 +639,8 @@ static void TEST_ScmiSensorExclusive(bool pass, uint32_t channel,
         /* Reset */
         uint32_t sysManager = 0U;
         printf("LMM_SystemLmShutdown(%u, %u)\n", sysManager, lmId);
-        CHECK(LMM_SystemLmShutdown(sysManager, 0U, lmId, false, &g_swReason));
+        CHECK(LMM_SystemLmShutdown(sysManager, 0U, lmId, false,
+            &g_swReason));
     }
 #endif
 }

@@ -1,13 +1,17 @@
 Debug Monitor {#MONITOR}
 =============
 
-If the SM is compiled using the M=1 option (default is M=1) then it will include
+If the SM is compiled using the M=1|2 option (default is M=1) then it will include
 a debug monitor. The debug monitor allows command-line interaction via the SM
 debug UART. Inclusion of the debug monitor affects SM timing and therefore should never
 be deployed in a product!
 
+- M=0 no monitor
+- M=1 will drop straight into the monitor at boot
+- M=2 will enter the monitor on SM debug UART character reception
+
 **Use of the debug monitor can change timing and cause adverse effects. No guarantees
-are made with regards to its use.**
+are made with regards to its use. M=0 is the only valid option for production.**
 
 Note the terminal needs to be in a mode that sends CR or LF for a new line (not
 CR+LF).
@@ -55,7 +59,7 @@ System Commands
 | stage serial[container]     | set boot stage to serial  and reset                          |
 | suspend                     | request all LM suspend (sleep)                               |
 | wake                        | request all LM wake (resume)                                 |
-| spm *mode*                  | set SM system power mode (used for system suspend)           |
+| ssm *mode* *flags*          | set SM system sleep mode/flags (used for system sleep)       |
 | idle                        | enter SM idle (system suspend if all LM in suspend)          |
 | wdog warm                   | configure wdog to generate warm reset                        |
 | wdog cold                   | configure wdog to generate warm reset and drive WDOG_ANY     |

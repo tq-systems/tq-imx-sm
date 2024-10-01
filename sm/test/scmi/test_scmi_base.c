@@ -51,8 +51,8 @@
 /* Local functions */
 
 static void TEST_ScmiBaseNone(uint32_t channel);
-static void TEST_ScmiBasePriv(bool pass, uint32_t channel,
-    uint32_t resource);
+static void TEST_ScmiBasePriv(bool pass, uint32_t channel, uint32_t resource,
+    uint32_t agentId);
 
 /*--------------------------------------------------------------------------*/
 /* Test SCMI base protocol                                                  */
@@ -65,7 +65,7 @@ void TEST_ScmiBase(void)
     /* RPC_00010 RPC_00060 RPC_00160 Base tests */
     printf("**** Base Protocol Tests ***\n\n");
 
-    /* Test protocol version */
+    /* Test protocol version and negotiate protocol version */
     {
         uint32_t ver = 0U;
 
@@ -74,6 +74,10 @@ void TEST_ScmiBase(void)
         printf("  ver=0x%08X\n", ver);
 
         BCHECK(ver == SCMI_BASE_PROT_VER);
+
+        printf("SCMI_BaseNegotiateProtocolVersion(%u)\n", SM_TEST_DEFAULT_CHN);
+        CHECK(SCMI_BaseNegotiateProtocolVersion(SM_TEST_DEFAULT_CHN,
+            SCMI_BASE_PROT_VER));
     }
 
     /* Test build info */
@@ -132,11 +136,12 @@ void TEST_ScmiBase(void)
         printf("  implementationVersion=0x%08X\n", implementationVersion);
 
         /* Branch -- Invalid Channel */
-        NECHECK(SCMI_BaseDiscoverImplementationVersion(SM_SCMI_NUM_CHN, NULL),
-            SCMI_ERR_INVALID_PARAMETERS);
+        NECHECK(SCMI_BaseDiscoverImplementationVersion(SM_SCMI_NUM_CHN,
+            NULL), SCMI_ERR_INVALID_PARAMETERS);
 
         /* Branch -- Nullpointer */
-        CHECK(SCMI_BaseDiscoverImplementationVersion(SM_TEST_DEFAULT_CHN, NULL));
+        CHECK(SCMI_BaseDiscoverImplementationVersion(SM_TEST_DEFAULT_CHN,
+            NULL));
     }
 
     /* Test abort */
@@ -150,8 +155,8 @@ void TEST_ScmiBase(void)
 
         printf("SCMI_BaseDiscoverImplementationVersion(%u)\n",
             SM_TEST_DEFAULT_CHN);
-        localStatus = SCMI_BaseDiscoverImplementationVersion(SM_TEST_DEFAULT_CHN,
-            &implementationVersion);
+        localStatus = SCMI_BaseDiscoverImplementationVersion(
+            SM_TEST_DEFAULT_CHN, &implementationVersion);
 
         /* Check for abort */
         if (localStatus != SCMI_ERR_ABORT_ERROR)
@@ -200,7 +205,8 @@ void TEST_ScmiBase(void)
         TEST_ScmiBaseNone(channel);
 
         /* Test functions with PRIV perm required */
-        TEST_ScmiBasePriv(perm >= SM_SCMI_PERM_PRIV, channel, resource);
+        TEST_ScmiBasePriv(perm >= SM_SCMI_PERM_PRIV, channel, resource,
+            agentId);
 
         /* Get next test case */
         status = TEST_ConfigNextGet(TEST_BASE, &agentId,
@@ -282,19 +288,18 @@ static void TEST_ScmiBaseNone(uint32_t channel)
 /*--------------------------------------------------------------------------*/
 /* Test SCMI base functions with PRIV access                                */
 /*--------------------------------------------------------------------------*/
-static void TEST_ScmiBasePriv(bool pass, uint32_t channel,
-    uint32_t resource)
+static void TEST_ScmiBasePriv(bool pass, uint32_t channel, uint32_t resource,
+    uint32_t agentId)
 {
-    uint32_t scmiInst = g_scmiAgentConfig[resource].scmiInst;
-    uint32_t agent = resource + 1U
-        - g_scmiConfig[scmiInst].firstAgent;
+    uint32_t scmiInst = g_scmiAgentConfig[agentId].scmiInst;
+    uint32_t agent =  resource + 1U - g_scmiConfig[scmiInst].firstAgent;
 
     /* Reset Agent Config */
     if (pass)
     {
-        printf("SCMI_BaseResetAgentConfiguration(%u, %u, 0)\n", agent,
+        printf("SCMI_BaseResetAgentConfiguration(%u %u 0)\n", channel,
             resource);
-        CHECK(SCMI_BaseResetAgentConfiguration(channel, agent, 0U));
+        CHECK(SCMI_BaseResetAgentConfiguration(channel, agent, 1U));
 
         /* Attempt to reset System Manager */
         NECHECK(SCMI_BaseResetAgentConfiguration(channel, 0U, 0U),
@@ -334,6 +339,5 @@ static void TEST_ScmiBasePriv(bool pass, uint32_t channel,
         NECHECK(SCMI_BaseResetAgentConfiguration(channel, agent, 0U),
             SCMI_ERR_DENIED);
     }
-
 }
 

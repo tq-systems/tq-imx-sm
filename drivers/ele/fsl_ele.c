@@ -356,7 +356,7 @@ uint32_t ELE_EventGet(uint8_t idx)
 /*--------------------------------------------------------------------------*/
 void ELE_InfoGet(ele_info_t *info)
 {
-    const volatile uint32_t data[40];
+    const volatile uint32_t data[sizeof(ele_info_t) / sizeof(uint32_t)];
 
     /* Fill in parameters */
     s_msgMax.word[1] = 0U;
@@ -372,7 +372,6 @@ void ELE_InfoGet(ele_info_t *info)
     /* Extract data */
     if (g_eleStatus == SM_ERR_SUCCESS)
     {
-
         info->socId = (uint16_t) (data[1] & 0x0000FFFFU);
         info->socRev = (uint16_t) ((data[1] >> 16U) & 0x0000FFFFU);
         info->lifecycle = (uint16_t) (data[2] & 0x0000FFFFU);

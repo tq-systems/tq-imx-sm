@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-** Copyright 2023 NXP
+** Copyright 2023-2024 NXP
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -77,6 +77,14 @@ void TEST_ScmiPower(void)
         printf("  ver=0x%08X\n", ver);
 
         BCHECK(ver == SCMI_POWER_PROT_VER);
+    }
+
+    /* Negotiate Protocol Attributes */
+    {
+        printf("SCMI_PowerNegotiateProtocolVersion(%u)\n",
+            SM_TEST_DEFAULT_CHN);
+        CHECK(SCMI_PowerNegotiateProtocolVersion(SM_TEST_DEFAULT_CHN,
+            SCMI_POWER_PROT_VER));
     }
 
     /* Test protocol attributes */
@@ -234,11 +242,13 @@ static void TEST_ScmiPowerSet(bool pass, uint32_t channel,
     /* Adequate Set Permissions */
     if (pass)
     {
+
+#ifdef SIMU
         /* Test Power Set OFF */
-        printf("SCMI_PowerStateSet(%u, %u, 0, STATE_OFF)\n",
+        printf("SCMI_PowerStateSet(%u, %u, 0x1, STATE_OFF)\n",
             channel, domainId);
         CHECK(SCMI_PowerStateSet(channel, domainId,
-            0U, SCMI_POWER_DOMAIN_STATE_OFF));
+            0x0U, SCMI_POWER_DOMAIN_STATE_OFF));
 
         /* Get Power State OFF */
         {
@@ -252,7 +262,7 @@ static void TEST_ScmiPowerSet(bool pass, uint32_t channel,
             BCHECK(powerState == SCMI_POWER_DOMAIN_STATE_OFF);
         }
 
-        /* Test power Set ON*/
+        /* Test power Set ON */
         printf("SCMI_PowerStateSet(%u, %u, 0, STATE_ON)\n",
             channel, domainId);
         CHECK(SCMI_PowerStateSet(channel, domainId,
@@ -278,7 +288,6 @@ static void TEST_ScmiPowerSet(bool pass, uint32_t channel,
             BCHECK(powerState == SCMI_POWER_DOMAIN_STATE_ON);
         }
 
-#ifdef SIMU
 
         /* Reset */
         printf("LMM_SystemLmBoot(%u, %u)\n", 0U, lmId);

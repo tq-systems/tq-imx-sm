@@ -28,6 +28,7 @@
  */
 
 /* Includes */
+
 #include "sm.h"
 #include "fsl_ccm.h"
 #include "fsl_cpu.h"
@@ -54,6 +55,8 @@ static bool CPU_WdogReset(uint32_t cpuIdx);
 static bool CPU_MuReset(uint32_t cpuIdx);
 static bool CPU_MiscCtrlSet(uint32_t cpuIdx, uint32_t mask, uint32_t val);
 static bool CPU_MiscCtrlGet(uint32_t cpuIdx, uint32_t mask, uint32_t *val);
+static bool CPU_IrqMaskSet(uint32_t cpuIdx, bool maskIrqs);
+static bool CPU_WakeMaskSet(uint32_t cpuIdx, bool maskWakeups);
 static bool CPU_LpmMixDependSet(uint32_t cpuIdx, uint32_t lpmSetting);
 static bool CPU_VirtLpcgLpmSet(uint32_t lpcgIdx, uint32_t cpuIdx,
     uint32_t lpmSetting);
@@ -89,6 +92,7 @@ static cpu_mgmt_info_t const s_cpuMgmtInfo[CPU_NUM_IDX] =
     [CPU_IDX_M33P] =
     {
         .srcMixIdx = PWR_MIX_SLICE_IDX_AON,
+        .irqMaskReg = &BLK_CTRL_S_AONMIX->CM33_IRQ_MASK0,
         .cpuWaitReg = &BLK_CTRL_S_AONMIX->M33_CFG,
         .cpuWaitMask = BLK_CTRL_S_AONMIX_M33_CFG_WAIT_MASK,
         .rstReqIrq = NotAvail_IRQn,
@@ -104,6 +108,7 @@ static cpu_mgmt_info_t const s_cpuMgmtInfo[CPU_NUM_IDX] =
     [CPU_IDX_M7P] =
     {
         .srcMixIdx = PWR_MIX_SLICE_IDX_M7,
+        .irqMaskReg = &BLK_CTRL_S_AONMIX->CM7_IRQ_MASK0,
         .cpuWaitReg = &BLK_CTRL_S_AONMIX->M7_CFG,
         .cpuWaitMask = BLK_CTRL_S_AONMIX_M7_CFG_WAIT_MASK,
         .rstReqIrq = CM7_SYSRESETREQ_IRQn,
@@ -119,6 +124,7 @@ static cpu_mgmt_info_t const s_cpuMgmtInfo[CPU_NUM_IDX] =
     [CPU_IDX_A55C0] =
     {
         .srcMixIdx = PWR_MIX_SLICE_IDX_A55C0,
+        .irqMaskReg = NULL,
         .cpuWaitReg = &BLK_CTRL_S_AONMIX->CA55_CPUWAIT,
         .cpuWaitMask = BLK_CTRL_S_AONMIX_CA55_CPUWAIT_CPU0_WAIT_MASK,
         .rstReqIrq = NotAvail_IRQn,
@@ -134,6 +140,7 @@ static cpu_mgmt_info_t const s_cpuMgmtInfo[CPU_NUM_IDX] =
     [CPU_IDX_A55C1] =
     {
         .srcMixIdx = PWR_MIX_SLICE_IDX_A55C1,
+        .irqMaskReg = NULL,
         .cpuWaitReg = &BLK_CTRL_S_AONMIX->CA55_CPUWAIT,
         .cpuWaitMask = BLK_CTRL_S_AONMIX_CA55_CPUWAIT_CPU1_WAIT_MASK,
         .rstReqIrq = NotAvail_IRQn,
@@ -149,6 +156,7 @@ static cpu_mgmt_info_t const s_cpuMgmtInfo[CPU_NUM_IDX] =
     [CPU_IDX_A55C2] =
     {
         .srcMixIdx = PWR_MIX_SLICE_IDX_A55C2,
+        .irqMaskReg = NULL,
         .cpuWaitReg = &BLK_CTRL_S_AONMIX->CA55_CPUWAIT,
         .cpuWaitMask = BLK_CTRL_S_AONMIX_CA55_CPUWAIT_CPU2_WAIT_MASK,
         .rstReqIrq = NotAvail_IRQn,
@@ -164,6 +172,7 @@ static cpu_mgmt_info_t const s_cpuMgmtInfo[CPU_NUM_IDX] =
     [CPU_IDX_A55C3] =
     {
         .srcMixIdx = PWR_MIX_SLICE_IDX_A55C3,
+        .irqMaskReg = NULL,
         .cpuWaitReg = &BLK_CTRL_S_AONMIX->CA55_CPUWAIT,
         .cpuWaitMask = BLK_CTRL_S_AONMIX_CA55_CPUWAIT_CPU3_WAIT_MASK,
         .rstReqIrq = NotAvail_IRQn,
@@ -179,6 +188,7 @@ static cpu_mgmt_info_t const s_cpuMgmtInfo[CPU_NUM_IDX] =
     [CPU_IDX_A55C4] =
     {
         .srcMixIdx = PWR_MIX_SLICE_IDX_A55C4,
+        .irqMaskReg = NULL,
         .cpuWaitReg = &BLK_CTRL_S_AONMIX->CA55_CPUWAIT,
         .cpuWaitMask = BLK_CTRL_S_AONMIX_CA55_CPUWAIT_CPU4_WAIT_MASK,
         .rstReqIrq = NotAvail_IRQn,
@@ -194,6 +204,7 @@ static cpu_mgmt_info_t const s_cpuMgmtInfo[CPU_NUM_IDX] =
     [CPU_IDX_A55C5] =
     {
         .srcMixIdx = PWR_MIX_SLICE_IDX_A55C5,
+        .irqMaskReg = NULL,
         .cpuWaitReg = &BLK_CTRL_S_AONMIX->CA55_CPUWAIT,
         .cpuWaitMask = BLK_CTRL_S_AONMIX_CA55_CPUWAIT_CPU5_WAIT_MASK,
         .rstReqIrq = NotAvail_IRQn,
@@ -209,6 +220,7 @@ static cpu_mgmt_info_t const s_cpuMgmtInfo[CPU_NUM_IDX] =
     [CPU_IDX_A55P] =
     {
         .srcMixIdx = PWR_MIX_SLICE_IDX_A55P,
+        .irqMaskReg = &BLK_CTRL_S_AONMIX->CA55_IRQ_MASK0,
         .cpuWaitReg = NULL,
         .cpuWaitMask = 0U,
         .rstReqIrq = NotAvail_IRQn,
@@ -550,15 +562,15 @@ static bool CPU_SwMultiWakeup(uint32_t cpuIdx)
     uint32_t cpuIdxEnd = cpuIdx;
     if (cpuIdx == CPU_IDX_A55P)
     {
-        cpuIdxCur = CPU_IDX_A55C0;
-        cpuIdxEnd = CPU_IDX_A55P;
+        cpuIdxCur = CPU_IDX_A55P;
+        cpuIdxEnd = CPU_IDX_A55C0;
     }
     do
     {
         /* Wake each CPU */
         rc = CPU_SwWakeup(cpuIdxCur);
-        ++cpuIdxCur;
-    } while (rc && (cpuIdxCur <= cpuIdxEnd));
+        --cpuIdxCur;
+    } while (rc && (cpuIdxCur >= cpuIdxEnd));
 
     return rc;
 }
@@ -789,13 +801,20 @@ bool CPU_ResetSet(uint32_t cpuIdx, uint32_t resetType)
                         /* Wait for ChildrenAsleep */
                         while ((GICR->GICR_WAKER & GICR_WAKER_CHILDRENASLEEP_MASK) == 0U)
                         {
-                            ; /* Intentional empty while */
+                            /* Set ProcessorSleep to quiesce GIC redistributor instance */
+                            GICR->GICR_WAKER |= GICR_WAKER_PROCESSORSLEEP_MASK;
                         }
                     }
                 }
 
                 /* Apply reset to A55 cluster */
                 rc = SRC_MixSetResetLine(RST_LINE_CORTEXAMIX_PLATFORM, resetType);
+
+                if (rc && (resetType == RST_LINE_CTRL_ASSERT))
+                {
+                    /* Wait for A55 cluster reset phase to complete */
+                    rc = SRC_MixRstExit(PWR_MIX_SLICE_IDX_A55P, 100U);
+                }
 
                 /* Apply reset to all A55 CPUs */
                 uint32_t lineIdx = RST_LINE_CORTEXAMIX_CORE0;
@@ -1010,6 +1029,12 @@ bool CPU_RunModeSet(uint32_t cpuIdx, uint32_t runMode)
                         /* Force MIX voting logic to request ON during reset */
                         rc = CPU_LpmConfigDeInit(cpuIdx, CPU_PD_LPM_ON_ALWAYS);
 
+                        /* Disable top-level IRQs */
+                        if (rc)
+                        {
+                            rc = CPU_IrqMaskSet(cpuIdx, true);
+                        }
+
                         /* Reset CPU sleep mode */
                         if (rc)
                         {
@@ -1021,7 +1046,7 @@ bool CPU_RunModeSet(uint32_t cpuIdx, uint32_t runMode)
                         {
                             /* Perform SW wakeup */
                             rc = CPU_SwMultiWakeup(cpuIdx);
-                        }                        
+                        }
                         
                         if (rc)
                         {
@@ -1211,17 +1236,7 @@ bool CPU_SleepModeSet(uint32_t cpuIdx, uint32_t sleepMode)
             s_gpcCpuCtrlPtrs[cpuIdx]->CMC_MISC = cmcMisc;
         }
 
-        /* All targeted sleep modes other than RUN need GPC-controlled LPM */
-        uint32_t srcMixIdx = s_cpuMgmtInfo[cpuIdx].srcMixIdx;
-        if ((g_pwrMixMgmtInfo[srcMixIdx].authenCtrl &
-            AUTHEN_CTRL_LPM_MODE_MASK) != 0U)
-        {
-            rc = SRC_MixLpmModeSet(srcMixIdx, sleepMode != CPU_SLEEP_MODE_RUN);
-        }
-        else
-        {
-            rc = true;
-        }
+        rc = true;
     }
 
     return rc;
@@ -1288,15 +1303,20 @@ bool CPU_SleepForceSet(uint32_t cpuIdx, bool sleepForce)
         if (sleepForce)
         {
             sleepForceReg |= sleepMask;
+
+            /* Mask GPC wakeups to ensure wakeup request deasserted
+             * prior to forcing sleep for this CPU.
+             */
+            rc = CPU_WakeMaskSet(cpuIdx, true);
         }
         else
         {
             sleepForceReg &= ~sleepMask;
+
+            rc = true;
         }
 
         GPC_GLOBAL->GPC_SYS_SLEEP = sleepForceReg;
-
-        rc = true;
     }
 
     return rc;
@@ -1453,7 +1473,7 @@ bool CPU_WakeMuxSet(uint32_t cpuIdx, bool gicWake)
 }
 
 /*--------------------------------------------------------------------------*/
-/* Set wake mux (GPC/GIC)                                                   */
+/* Get wake mux (GPC/GIC)                                                   */
 /*--------------------------------------------------------------------------*/
 bool CPU_WakeMuxGet(uint32_t cpuIdx, bool *gicWake)
 {
@@ -1541,6 +1561,113 @@ bool CPU_NonIrqWakeGet(uint32_t cpuIdx, uint32_t *maskVal)
 
     return rc;
 }
+
+/*--------------------------------------------------------------------------*/
+/* Set CPU top-level IRQ mask                                               */
+/*--------------------------------------------------------------------------*/
+static bool CPU_IrqMaskSet(uint32_t cpuIdx, bool maskIrqs)
+{
+    bool rc = false;
+
+    if (cpuIdx < CPU_NUM_IDX)
+    {
+        __IO uint32_t *irqMaskReg = s_cpuMgmtInfo[cpuIdx].irqMaskReg;
+
+        if (irqMaskReg != NULL)
+        {
+            /* Mask/unmask IRQs for this CPU at the top-level */
+            for (uint32_t idx = 0;
+                idx < GPC_CPU_CTRL_CMC_IRQ_WAKEUP_MASK_COUNT;
+                idx++)
+            {
+                if (maskIrqs)
+                {
+                    irqMaskReg[idx] = 0x0U;
+                }
+                else
+                {
+                    irqMaskReg[idx] = 0xFFFFFFFFU;
+                }
+            }
+        }
+
+        rc = true;
+    }
+
+    return rc;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Set CPU GPC wake mask                                                    */
+/*--------------------------------------------------------------------------*/
+static bool CPU_WakeMaskSet(uint32_t cpuIdx, bool maskWakeups)
+{
+    bool rc = false;
+
+    if (cpuIdx < CPU_NUM_IDX)
+    {
+        /* Mask/unmask GPC wakeups */
+        for (uint32_t idx = 0;
+            idx < GPC_CPU_CTRL_CMC_IRQ_WAKEUP_MASK_COUNT;
+            idx++)
+        {
+            if (maskWakeups)
+            {
+                s_gpcCpuCtrlPtrs[cpuIdx]->CMC_IRQ_WAKEUP_MASK[idx] = 0xFFFFFFFFU;
+            }
+            else
+            {
+                s_gpcCpuCtrlPtrs[cpuIdx]->CMC_IRQ_WAKEUP_MASK[idx] = 0x0U;
+            }
+        }
+
+        if (maskWakeups)
+        {
+            /* Mask all GPC non-IRQ wakeups */
+            s_gpcCpuCtrlPtrs[cpuIdx]->CMC_NON_IRQ_WAKEUP_MASK = 0xFFFFFFFFU;
+
+            /* Reset wakeup IRQ_MUX to GPC */
+            rc = CPU_WakeMuxSet(cpuIdx, false);
+        }
+        else
+        {
+            /* Configure GPC non-IRQ wakeups to reset default */
+            s_gpcCpuCtrlPtrs[cpuIdx]->CMC_NON_IRQ_WAKEUP_MASK = 0x1U;
+
+            rc = true;
+        }
+    }
+
+    return rc;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Set GPC wake mask for multiple CPUs                                      */
+/*--------------------------------------------------------------------------*/
+static bool CPU_WakeMaskMultiSet(uint32_t cpuIdx, bool maskWakeups)
+{
+    bool rc = false;
+
+    if (cpuIdx < CPU_NUM_IDX)
+    {
+        uint32_t cpuIdxCur = cpuIdx;
+        uint32_t cpuIdxEnd = cpuIdx;
+        if (cpuIdx == CPU_IDX_A55P)
+        {
+            cpuIdxCur = CPU_IDX_A55C0;
+            cpuIdxEnd = CPU_IDX_A55P;
+        }
+        do
+        {
+            /* Set GPC wake mask for each CPU */
+            rc = CPU_WakeMaskSet(cpuIdxCur, maskWakeups);
+            ++cpuIdxCur;
+        } while (rc && (cpuIdxCur <= cpuIdxEnd));
+    }
+
+    return rc;
+}
+
 
 /*--------------------------------------------------------------------------*/
 /* Set CPU power domain LPM config                                          */
@@ -1631,6 +1758,18 @@ bool CPU_LpmConfigInit(uint32_t cpuIdx)
                     /* Include A55P sleep status in evaluation of system suspend */
                     rc = CPU_SleepForceSet(CPU_IDX_A55P, false);
 
+                    /* Enable top-level IRQs */
+                    if (rc)
+                    {
+                        rc = CPU_IrqMaskSet(CPU_IDX_A55P, false);
+                    }
+
+                    /* Reset GPC wake masks */
+                    if (rc)
+                    {
+                        rc = CPU_WakeMaskMultiSet(CPU_IDX_A55P, false);
+                    }
+
                     /* Initialize A55P LPM MIX dependencies */
                     if (rc)
                     {
@@ -1642,6 +1781,18 @@ bool CPU_LpmConfigInit(uint32_t cpuIdx)
             {
                 /* Include CPU sleep status in evaluation of system suspend */
                 rc = CPU_SleepForceSet(cpuIdx, false);
+
+                /* Enable top-level IRQs */
+                if (rc)
+                {
+                    rc = CPU_IrqMaskSet(cpuIdx, false);
+                }
+
+                /* Reset GPC wake masks */
+                if (rc)
+                {
+                    rc = CPU_WakeMaskSet(cpuIdx, false);
+                }
             }
         }
     }
@@ -1664,6 +1815,12 @@ bool CPU_LpmConfigDeInit(uint32_t cpuIdx, uint32_t lpmSetting)
         s_cpuNocMixDependMask &= (~cpuMask);
         s_cpuWakeMixDependMask &= (~cpuMask);
 
+        /* Remove CPU sleep status in evaluation of system suspend */
+        if (lpmSetting == CPU_PD_LPM_ON_NEVER)
+        {
+            (void) CPU_SleepForceSet(cpuIdx, true);
+        }
+
         uint32_t cpuIdxCur = cpuIdx;
         uint32_t cpuIdxEnd = cpuIdx;
         if (cpuIdx == CPU_IDX_A55P)
@@ -1675,12 +1832,6 @@ bool CPU_LpmConfigDeInit(uint32_t cpuIdx, uint32_t lpmSetting)
         {
             /* Remove CPU LPM MIX dependencies */
             rc = CPU_LpmMixDependSet(cpuIdxCur, lpmSetting);
-
-            /* Remove CPU sleep status in evaluation of system suspend */
-            if (rc)
-            {
-                rc = CPU_SleepForceSet(cpuIdxCur, true);
-            }
             ++cpuIdxCur;
         } while (rc && (cpuIdxCur <= cpuIdxEnd));
     }
@@ -1784,7 +1935,7 @@ bool CPU_PerLpiConfigGet(uint32_t cpuIdx, uint32_t perLpiIdx,
 }
 
 /*--------------------------------------------------------------------------*/
-/* Initalize CPU peripheral low-power interface config                      */
+/* Initialize CPU peripheral low-power interface config                     */
 /*--------------------------------------------------------------------------*/
 bool CPU_PerLpiConfigInit(uint32_t cpuIdx)
 {
@@ -1944,7 +2095,7 @@ void CPU_MixPowerDownNotify(uint32_t srcMixIdx)
 }
 
 /*--------------------------------------------------------------------------*/
-/* Set reset vector                                                         */
+/* Set CPU reset vector                                                     */
 /*--------------------------------------------------------------------------*/
 bool CPU_ResetVectorSet(uint32_t cpuIdx, uint64_t vector)
 {
@@ -1978,7 +2129,7 @@ bool CPU_ResetVectorSet(uint32_t cpuIdx, uint64_t vector)
 }
 
 /*--------------------------------------------------------------------------*/
-/* Get reset vector                                                         */
+/* Get CPU reset vector                                                     */
 /*--------------------------------------------------------------------------*/
 bool CPU_ResetVectorGet(uint32_t cpuIdx, uint64_t *vector)
 {
@@ -2013,3 +2164,4 @@ bool CPU_ResetVectorGet(uint32_t cpuIdx, uint64_t *vector)
 
     return rc;
 }
+

@@ -58,9 +58,18 @@
 
 /* Local variables */
 
-/*! Boot times */
+/* Flag to indicate if the LMM has initialized */
+static bool s_lmmInited = false;
+
+/* Global variables */
+
+/* Boot times */
 // coverity[misra_c_2012_rule_8_9_violation:FALSE]
 uint64_t g_bootTime[SM_BT_SUB + 1U];
+
+#ifdef HAS_SM_TEST_MODE
+uint32_t g_testMode = SM_TEST_MODE_OFF;
+#endif
 
 /* Local functions */
 
@@ -94,6 +103,11 @@ int main(int argc, const char * const argv[])
         SM_BUILD, SM_COMMIT, SM_DATE, SM_TIME);
     printf("SM Configuration: %s\n\n", CONFIG_STR);
 
+#if MONITOR_MODE == 2
+    printf("Press key to enter monitor mode.\n\n",
+        SM_BUILD, SM_COMMIT, SM_DATE, SM_TIME);
+#endif
+
     /* Add to subtract time */
     g_bootTime[SM_BT_SUB] += (DEV_SM_Usec64Get() - delta);
 
@@ -105,9 +119,12 @@ int main(int argc, const char * const argv[])
         printf("LMM_Init: %d\n", status);
     }
 
-    /* Boot LMs */
     if (status == SM_ERR_SUCCESS)
     {
+        /* Mark LMM inited */
+        s_lmmInited = true;
+
+        /* Boot LMs */
         status = LMM_Boot();
         printf("LMM_Boot: %d\n", status);
     }
@@ -142,18 +159,59 @@ int main(int argc, const char * const argv[])
     }
 #endif
 
-#ifdef MONITOR
+#if MONITOR_MODE == 1
     /* Call monitor */
     MONITOR_Cmd("\n*** SM Debug Monitor ***\n");
 #endif
 
-#if !defined(RUN_TEST) && !defined(MONITOR)
+#ifndef SIMU
+#if MONITOR_MODE == 2
+    /* Idle loop */
+    while (status == SM_ERR_SUCCESS)
+    {
+        bool runMonitor = false;
+        const board_uart_config_t *uartConfig = BOARD_GetDebugUart();
+
+        /* Grab sleep count to detect idle/sleep */
+        uint32_t prevSleepCnt = g_syslog.sysSleepRecord.sleepCnt;
+
+        /* Enter system idle */
+        status = DEV_SM_SystemIdle();
+
+        /* Check if system idle succeeded */
+        if ((status == SM_ERR_SUCCESS) && (uartConfig != NULL))
+        {
+            /* Check if if system entered sleep */
+            if (prevSleepCnt != g_syslog.sysSleepRecord.sleepCnt)
+            {
+                /* Check if system sleep wake source was console UART */
+                if (g_syslog.sysSleepRecord.wakeSource ==
+                    (uartConfig->irq + 16U))
+                {
+                    runMonitor = true;
+                }
+            }
+            else
+            {
+                /* Check for console character */
+                runMonitor = MONITOR_CharPending();
+            }
+        }
+
+        if ((status == SM_ERR_SUCCESS) && runMonitor)
+        {
+            /* Call monitor */
+            MONITOR_Cmd("\n*** SM Debug Monitor ***\n");
+        }
+    }
+#elif !defined(RUN_TEST)
     printf("\n*** SM Main Loop ***\n");
     /* Loop - services handled via interrupts */
-    do
+    while (status == SM_ERR_SUCCESS)
     {
         status = DEV_SM_SystemIdle();
-    } while (status == SM_ERR_SUCCESS);
+    }
+#endif
 #endif
 
     printf("\nGood-bye from SM\n\n");
@@ -166,22 +224,40 @@ int main(int argc, const char * const argv[])
 /*--------------------------------------------------------------------------*/
 void SM_Error(int32_t status)
 {
-    uint32_t pc = 0U;
+    if (s_lmmInited)
+    {
+        uint32_t pc = 0U;
 
 #if !defined(SIMU) && !defined(CPPCHECK)
-    /* Get the LR as PC */
-    // coverity[misra_c_2012_rule_1_2_violation:FALSE]
-    __ASM ("MOV %0, LR\n" : "=r" (pc));
+        /* Get the LR as PC */
+        // coverity[misra_c_2012_rule_1_2_violation:FALSE]
+        __ASM ("MOV %0, LR\n" : "=r" (pc));
 #endif
 
 #ifdef USES_FUSA
-    /* Report to FuSa */
-    LMM_FuSaAssertionFailure(status);
+        /* Report to FuSa */
+        LMM_FuSaAssertionFailure(status);
 #endif
 
-    /* Request board reset */
-    BRD_SM_Exit(status, pc);
+        /* Request board reset */
+        BRD_SM_Exit(status, pc);
+    }
+    else
+    {
+        /* Reset when LMM not initialized */
+        (void) SM_SYSTEMRESET();
+    }
 }
+
+#ifdef HAS_SM_TEST_MODE
+/*--------------------------------------------------------------------------*/
+/* Set test mode                                                            */
+/*--------------------------------------------------------------------------*/
+void SM_TestModeSet(uint32_t mode)
+{
+    g_testMode = mode;
+}
+#endif
 
 #if !defined(SIMU) && !defined(INC_LIBC)
 /*--------------------------------------------------------------------------*/
@@ -189,17 +265,33 @@ void SM_Error(int32_t status)
 /*--------------------------------------------------------------------------*/
 // coverity[misra_c_2012_rule_21_2_violation:FALSE]
 // coverity[misra_c_2012_rule_21_8_violation:FALSE]
+// coverity[misra_c_2012_directive_4_6_violation:FALSE]
 void exit(int status)
 {
-    uint32_t pc;
+    if (s_lmmInited)
+    {
+        uint32_t pc;
 
-    /* Get the LR as PC */
-    // coverity[misra_c_2012_rule_1_2_violation:FALSE]
-    __ASM ("MOV %0, LR\n" : "=r" (pc));
+        /* Get the LR as PC */
+        // coverity[misra_c_2012_rule_1_2_violation:FALSE]
+        __ASM ("MOV %0, LR\n" : "=r" (pc));
 
-    /* Request board reset */
-    BRD_SM_Exit((int32_t) status, pc);
-    __builtin_unreachable();
+        /* Request board reset */
+        BRD_SM_Exit((int32_t) status, pc);
+        __builtin_unreachable();
+    }
+    else
+    {
+        /* Reset when LMM not initialized */
+        (void) SM_SYSTEMRESET();
+    }
+
+    /* Hang */
+    // coverity[infinite_loop:FALSE]
+    while (true)
+    {
+        ; /* Intentional empty while */
+    }
 }
 #endif
 
@@ -207,6 +299,7 @@ void exit(int status)
 /*--------------------------------------------------------------------------*/
 /* C array init for no clib                                                 */
 /*--------------------------------------------------------------------------*/
+// coverity[misra_c_2012_rule_21_2_violation:FALSE]
 void __libc_init_array(void)
 {
 }

@@ -54,8 +54,10 @@
 
 /* Local variables */
 
-static uint32_t s_powerMode = 0U;
+static uint32_t s_sysSleepMode = 0U;
+static uint32_t s_sysSleepFlags = 0U;
 static dev_sm_rst_rec_t s_shutdownRecord = { 0 };
+static BLK_CTRL_DDRMIX_Type ddr_blk_ctrl;
 
 /*--------------------------------------------------------------------------*/
 /* Initialize system functions                                              */
@@ -79,14 +81,8 @@ int32_t DEV_SM_SystemInit(void)
         s_shutdownRecord.valid = true;
     }
 
-#if 0
-    /* TODO:  Enable GPC-to-ELE handshake */
+    /* Enable GPC-to-ELE handshake */
     GPC_GLOBAL->GPC_SENTINEL_HDSK_CTRL = 1U;
-
-    /* TODO:  Use DEEPSLEEP output of M33 to reflect GPC sleep request */
-    BLK_CTRL_NS_AONMIX->GPC_CFG |=
-        BLK_CTRL_NS_AONMIX_GPC_CFG_M33_SLEEP_SEL_MASK;
-#endif
 
     /* Default to keep M7 clocks running during sleep modes */
     BLK_CTRL_S_AONMIX->M7_CFG |=
@@ -98,11 +94,13 @@ int32_t DEV_SM_SystemInit(void)
 }
 
 /*--------------------------------------------------------------------------*/
-/* Save power mode                                                          */
+/* Save sleep mode                                                          */
 /*--------------------------------------------------------------------------*/
-void DEV_SM_SystemPowerModeSet(uint32_t powerMode)
+void DEV_SM_SystemSleepModeSet(uint32_t sleepMode, uint32_t sleepFlags)
 {
-    s_powerMode = powerMode;
+    /* Record system sleep mode and flags */
+    s_sysSleepMode = sleepMode;
+    s_sysSleepFlags = sleepFlags;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -250,6 +248,9 @@ int32_t DEV_SM_SystemPostBoot(uint32_t mSel, uint32_t initFlags)
     int32_t status = SM_ERR_SUCCESS;
     uint32_t priMask;
 
+    /* Clear BBM */
+    status = DEV_SM_BbmClear();
+
     /* Disable interrupts */
     priMask = DisableGlobalIRQ();
 
@@ -321,7 +322,7 @@ int32_t DEV_SM_SystemSleep(uint32_t sleepMode)
         [CLOCK_PLL_HSIO] = CLOCK_SRC_HSIOPLL_VCO,
         [CLOCK_PLL_LDB] = CLOCK_SRC_LDBPLL_VCO
     };
-    static src_mem_slice_t *const s_srcMemPtrs[] = SRC_MEM_BASE_PTRS;
+    static src_mem_slice_t const *const s_srcMemPtrs[] = SRC_MEM_BASE_PTRS;
 
     int32_t status = SM_ERR_SUCCESS;
     uint32_t s_clkRootCtrl[DEV_SM_NUM_SLEEP_ROOTS];
@@ -336,8 +337,9 @@ int32_t DEV_SM_SystemSleep(uint32_t sleepMode)
     /* Reset wake source of sleep record */
     g_syslog.sysSleepRecord.wakeSource = 0U;
 
-    /* Capture system power mode */
-    g_syslog.sysSleepRecord.sysPwrMode = s_powerMode;
+    /* Capture system sleep mode/flags */
+    g_syslog.sysSleepRecord.sysSleepMode = s_sysSleepMode;
+    g_syslog.sysSleepRecord.sysSleepFlags = s_sysSleepFlags;
 
     /* Capture power status of MIXes */
     g_syslog.sysSleepRecord.mixPwrStat = 0U;
@@ -452,7 +454,7 @@ int32_t DEV_SM_SystemSleep(uint32_t sleepMode)
         if (sysSleepStat == CPU_SLEEP_MODE_SUSPEND)
         {
             /* Board-level sleep prepare */
-            BOARD_SystemSleepPrepare(sleepMode);
+            BOARD_SystemSleepPrepare(s_sysSleepMode, s_sysSleepFlags);
 
             /* Disable sensor */
             (void) DEV_SM_SensorPowerDown(DEV_SM_SENSOR_TEMP_ANA);
@@ -461,22 +463,18 @@ int32_t DEV_SM_SystemSleep(uint32_t sleepMode)
             g_syslog.sysSleepRecord.sleepCnt++;
 
             bool dramInRetention = false;
-            /* Check DRAM system power mode flag */
-            if ((s_powerMode & DEV_SM_SPM_DRAM_ACTIVE_MASK) == 0U)
+            /* Attempt to place DRAM into retention */
+            if (DEV_SM_SystemDramRetentionEnter() == SM_ERR_SUCCESS)
             {
-                /* Attempt to place DRAM into retention */
-                if (DEV_SM_SystemDramRetentionEnter() == SM_ERR_SUCCESS)
-                {
-                    /* Set flag to indicate DRAM retention is active */
-                    dramInRetention = true;
+                /* Set flag to indicate DRAM retention is active */
+                dramInRetention = true;
 
-                    /* Power down DDRMIX */
-                    if (DEV_SM_PowerStateSet(DEV_SM_PD_DDR, DEV_SM_POWER_STATE_OFF)
-                        == SM_ERR_SUCCESS)
-                    {
-                        g_syslog.sysSleepRecord.mixPwrStat &=
-                            (~(1UL << PWR_MIX_SLICE_IDX_DDR));
-                    }
+                /* Power down DDRMIX */
+                if (DEV_SM_PowerStateSet(DEV_SM_PD_DDR, DEV_SM_POWER_STATE_OFF)
+                    == SM_ERR_SUCCESS)
+                {
+                    g_syslog.sysSleepRecord.mixPwrStat &=
+                        (~(1UL << PWR_MIX_SLICE_IDX_DDR));
                 }
             }
 
@@ -518,7 +516,7 @@ int32_t DEV_SM_SystemSleep(uint32_t sleepMode)
                 wakeIdx < GPC_CPU_CTRL_CMC_IRQ_WAKEUP_MASK_COUNT;
                 wakeIdx++)
             {
-                /* Save contex of SM IRQs enabled at NVIC level */
+                /* Save context of SM IRQs enabled at NVIC level */
                 nvicISER[wakeIdx] = NVIC->ISER[wakeIdx];
 
                 /* Clear unused system-level IRQs */
@@ -542,22 +540,34 @@ int32_t DEV_SM_SystemSleep(uint32_t sleepMode)
             /* Set target M33P sleep mode */
             (void) CPU_SleepModeSet(CPU_IDX_M33P, sleepMode);
 
-            /* Check OSC_24M and DRAM system power mode flags */
-            if (((s_powerMode & DEV_SM_SPM_OSC24M_ACTIVE_MASK) == 0U) &&
-                ((s_powerMode & DEV_SM_SPM_DRAM_ACTIVE_MASK) == 0U))
+            /* Extract and clamp performance level from system sleep mode */
+            uint32_t perfLevelSleep = (s_sysSleepMode & 0xF0U) >> 4U;
+            if (perfLevelSleep > DEV_SM_PERF_LVL_ODV)
+            {
+                perfLevelSleep = DEV_SM_PERF_LVL_ODV;
+            }
+
+            /* System remains active during sleep based on performance level
+             * and OSC24M configuration.
+             */
+            bool activeSleep = (perfLevelSleep != DEV_SM_PERF_LVL_PRK) ||
+                ((s_sysSleepFlags & DEV_SM_SSF_OSC24M_ACTIVE_MASK) != 0U);
+
+            /* Check if OSC24M must remain active */
+            if (activeSleep)
+            {
+                /* Keep OSC_24M active during system sleep */
+                GPC_GLOBAL->GPC_ROSC_CTRL = 0U;
+            }
+            else
             {
                 /* Shut off OSC_24M during system sleep */
                 GPC_GLOBAL->GPC_ROSC_CTRL =
                     GPC_GLOBAL_GPC_ROSC_CTRL_ROSC_OFF_EN_MASK;
             }
-            else
-            {
-                /* Keep OSC_24M active during system sleep */
-                GPC_GLOBAL->GPC_ROSC_CTRL = 0U;
-            }
 
-            /* Check PMIC_STBY system power mode flag */
-            if ((s_powerMode & DEV_SM_SPM_PMIC_STBY_INACTIVE_MASK) == 0U)
+            /* Check PMIC_STBY system sleep mode flag */
+            if ((s_sysSleepFlags & DEV_SM_SSF_PMIC_STBY_INACTIVE_MASK) == 0U)
             {
                 /* Enable GPC PMIC standby control */
                 GPC_GLOBAL->GPC_PMIC_CTRL =
@@ -573,60 +583,72 @@ int32_t DEV_SM_SystemSleep(uint32_t sleepMode)
             GPC_GLOBAL->GPC_EFUSE_CTRL =
                 GPC_GLOBAL_GPC_EFUSE_CTRL_EFUSE_PD_EN_MASK;
 
-            /* Move ELE and SM clock roots to OSC_24M to allow SysPLL to be
-             * powered down.  OSC_24M may be gated by hardware during final phases
-             * of system SUSPEND entry.
-             */
-            for (uint32_t sleepRootIdx = 0U;
-                sleepRootIdx < DEV_SM_NUM_SLEEP_ROOTS;
-                sleepRootIdx++)
+            if (activeSleep)
             {
-                uint32_t rootIdx = s_clkRootSleepList[sleepRootIdx];
+                /* If staying active, move to system sleep performance level */
+                (void) DEV_SM_PerfSystemSleep(perfLevelSleep);
+            }
+            else
+            {
+                /* Move ELE and SM clock roots to OSC_24M to allow SysPLL to be
+                 * powered down. OSC_24M may be gated by hardware during final phases
+                 * of system SUSPEND entry.
+                 */
+                for (uint32_t sleepRootIdx = 0U;
+                    sleepRootIdx < DEV_SM_NUM_SLEEP_ROOTS;
+                    sleepRootIdx++)
+                {
+                    uint32_t rootIdx = s_clkRootSleepList[sleepRootIdx];
 
-                /* Save clock root context */
-                s_clkRootCtrl[sleepRootIdx] =
-                    CCM_CTRL->CLOCK_ROOT[rootIdx].CLOCK_ROOT_CONTROL.RW;
+                    /* Save clock root context */
+                    s_clkRootCtrl[sleepRootIdx] =
+                        CCM_CTRL->CLOCK_ROOT[rootIdx].CLOCK_ROOT_CONTROL.RW;
 
-                /* Set MUX = 0 (OSC_24M) */
-                CCM_CTRL->CLOCK_ROOT[rootIdx].CLOCK_ROOT_CONTROL.CLR =
-                    CCM_CLOCK_ROOT_MUX_MASK;
+                    /* Set MUX = 0 (OSC_24M) */
+                    CCM_CTRL->CLOCK_ROOT[rootIdx].CLOCK_ROOT_CONTROL.CLR =
+                        CCM_CLOCK_ROOT_MUX_MASK;
 
-                /* Set DIV = 0 (/1) */
-                CCM_CTRL->CLOCK_ROOT[rootIdx].CLOCK_ROOT_CONTROL.CLR =
-                    CCM_CLOCK_ROOT_DIV_MASK;
+                    /* Set DIV = 0 (/1) */
+                    CCM_CTRL->CLOCK_ROOT[rootIdx].CLOCK_ROOT_CONTROL.CLR =
+                        CCM_CLOCK_ROOT_DIV_MASK;
+                }
             }
 
-            /* Power down SYSPLL clock nodes */
-            uint32_t clkSrcIdx = CLOCK_SRC_SYSPLL1_PFD2_DIV2;
-            while (clkSrcIdx >= CLOCK_SRC_SYSPLL1_VCO)
+            /* Check if sleep performance level allows SYSPLL disable */
+            if (perfLevelSleep == DEV_SM_PERF_LVL_PRK)
             {
-                (void) CLOCK_SourceSetEnable(clkSrcIdx, false);
-                clkSrcIdx--;
+                /* Power down SYSPLL clock nodes */
+                uint32_t clkSrcIdx = CLOCK_SRC_SYSPLL1_PFD2_DIV2;
+                while (clkSrcIdx >= CLOCK_SRC_SYSPLL1_VCO)
+                {
+                    (void) CLOCK_SourceSetEnable(clkSrcIdx, false);
+                    clkSrcIdx--;
+                }
+                g_syslog.sysSleepRecord.pllPwrStat &= (~(1UL << CLOCK_PLL_SYS1));
             }
-            g_syslog.sysSleepRecord.pllPwrStat &= (~(1UL << CLOCK_PLL_SYS1));
 
             /* Board-level sleep entry */
-            BOARD_SystemSleepEnter(sleepMode);
+            BOARD_SystemSleepEnter(s_sysSleepMode, s_sysSleepFlags);
 
             /* Process SM LPIs for sleep entry */
             (void) CPU_PerLpiProcess(CPU_IDX_M33P, sleepMode);
-
-            /* Check FRO system power mode flag */
-            if ((s_powerMode & DEV_SM_SPM_FRO_ACTIVE_MASK) == 0U)
-            {
-                /* Power down FRO */
-                FRO->CSR.CLR = FRO_CSR_FROEN_MASK;
-            }
 
             /* Capture sleep entry latency */
             g_syslog.sysSleepRecord.sleepEntryUsec =
                 UINT64_L(DEV_SM_Usec64Get() - sleepEntryStart);
 
-            /* Check SYSCTR system power mode flag */
-            if ((s_powerMode & DEV_SM_SPM_SYSCTR_ACTIVE_MASK) != 0U)
+            /* Check SYSCTR system sleep mode flag */
+            if ((s_sysSleepFlags & DEV_SM_SSF_SYSCTR_ACTIVE_MASK) != 0U)
             {
                 /* Switch SYSCTR to low-freq mode (blocking) */
                 SYSCTR_FreqMode(true, true);
+            }
+
+            /* Check FRO system sleep mode flag */
+            if ((s_sysSleepFlags & DEV_SM_SSF_FRO_ACTIVE_MASK) == 0U)
+            {
+                /* Power down FRO */
+                FRO->CSR.CLR = FRO_CSR_FROEN_MASK;
             }
 
             /* Enter WFI to trigger sleep entry */
@@ -635,11 +657,14 @@ int32_t DEV_SM_SystemSleep(uint32_t sleepMode)
             __WFI();
             __ISB();
 
-            /* Check SYSCTR system power mode flag
+            /* Power up FRO */
+            FRO->CSR.SET = FRO_CSR_FROEN_MASK;
+
+            /* Check SYSCTR system sleep mode flag
              *
              * NOTE: switch completion required before read of exit timestamp
              */
-            if ((s_powerMode & DEV_SM_SPM_SYSCTR_ACTIVE_MASK) != 0U)
+            if ((s_sysSleepFlags & DEV_SM_SSF_SYSCTR_ACTIVE_MASK) != 0U)
             {
                 /* Switch SYSCTR to high-freq mode (blocking) */
                 SYSCTR_FreqMode(false, true);
@@ -647,13 +672,6 @@ int32_t DEV_SM_SystemSleep(uint32_t sleepMode)
 
             /* Capture start of sleep exit */
             sleepExitStart = DEV_SM_Usec64Get();
-
-            /* Check FRO system power mode flag */
-            if ((s_powerMode & DEV_SM_SPM_FRO_ACTIVE_MASK) != 0U)
-            {
-                /* Power up FRO */
-                FRO->CSR.SET = FRO_CSR_FROEN_MASK;
-            }
 
             /* Capture wake source */
             g_syslog.sysSleepRecord.wakeSource =
@@ -664,30 +682,42 @@ int32_t DEV_SM_SystemSleep(uint32_t sleepMode)
             (void) CPU_PerLpiProcess(CPU_IDX_M33P, CPU_SLEEP_MODE_RUN);
 
             /* Board-level sleep exit */
-            BOARD_SystemSleepExit(sleepMode);
+            BOARD_SystemSleepExit(s_sysSleepMode, s_sysSleepFlags);
 
-            /* Power up SYSPLL clock nodes */
-            clkSrcIdx = CLOCK_SRC_SYSPLL1_VCO;
-            while (clkSrcIdx <= CLOCK_SRC_SYSPLL1_PFD2_DIV2)
+            /* Check if sleep performance level requires SYSPLL enable */
+            if (perfLevelSleep == DEV_SM_PERF_LVL_PRK)
             {
-                (void) CLOCK_SourceSetEnable(clkSrcIdx, true);
-                clkSrcIdx++;
+                /* Power up SYSPLL clock nodes */
+                uint32_t clkSrcIdx = CLOCK_SRC_SYSPLL1_VCO;
+                while (clkSrcIdx <= CLOCK_SRC_SYSPLL1_PFD2_DIV2)
+                {
+                    (void) CLOCK_SourceSetEnable(clkSrcIdx, true);
+                    clkSrcIdx++;
+                }
             }
 
-            /* Restore ELE and SM clock roots */
-            for (uint32_t sleepRootIdx = 0U;
-                sleepRootIdx < DEV_SM_NUM_SLEEP_ROOTS;
-                sleepRootIdx++)
+            if (activeSleep)
             {
-                uint32_t rootIdx = s_clkRootSleepList[sleepRootIdx];
+                /* Move to system wake performance level */
+                (void) DEV_SM_PerfSystemWake(perfLevelSleep);
+            }
+            else
+            {
+                /* Restore ELE and SM clock roots */
+                for (uint32_t sleepRootIdx = 0U;
+                    sleepRootIdx < DEV_SM_NUM_SLEEP_ROOTS;
+                    sleepRootIdx++)
+                {
+                    uint32_t rootIdx = s_clkRootSleepList[sleepRootIdx];
 
-                /* Restore DIV */
-                CCM_CTRL->CLOCK_ROOT[rootIdx].CLOCK_ROOT_CONTROL.SET =
-                    s_clkRootCtrl[sleepRootIdx] & CCM_CLOCK_ROOT_DIV_MASK;
+                    /* Restore DIV */
+                    CCM_CTRL->CLOCK_ROOT[rootIdx].CLOCK_ROOT_CONTROL.SET =
+                        s_clkRootCtrl[sleepRootIdx] & CCM_CLOCK_ROOT_DIV_MASK;
 
-                /* Restore MUX */
-                CCM_CTRL->CLOCK_ROOT[rootIdx].CLOCK_ROOT_CONTROL.SET =
-                    s_clkRootCtrl[sleepRootIdx] & CCM_CLOCK_ROOT_MUX_MASK;
+                    /* Restore MUX */
+                    CCM_CTRL->CLOCK_ROOT[rootIdx].CLOCK_ROOT_CONTROL.SET =
+                        s_clkRootCtrl[sleepRootIdx] & CCM_CLOCK_ROOT_MUX_MASK;
+                }
             }
 
             /* Power up eFUSE */
@@ -743,7 +773,7 @@ int32_t DEV_SM_SystemSleep(uint32_t sleepMode)
             (void) DEV_SM_SensorPowerUp(DEV_SM_SENSOR_TEMP_ANA);
 
             /* Board-level sleep unprepare */
-            BOARD_SystemSleepUnprepare(sleepMode);
+            BOARD_SystemSleepUnprepare(s_sysSleepMode, s_sysSleepFlags);
         }
     }
 
@@ -768,7 +798,7 @@ int32_t DEV_SM_SystemSleep(uint32_t sleepMode)
                 if (!sleepForce)
                 {
                     /* IRQs enabled at NVIC level become GPC wake sources */
-                    for (uint32_t wakeIdx = 0;
+                    for (uint32_t wakeIdx = 0U;
                         wakeIdx < GPC_CPU_CTRL_CMC_IRQ_WAKEUP_MASK_COUNT;
                         wakeIdx++)
                     {
@@ -795,8 +825,8 @@ int32_t DEV_SM_SystemIdle(void)
 
     __disable_irq();
 
-    /* Check if system power mode flag allows system sleep */
-    if ((s_powerMode & DEV_SM_SPM_SM_ACTIVE_MASK) == 0U)
+    /* Check if system sleep mode flag allows system sleep */
+    if ((s_sysSleepFlags & DEV_SM_SSF_SM_ACTIVE_MASK) == 0U)
     {
         /* Check if conditions allow system sleep */
         uint32_t sysSleepStat;
@@ -854,6 +884,19 @@ int32_t DEV_SM_SystemDramRetentionEnter(void)
 
     if (status == SM_ERR_SUCCESS)
     {
+        /* Save DDRMIX block control */
+        ddr_blk_ctrl.HWFFC_CTRL = BLK_CTRL_DDRMIX->HWFFC_CTRL;
+        ddr_blk_ctrl.DDRC_STOP_CTRL = BLK_CTRL_DDRMIX->DDRC_STOP_CTRL;
+        ddr_blk_ctrl.AUTO_CG_CTRL = BLK_CTRL_DDRMIX->AUTO_CG_CTRL;
+        ddr_blk_ctrl.DDRC_EXCLUSIVE_EN = BLK_CTRL_DDRMIX->DDRC_EXCLUSIVE_EN;
+        ddr_blk_ctrl.DDRC_URGENT_EN = BLK_CTRL_DDRMIX->DDRC_URGENT_EN;
+        ddr_blk_ctrl.RT_MASTER_ID_0_1 = BLK_CTRL_DDRMIX->RT_MASTER_ID_0_1;
+        ddr_blk_ctrl.RT_MASTER_ID_2_3 = BLK_CTRL_DDRMIX->RT_MASTER_ID_2_3;
+        ddr_blk_ctrl.AXI_PARITY_ERR_INJECT =
+            BLK_CTRL_DDRMIX->AXI_PARITY_ERR_INJECT;
+        ddr_blk_ctrl.RT_MASTER_ID_4_5 = BLK_CTRL_DDRMIX->RT_MASTER_ID_4_5;
+        ddr_blk_ctrl.RT_MASTER_ID_6_7 = BLK_CTRL_DDRMIX->RT_MASTER_ID_6_7;
+
         /* Enter retention */
         if (!DDR_EnterRetention(ddr))
         {
@@ -881,6 +924,7 @@ int32_t DEV_SM_SystemDramRetentionEnter(void)
         }
     }
 
+    /* Return status */
     return status;
 }
 
@@ -982,8 +1026,22 @@ int32_t DEV_SM_SystemDramRetentionExit(void)
         {
             status = SM_ERR_HARDWARE_ERROR;
         }
+
+        /* Restore DDRMIX block control */
+        BLK_CTRL_DDRMIX->HWFFC_CTRL = ddr_blk_ctrl.HWFFC_CTRL;
+        BLK_CTRL_DDRMIX->DDRC_STOP_CTRL = ddr_blk_ctrl.DDRC_STOP_CTRL;
+        BLK_CTRL_DDRMIX->AUTO_CG_CTRL = ddr_blk_ctrl.AUTO_CG_CTRL;
+        BLK_CTRL_DDRMIX->DDRC_EXCLUSIVE_EN = ddr_blk_ctrl.DDRC_EXCLUSIVE_EN;
+        BLK_CTRL_DDRMIX->DDRC_URGENT_EN = ddr_blk_ctrl.DDRC_URGENT_EN;
+        BLK_CTRL_DDRMIX->RT_MASTER_ID_0_1 = ddr_blk_ctrl.RT_MASTER_ID_0_1;
+        BLK_CTRL_DDRMIX->RT_MASTER_ID_2_3 = ddr_blk_ctrl.RT_MASTER_ID_2_3;
+        BLK_CTRL_DDRMIX->AXI_PARITY_ERR_INJECT =
+            ddr_blk_ctrl.AXI_PARITY_ERR_INJECT;
+        BLK_CTRL_DDRMIX->RT_MASTER_ID_4_5 = ddr_blk_ctrl.RT_MASTER_ID_4_5;
+        BLK_CTRL_DDRMIX->RT_MASTER_ID_6_7 = ddr_blk_ctrl.RT_MASTER_ID_6_7;
     }
 
+    /* Return status */
     return status;
 }
 

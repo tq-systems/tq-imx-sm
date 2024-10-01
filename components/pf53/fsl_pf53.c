@@ -94,10 +94,9 @@ bool PF53_Init(const PF53_Type *dev)
 /*--------------------------------------------------------------------------*/
 /* Get info                                                                 */
 /*--------------------------------------------------------------------------*/
-bool PF53_PmicInfoGet(const PF53_Type *dev, uint8_t **info, uint8_t *len)
+bool PF53_PmicInfoGet(PF53_Type *dev, uint8_t **info, uint8_t *len)
 {
     bool rc = true;
-    static uint8_t devId[4];
 
     if ((info == NULL) || (len == NULL))
     {
@@ -105,11 +104,11 @@ bool PF53_PmicInfoGet(const PF53_Type *dev, uint8_t **info, uint8_t *len)
     }
     else
     {
-        if (devId[0] == 0U)
+        if (dev->id[0] == 0U)
         {
-            for (uint8_t addr = 0U; addr < 4U; addr++)
+            for (uint8_t addr = 0U; addr < PF53_ID_LEN; addr++)
             {
-                rc = PF53_PmicRead(dev, addr, &devId[addr]);
+                rc = PF53_PmicRead(dev, addr, &(dev->id[addr]));
                 if (!rc)
                 {
                     break;
@@ -121,8 +120,8 @@ bool PF53_PmicInfoGet(const PF53_Type *dev, uint8_t **info, uint8_t *len)
     /* Return results */
     if (rc)
     {
-        *info = devId;
-        *len = 4U;
+        *info = dev->id;
+        *len = PF53_ID_LEN;
     }
 
     /* Return status */
@@ -195,7 +194,7 @@ bool PF53_PmicWrite(const PF53_Type *dev, uint8_t regAddr, uint8_t val,
 /*--------------------------------------------------------------------------*/
 bool PF53_PmicRead(const PF53_Type *dev, uint8_t regAddr, uint8_t *val)
 {
-    bool rc = true;
+    bool rc;
 
     if (regAddr < PF53_NUM_REG)
     {
@@ -320,7 +319,7 @@ bool PF53_SwModeSet(const PF53_Type *dev, uint8_t regulator, uint8_t state,
                 modeVal, modeMask);
 
             /* Wait for write to latch and voltage to ramp */
-            SystemTimeDelay(100U);
+            SystemTimeDelay(540U);
         }
     }
 
@@ -385,7 +384,7 @@ bool PF53_VoltageSet(const PF53_Type *dev, uint8_t regulator, uint8_t state,
                 voltCode, 0xFFU);
 
             /* Wait for write to latch and voltage to ramp */
-            SystemTimeDelay(100U);
+            SystemTimeDelay(180U);
         }
         else
         {
@@ -446,7 +445,7 @@ bool PF53_VoltageGet(const PF53_Type *dev, uint8_t regulator, uint8_t state,
 /*--------------------------------------------------------------------------*/
 bool PF53_TempGet(const PF53_Type *dev, int32_t *temp)
 {
-    bool rc = true;
+    bool rc;
     uint8_t sns;
 
     rc = PF53_PmicRead(dev, PF53_REG_INT_SENSE2, &sns);
@@ -489,7 +488,7 @@ bool PF53_TempGet(const PF53_Type *dev, int32_t *temp)
 bool PF53_WdogEnable(const PF53_Type *dev, bool wdogEn)
 {
     uint8_t wdEn;
-    bool rc = true;
+    bool rc;
 
     if (wdogEn)
     {

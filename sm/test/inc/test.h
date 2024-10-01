@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-** Copyright 2023 NXP
+** Copyright 2023-2024 NXP
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -53,6 +53,7 @@
 #include "test_config.h"
 #include "sm.h"
 #include "brd_sm.h"
+#include "test_dev.h"
 
 /* Defines */
 
@@ -273,6 +274,8 @@ void TEST(void);
 
 #ifdef TEST_ALL
 void TEST_BrdSmSensor(void);
+void TEST_BrdSm(void);
+void TEST_BrdSmControl(void);
 void TEST_DevSmPower(void);
 void TEST_DevSmClock(void);
 void TEST_DevSmSensor(void);
@@ -285,12 +288,16 @@ void TEST_DevSmControl(void);
 void TEST_DevSmSystem(void);
 void TEST_DevSmRdc(void);
 void TEST_DevSmPin(void);
+void TEST_DevSmFault(void);
 void TEST_DevSm(void);
 void TEST_LmmClock(void);
 void TEST_LmmPerf(void);
 void TEST_LmmPower(void);
 void TEST_LmmSys(void);
 void TEST_LmmCpu(void);
+void TEST_LmmSensor(void);
+void TEST_LmmMisc(void);
+void TEST_LmmFuSa(void);
 void TEST_LmmVoltage(void);
 void TEST_Scmi(void);
 void TEST_ScmiBase(void);

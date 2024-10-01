@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-** Copyright 2023 NXP
+** Copyright 2023-2024 NXP
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -78,6 +78,12 @@ void TEST_DevSmSensor(void)
         printf("  name=%s\n",  name);
         printf("  len=%d\n",  len);
 
+        /*Branch coverage */
+        SM_TestModeSet(SM_TEST_MODE_DEV_LVL1);
+        NECHECK((DEV_SM_SensorNameGet(sensorId, &name, &len)),
+            SM_ERR_TEST);
+        SM_TestModeSet(SM_TEST_MODE_OFF);
+
         printf("DEV_SM_SensorDescribe(%u)\n", sensorId);
         CHECK(DEV_SM_SensorDescribe(sensorId, &sensor));
 
@@ -88,11 +94,15 @@ void TEST_DevSmSensor(void)
         printf("  timestampExponent=%u\n",
             sensor.timestampExponent);
 
-        /* Enable sensor*/
+        /* Enable sensor */
         printf("DEV_SM_SensorEnable(%u)\n", sensorId);
         CHECK(DEV_SM_SensorEnable(sensorId, enable, timestampReporting));
 
-        /* Check to see if sensor got enabled*/
+        /* Sensor config start */
+        printf("DEV_SM_SensorConfigStart(%u)\n", sensorId);
+        CHECK(DEV_SM_SensorConfigStart(sensorId));
+
+        /* Check to see if sensor got enabled */
         printf("DEV_SM_SensorIsEnabled(%u)\n", sensorId);
         CHECK(DEV_SM_SensorIsEnabled(sensorId, &enabled,
             &timestampReporting));
@@ -104,24 +114,25 @@ void TEST_DevSmSensor(void)
         CHECK(DEV_SM_SensorReadingGet(sensorId, &sensorValue,
             &sensorTimestamp));
 
-        /* Turn off sensor*/
+        /* Turn off sensor */
         printf("DEV_SM_SensorEnable(%u)\n", sensorId);
         CHECK(DEV_SM_SensorEnable(sensorId, !enable, timestampReporting));
 
-        /* Check to see if sensor is off*/
+        /* Check to see if sensor is off */
         printf("DEV_SM_SensorIsEnabled(%u)\n", sensorId);
         CHECK(DEV_SM_SensorIsEnabled(sensorId, &enabled,
             &timestampReporting));
         printf("  enable=%u\n",  enabled);
         printf("  timestampReporting=%u\n",  timestampReporting);
 
-        /* Run ReadingGet with sensor disabled to make sure it returns error*/
+        /* Run ReadingGet with sensor disabled to make sure
+           it returns error */
         printf("DEV_SM_SensorReadingGet(%u)\n", sensorId);
         NECHECK(DEV_SM_SensorReadingGet(sensorId, &sensorValue,
             &sensorTimestamp), SM_ERR_NOT_SUPPORTED);
 
         /* Check if timestampSupport is on and then return error or does
-            timestamping */
+           timestamping */
         if (!sensor.timestampSupport)
         {
             printf("DEV_SM_SensorEnable(%u)\n", sensorId);
@@ -135,7 +146,7 @@ void TEST_DevSmSensor(void)
                 sensorId, !enable, true));
         }
 
-        /* Incorrect parameters for trippointset*/
+        /* Incorrect parameters for trippointset */
         printf("DEV_SM_SensorTripPointSet(%u)\n", sensorId);
         NECHECK(DEV_SM_SensorTripPointSet(
             sensorId, 0U, 0, 0U), SM_ERR_NOT_SUPPORTED);

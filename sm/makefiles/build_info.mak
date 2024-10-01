@@ -30,16 +30,18 @@
 ##
 ## ###################################################################
 
-SM_VERSION = imx_sm_2024q2
-SM_PREV_VER = imx_sm_2024q1
+SM_VERSION = imx_sm_2024q3
+SM_PREV_VER = imx_sm_2024q2
 SM_SNAP = 0
 
 SM_DEVICES = i.MX95 (A0), i.MX95 (A1)
-SM_ELE_VER = 0.0.3
+SM_ELE_VER = 1.2.0
 
-MKIMAGE_BRANCH = lf-6.6.23_2.0.0
-MKIMAGE_BUILD = Linux_IMX_6.6.23_2.0.0_RC2
+MKIMAGE_BRANCH = lf-6.6.36_2.1.0
+MKIMAGE_BUILD = Linux_IMX_6.6.36_2.1.0_RC2
 MKIMAGE_N = latest
+
+GIT_EXISTS=$(shell (git rev-parse --show-cdup 2>/dev/null) && echo 1 || echo 0)
 
 $(OUT)/build_info.h :
 	@echo "Generating $@"
@@ -54,8 +56,17 @@ $(OUT)/build_info.h :
 	$(AT)/bin/echo '#define SM_DEVICES "$(SM_DEVICES)"' >> $@
 	$(AT)/bin/echo '#define SM_ELE_VER "$(SM_ELE_VER)"' >> $@
 	$(AT)/bin/echo '' >> $@
+ifeq (0,$(GIT_EXISTS))
+	$(AT)/bin/echo '#define SM_BRANCH Unknown' >> $@
+	$(AT)/bin/echo '#define SM_BUILD 0UL' >> $@
+	$(AT)/bin/echo '#define SM_COMMIT 0x0UL' >> $@
+else
 	$(AT)/bin/echo -n '#define SM_BRANCH ' >> $@
+ifeq ($(origin BRANCH),undefined)
 	$(AT)-git rev-parse --abbrev-ref HEAD >> $@
+else
+	$(AT)/bin/echo $(BRANCH) >> $@
+endif
 	$(AT)-perl -pi -e 'chomp if eof' $@
 	$(AT)/bin/echo '' >> $@
 	$(AT)/bin/echo -n '#define SM_BUILD ' >> $@
@@ -66,6 +77,7 @@ $(OUT)/build_info.h :
 	$(AT)-git rev-parse --short=8 HEAD >> $@
 	$(AT)-perl -pi -e 'chomp if eof' $@
 	$(AT)/bin/echo 'UL' >> $@
+endif
 	$(AT)date +'#define SM_DATE "%b %d %C%y"' >> $@
 	$(AT)date +'#define SM_TIME "%T"' >> $@
 	$(AT)/bin/echo '' >> $@
@@ -82,7 +94,11 @@ rn_info.sed :
 	$(AT)/bin/echo "sed -i 's/\#SM_DEVICES/$(SM_DEVICES)/g' rn.md" >> $@
 	$(AT)/bin/echo "sed -i 's/\#SM_ELE_VER/$(SM_ELE_VER)/g' rn.md" >> $@
 	$(AT)/bin/echo -n "sed -i 's/\#SM_BRANCH/" >> $@
+ifeq ($(origin BRANCH),undefined)
 	$(AT)-git rev-parse --abbrev-ref HEAD >> $@
+else
+	$(AT)/bin/echo $(BRANCH) >> $@
+endif
 	$(AT)-perl -pi -e 'chomp if eof' $@
 	$(AT)/bin/echo "/g' rn.md" >> $@
 	$(AT)/bin/echo -n "sed -i 's/\#SM_BUILD/" >> $@

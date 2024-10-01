@@ -2,8 +2,8 @@
 *   @file    eMcem_VfccuFaultList_MIMX95XX.c
 *   @version 0.4.0
 *
-*   @brief   MIMX_SAF eMcem - Specific ERM channels source.
-*   @details Contains specific ERM error channels data for eMcem module.
+*   @brief   MIMX_SAF eMcem - Specific VFCCU faults source.
+*   @details Contains specific VFCCU faults data for eMcem module.
 *
 *   @addtogroup EMCEM_COMPONENT
 *   @{
@@ -13,7 +13,7 @@
 *   Platform             : CORTEXM
 *
 *   SW Version           : 0.4.0
-*   Build Version        : IMX95_SAF_0_4_0_CD01_20231113
+*   Build Version        : MIMX9X_SAF_0_4_0
 *
 *   Copyright 2021-2024 NXP
 *   Detailed license terms of software usage can be found in the license.txt
@@ -86,10 +86,11 @@ extern "C"{
     #error "Software Version Numbers of eMcem_VfccuFaultList_MIMX95XX.c and MIMX_SAF version are different"
 #endif
 
+#if defined(SAFETY_BASE_MIMX95XX)
 /*==================================================================================================
 *                          LOCAL TYPEDEFS (STRUCTURES, UNIONS, ENUMS)
 ==================================================================================================*/
-#if SAFETY_BASE_MIMX95XX
+
 
 /*==================================================================================================
 *                                       LOCAL MACROS
@@ -137,7 +138,7 @@ extern "C"{
 *                                       GLOBAL FUNCTIONS
 ==================================================================================================*/
 
-#endif /* SAFETY_BASE_MIMX95XX */
+#endif /* defined(SAFETY_BASE_MIMX95XX) */
 
 #ifdef __cplusplus
 }

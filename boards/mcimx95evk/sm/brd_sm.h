@@ -54,13 +54,17 @@
 #include "brd_sm_control.h"
 #include "brd_sm_sensor.h"
 #include "brd_sm_voltage.h"
+#include "brd_sm_bbm.h"
 #include "board.h"
 #include "brd_sm_api.h"
 
 /* Defines */
 
-/*! Vendor string */
-#define SCMI_SUB_VENDOR  "i.MX95 EVK"
+/*! Board name string */
+#define BRD_SM_NAME  "i.MX95 EVK"
+
+/*! Board attributes */
+#define BRD_SM_ATTR  0x0
 
 /*!
  * @name Board redirection defines

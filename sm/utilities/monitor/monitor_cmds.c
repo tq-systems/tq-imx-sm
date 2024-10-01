@@ -118,6 +118,8 @@ static int32_t MONITOR_CmdCpu(int32_t argc, const char * const argv[],
     int32_t rw);
 static int32_t MONITOR_CmdCtrl(int32_t argc, const char * const argv[],
     int32_t rw);
+static int32_t MONITOR_CmdExtCtrl(int32_t argc, const char * const argv[],
+    int32_t rw);
 static int32_t MONITOR_CmdMd(int32_t argc, const char * const argv[],
     int32_t len);
 static int32_t MONITOR_CmdMm(int32_t argc, const char * const argv[],
@@ -132,8 +134,9 @@ static int32_t MONITOR_CmdIdle(int32_t argc, const char * const argv[]);
 static int32_t MONITOR_CmdAssert(int32_t argc, const char * const argv[]);
 static int32_t MONITOR_CmdSyslog(int32_t argc, const char * const argv[]);
 static int32_t MONITOR_CmdGroup(int32_t argc, const char * const argv[]);
-static int32_t MONITOR_CmdSpm(int32_t argc, const char * const argv[]);
+static int32_t MONITOR_CmdSsm(int32_t argc, const char * const argv[]);
 static int32_t MONITOR_CmdCustom(int32_t argc, const char * const argv[]);
+static int32_t MONITOR_CmdTest(int32_t argc, const char * const argv[]);
 
 /* Local Variables */
 
@@ -188,6 +191,8 @@ int32_t MONITOR_Dispatch(char *line)
         "ctrl.r",
         "ctrl.w",
         "ctrl.notify",
+        "extctrl.r",
+        "extctrl.w",
         "md.b",
         "md.w",
         "md",
@@ -202,8 +207,9 @@ int32_t MONITOR_Dispatch(char *line)
         "assert",
         "syslog",
         "grp",
-        "spm",
-        "custom"
+        "ssm",
+        "custom",
+        "test"
     };
 
     /* Parse Line */
@@ -333,55 +339,64 @@ int32_t MONITOR_Dispatch(char *line)
             case 36:  /* ctrl.notify */
                 status = MONITOR_CmdCtrl(argc - 1, &argv[1], NOTIFY);
                 break;
-            case 37:  /* md.b */
+            case 37:  /* extctrl.r */
+                status = MONITOR_CmdExtCtrl(argc - 1, &argv[1], READ);
+                break;
+            case 38:  /* extctrl.w */
+                status = MONITOR_CmdExtCtrl(argc - 1, &argv[1], WRITE);
+                break;
+            case 39:  /* md.b */
                 status = MONITOR_CmdMd(argc - 1, &argv[1], BYTE);
                 break;
-            case 38:  /* md.w */
+            case 40:  /* md.w */
                 status = MONITOR_CmdMd(argc - 1, &argv[1], WORD);
                 break;
-            case 39:  /* md.l */
+            case 41:  /* md.l */
                 status = MONITOR_CmdMd(argc - 1, &argv[1], LONG);
                 break;
-            case 40:  /* mm.b */
+            case 42:  /* mm.b */
                 status = MONITOR_CmdMm(argc - 1, &argv[1], BYTE);
                 break;
-            case 41:  /* mm.w */
+            case 43:  /* mm.w */
                 status = MONITOR_CmdMm(argc - 1, &argv[1], WORD);
                 break;
-            case 42:  /* mm.l */
+            case 44:  /* mm.l */
                 status = MONITOR_CmdMm(argc - 1, &argv[1], LONG);
                 break;
-            case 43:  /* fuse.r */
+            case 45:  /* fuse.r */
                 status = MONITOR_CmdFuse(argc - 1, &argv[1], READ);
                 break;
-            case 44:  /* fuse.w */
+            case 46:  /* fuse.w */
                 status = MONITOR_CmdFuse(argc - 1, &argv[1], WRITE);
                 break;
 #ifdef BOARD_HAS_PMIC
-            case 45:  /* pmic.r */
+            case 47:  /* pmic.r */
                 status = MONITOR_CmdPmic(argc - 1, &argv[1], READ);
                 break;
-            case 46:  /* pmic.w */
+            case 48:  /* pmic.w */
                 status = MONITOR_CmdPmic(argc - 1, &argv[1], WRITE);
                 break;
 #endif
-            case 47:  /* idle */
+            case 49:  /* idle */
                 status = MONITOR_CmdIdle(argc - 1, &argv[1]);
                 break;
-            case 48:  /* assert */
+            case 50:  /* assert */
                 status = MONITOR_CmdAssert(argc - 1, &argv[1]);
                 break;
-            case 49:  /* syslog */
+            case 51:  /* syslog */
                 status = MONITOR_CmdSyslog(argc - 1, &argv[1]);
                 break;
-            case 50:  /* group */
+            case 52:  /* group */
                 status = MONITOR_CmdGroup(argc - 1, &argv[1]);
                 break;
-            case 51:  /* spm */
-                status = MONITOR_CmdSpm(argc - 1, &argv[1]);
+            case 53:  /* ssm */
+                status = MONITOR_CmdSsm(argc - 1, &argv[1]);
                 break;
-            case 52:  /* custom */
+            case 54:  /* custom */
                 status = MONITOR_CmdCustom(argc - 1, &argv[1]);
+                break;
+            case 55:  /* test */
+                status = MONITOR_CmdTest(argc - 1, &argv[1]);
                 break;
             default:
                 status = SM_ERR_NOT_FOUND;
@@ -417,7 +432,8 @@ static int32_t MONITOR_CmdInfo(int32_t argc, const char * const argv[])
     cfgName = LMM_CfgInfoGet(&mSel);
     printf("SM Config     = %s, mSel=%u\n", cfgName, mSel);
 
-    printf("Platform      = %s\n", SCMI_SUB_VENDOR);
+    /* Get the board info */
+    printf("Board         = %s, attr=0x%08X\n", BRD_SM_NAME, BRD_SM_ATTR);
 
     /* Get the silicon info */
     if (SM_SIINFOGET(&deviceId, &siRev, &partNum, (string*) &siName)
@@ -429,78 +445,56 @@ static int32_t MONITOR_CmdInfo(int32_t argc, const char * const argv[])
     /* Display ROM passover info */
     if (LMM_MiscRomPassoverGet(0U, &passover) == SM_ERR_SUCCESS)
     {
-        /* Display boot mode */
-        printf("Boot mode     = ");
-        switch (passover->bootMode)
+        const monitor_key_pair_t bootModePairs[] =
         {
-            default:
-                printf("fuse\n");
-                break;
-            case DEV_SM_ROM_BM_USB:
-                printf("USB serial download\n");
-                break;
-            case DEV_SM_ROM_BM_NORMAL:
-                printf("normal\n");
-                break;
-            case DEV_SM_ROM_BM_LOOP:
-                printf("infinite loop\n");
-                break;
-            case DEV_SM_ROM_BM_TEST:
-                printf("test\n");
-                break;
-        }
+            {4U,                   "fuse"},
+            {DEV_SM_ROM_BM_USB,    "USB serial download"},
+            {DEV_SM_ROM_BM_NORMAL, "normal"},
+            {DEV_SM_ROM_BM_LOOP,   "infinite loop"},
+            {DEV_SM_ROM_BM_TEST,   "test"}
+        };
+        const monitor_key_pair_t devTypePairs[] =
+        {
+            {6U,                         "preload"},
+            {DEV_SM_ROM_BD_SD,           "SD"},
+            {DEV_SM_ROM_BD_MMC,          "MMC"},
+            {DEV_SM_ROM_BD_FLEXSPINAND,  "NAND FLEXSPI"},
+            {DEV_SM_ROM_BD_FLEXSPINOR,   "NOR FLEXSPI"},
+            {DEV_SM_ROM_BD_LPSPIEEPROM,  "EPROM LPSPI"},
+            {DEV_SM_ROM_BD_USB,          "USB"}
+        };
+        const monitor_key_pair_t bootStagePairs[] =
+        {
+            {3U,                       "primary"},
+            {DEV_SM_ROM_BS_SECONDARY,  "secondary"},
+            {DEV_SM_ROM_BS_RECOVERY,   "recovery"},
+            {DEV_SM_ROM_BS_SERIAL,     "serial"}
+        };
+
+        /* Display boot mode */
+        printf("Boot mode     = %s\n", MONITOR_Key2Str(passover->bootMode,
+            bootModePairs));
 
         /* Display boot device */
-        printf("Boot device   = ");
-        switch (passover->bootDevType)
+        printf("Boot device   = %s", MONITOR_Key2Str(passover->bootDevType,
+            devTypePairs));
+        if (passover->bootDevType != DEV_SM_ROM_BD_PRELOAD)
         {
-            default:
-                printf("preload\n");
-                break;
-            case DEV_SM_ROM_BD_SD:
-                printf("SD%u\n", passover->bootDevInst + 1U);
-                break;
-            case DEV_SM_ROM_BD_MMC:
-                printf("MMC%u\n", passover->bootDevInst + 1U);
-                break;
-            case DEV_SM_ROM_BD_FLEXSPINAND:
-                printf("FLEXSPI (NAND)\n");
-                break;
-            case DEV_SM_ROM_BD_FLEXSPINOR:
-                printf("FLEXSPI (NOR)\n");
-                break;
-            case DEV_SM_ROM_BD_LPSPIEEPROM:
-                printf("LPSPI (EEPROM)\n");
-                break;
-            case DEV_SM_ROM_BD_USB:
-                if (passover->bootDevInst == 3U)
-                {
-                    printf("USB%u\n", 1U);
-                }
-                else
-                {
-                    printf("USB%u\n", passover->bootDevInst + 1U);
-                }
-                break;
+            if ((passover->bootDevType == DEV_SM_ROM_BD_USB)
+                && (passover->bootDevInst == 3U))
+            {
+                printf("%u", 1U);
+            }
+            else
+            {
+                printf("%u", passover->bootDevInst + 1U);
+            }
         }
+        printf("\n");
 
-        /* Display boot type */
-        printf("Boot type     = ");
-        switch (passover->bootStage)
-        {
-            default:
-                printf("primary\n");
-                break;
-            case DEV_SM_ROM_BS_SECONDARY:
-                printf("secondary\n");
-                break;
-            case DEV_SM_ROM_BS_RECOVERY:
-                printf("recovery\n");
-                break;
-            case DEV_SM_ROM_BS_SERIAL:
-                printf("serial\n");
-                break;
-        }
+        /* Display boot stage */
+        printf("Boot stage    = %s\n", MONITOR_Key2Str(passover->bootStage,
+            bootStagePairs));
 
         /* Display container */
         printf("Boot set      = %d\n", passover->imgSetSel + 1U);
@@ -809,6 +803,7 @@ static int32_t MONITOR_CmdReason(int32_t argc, const char * const argv[])
         BRD_SM_ResetRecordPrint("Shutdown:", shutdownRec);
     }
 
+    /* Return status */
     return SM_ERR_SUCCESS;
 }
 
@@ -1460,6 +1455,7 @@ static int32_t MONITOR_CmdClock(int32_t argc, const char * const argv[],
 
                         if (status == SM_ERR_SUCCESS)
                         {
+                            uint32_t enb = (enabled ? 1U : 0U);
                             string const displayModes[] =
                             {
                                 "off",
@@ -1468,7 +1464,6 @@ static int32_t MONITOR_CmdClock(int32_t argc, const char * const argv[],
 
                             if (SM_UINT64_H(rate) == 0U)
                             {
-                                uint32_t enb = (enabled ? 1U : 0U);
                                 printf("%03u: %*s = %3s, %10uHz\n", clockId,
                                     -wName, clockNameAddr,
                                     displayModes[enb],
@@ -1476,7 +1471,6 @@ static int32_t MONITOR_CmdClock(int32_t argc, const char * const argv[],
                             }
                             else
                             {
-                                uint32_t enb = (enabled ? 1U : 0U);
                                 printf("%03u: %*s = %3s, %10sHz\n",
                                     clockId,
                                     -wName, clockNameAddr,
@@ -1566,7 +1560,11 @@ static int32_t MONITOR_CmdClock(int32_t argc, const char * const argv[],
                         case 2:
                             {
                                 errno = 0;
-                                uint32_t ext = strtoul(argv[1], NULL, 0);
+                                uint32_t ext = 0x80U;
+                                if (argc > 1)
+                                {
+                                    ext = strtoul(argv[1], NULL, 0);
+                                }
 
                                 if (errno == 0)
                                 {
@@ -1822,56 +1820,57 @@ static int32_t MONITOR_CmdSensor(int32_t argc, const char * const argv[],
                         status = LMM_SensorIsEnabled(s_lm, sensor,
                             &enabled, &timestampReporting);
                     }
-                    if (enabled)
+                    if (status == SM_ERR_SUCCESS)
                     {
-                        if (status == SM_ERR_SUCCESS)
+                        if (enabled)
                         {
                             status = LMM_SensorReadingGet(s_lm, sensor,
                                 &sensorValue, &sensorTimestamp);
-                        }
 
-                        if (status == SM_ERR_SUCCESS)
+                            if (status == SM_ERR_SUCCESS)
+                            {
+                                int64_t exponent = 1;
+                                int64_t sensorWhole;
+                                int64_t sensorFrac;
+
+                                /* Calculate exponent factor */
+                                if (desc.sensorExponent > 0)
+                                {
+                                    while (desc.sensorExponent > 0)
+                                    {
+                                        exponent *= 10;
+                                        desc.sensorExponent--;
+                                    }
+                                    sensorWhole = sensorValue * exponent;
+                                    sensorFrac = 0;
+                                }
+                                else
+                                {
+                                    while (desc.sensorExponent < 0)
+                                    {
+                                        exponent *= 10;
+                                        desc.sensorExponent++;
+                                    }
+                                    sensorWhole = sensorValue / exponent;
+                                    sensorFrac = sensorValue % exponent;
+                                    sensorFrac = (sensorFrac < 0) ? -sensorFrac
+                                        : sensorFrac;
+                                }
+
+                                /* Print status */
+                                int32_t sensorWhole32 = (int32_t) sensorWhole;
+                                int32_t sensorFrac32 = (int32_t) sensorFrac;
+                                printf("%03u: %*s = %s, %d.%dC\n",
+                                    sensor, -wName,
+                                    sensorNameAddr, sensorModes[1],
+                                    sensorWhole32, sensorFrac32);
+                            }
+                        }
+                        else
                         {
-                            int64_t exponent = 1;
-                            int64_t sensorWhole;
-                            int64_t sensorFrac;
-
-                            /* Calculate exponent factor */
-                            if (desc.sensorExponent > 0)
-                            {
-                                while (desc.sensorExponent > 0)
-                                {
-                                    exponent *= 10;
-                                    desc.sensorExponent--;
-                                }
-                                sensorWhole = sensorValue * exponent;
-                                sensorFrac = 0;
-                            }
-                            else
-                            {
-                                while (desc.sensorExponent < 0)
-                                {
-                                    exponent *= 10;
-                                    desc.sensorExponent++;
-                                }
-                                sensorWhole = sensorValue / exponent;
-                                sensorFrac = sensorValue % exponent;
-                                sensorFrac = (sensorFrac < 0) ? -sensorFrac
-                                    : sensorFrac;
-                            }
-
-                            /* Print status */
-                            int32_t sensorWhole32 = (int32_t) sensorWhole;
-                            int32_t sensorFrac32 = (int32_t) sensorFrac;
-                            printf("%03u: %*s = %s, %d.%dC\n", sensor, -wName,
-                                sensorNameAddr, sensorModes[1],
-                                sensorWhole32, sensorFrac32);
+                            printf("%03u: %*s = %s\n", sensor, -wName,
+                                sensorNameAddr, sensorModes[0]);
                         }
-                    }
-                    else
-                    {
-                        printf("%03u: %*s = %s\n", sensor, -wName,
-                            sensorNameAddr, sensorModes[0]);
                     }
                 }
             }
@@ -2084,9 +2083,28 @@ static int32_t MONITOR_CmdBbRtc(int32_t argc, const char * const argv[],
 
             if (status == SM_ERR_SUCCESS)
             {
-                printf("%03u: %*s = %u seconds\n", rtcId, -wName,
+                uint32_t state = 0U;
+
+                printf("%03u: %*s = %u seconds", rtcId, -wName,
                     rtcName, SM_UINT64_L(sec));
+
+                status = LMM_BbmRtcStateGet(s_lm, rtcId, &state);
+
+                if (status == SM_ERR_SUCCESS)
+                {
+                    if ((state & LMM_BBM_STATE_RESET) != 0U)
+                    {
+                        printf (" (reset)");
+                    }
+                    if ((state & LMM_BBM_STATE_BATT_LOW) != 0U)
+                    {
+                        printf (" (batt)");
+                    }
+                }
+
+                printf ("\n");
             }
+            status = SM_ERR_SUCCESS;
         }
     }
     else
@@ -2147,6 +2165,7 @@ static int32_t MONITOR_CmdBbTicks(int32_t argc, const char * const argv[],
                 printf("%03u: %*s = %u ticks\n", rtcId, -wName,
                     rtcName, SM_UINT64_L(ticks));
             }
+            status = SM_ERR_SUCCESS;
         }
     }
     else
@@ -2481,6 +2500,104 @@ static int32_t MONITOR_CmdCtrl(int32_t argc, const char * const argv[],
                 }
             }
             break;
+    }
+
+    /* Return status */
+    return status;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Extctrl command                                                          */
+/*--------------------------------------------------------------------------*/
+static int32_t MONITOR_CmdExtCtrl(int32_t argc, const char * const argv[],
+    int32_t rw)
+{
+    int32_t status = SM_ERR_SUCCESS;
+
+    if (argc >= 2)
+    {
+        uint32_t ctrl;
+        uint32_t addr;
+        uint32_t len = 0U;
+        uint32_t val[24];
+
+        /* Get control */
+        status = MONITOR_ConvU32(argv[0], &ctrl);
+
+        if (status == SM_ERR_SUCCESS)
+        {
+            /* Convert control */
+            if ((ctrl & LMM_CTRL_FLAG_BRD) != 0U)
+            {
+                ctrl &= ~LMM_CTRL_FLAG_BRD;
+                ctrl += DEV_SM_NUM_CTRL;
+            }
+
+            /* Get address */
+            status = MONITOR_ConvU32(argv[1], &addr);
+        }
+
+        if (rw == READ)
+        {
+            if (argc != 3)
+            {
+                status = SM_ERR_MISSING_PARAMETERS;
+            }
+
+            if (status == SM_ERR_SUCCESS)
+            {
+                /* Get length */
+                status = MONITOR_ConvU32(argv[2], &len);
+            }
+
+            if (status == SM_ERR_SUCCESS)
+            {
+                /* Read data */
+                status = LMM_MiscControlExtGet(s_lm, ctrl, addr,
+                    len, val);
+            }
+
+            if (status == SM_ERR_SUCCESS)
+            {
+                if (ctrl < DEV_SM_NUM_CTRL)
+                {
+                    printf("0x%04X:", ctrl);
+                }
+                else
+                {
+                    printf("0x%04X:", (ctrl
+                        - (uint32_t) DEV_SM_NUM_CTRL)
+                        | LMM_CTRL_FLAG_BRD);
+                }
+                for (uint32_t idx = 0U; idx < len; idx++)
+                {
+                    printf(" 0x%02X", val[idx]);
+                }
+                printf("\n");
+            }
+        }
+        else
+        {
+            /* Get data */
+            while ((status == SM_ERR_SUCCESS) && (len <
+                ((uint32_t) argc) - 2U))
+            {
+                status = MONITOR_ConvU32(argv[len + 2U],
+                    &val[len]);
+                len++;
+            }
+
+            /* Write to control */
+            if (status == SM_ERR_SUCCESS)
+            {
+                status = LMM_MiscControlExtSet(s_lm, ctrl, addr,
+                    len, val);
+            }
+        }
+    }
+    else
+    {
+        status = SM_ERR_MISSING_PARAMETERS;
     }
 
     /* Return status */
@@ -2901,7 +3018,7 @@ static int32_t MONITOR_CmdIdle(int32_t argc, const char * const argv[])
             /* Check if if system entered sleep */
             if (prevSleepCnt != g_syslog.sysSleepRecord.sleepCnt)
             {
-                /* Check if system sleep wake source was consule UART */
+                /* Check if system sleep wake source was console UART */
                 if (g_syslog.sysSleepRecord.wakeSource ==
                     (uartConfig->irq + 16U))
                 {
@@ -3055,25 +3172,28 @@ static int32_t MONITOR_CmdGroup(int32_t argc, const char * const argv[])
 }
 
 /*--------------------------------------------------------------------------*/
-/* System power mode                                                        */
+/* System sleep mode                                                        */
 /*--------------------------------------------------------------------------*/
-static int32_t MONITOR_CmdSpm(int32_t argc, const char * const argv[])
+static int32_t MONITOR_CmdSsm(int32_t argc, const char * const argv[])
 {
     int32_t status = SM_ERR_SUCCESS;
 
-    if (argc < 1)
+    if (argc < 2)
     {
         status = SM_ERR_MISSING_PARAMETERS;
     }
     else
     {
-        int32_t spm;
+        uint32_t mode, flags;
 
         /* Parse data */
-        spm = strtol(argv[0], NULL, 0);
+        mode = strtoul(argv[0], NULL, 0);
 
-        /* Set system power mode for the SM */
-        status = LMM_SystemPowerModeSet(0U, spm);
+        /* Parse data */
+        flags = strtoul(argv[1], NULL, 0);
+
+        /* Set system sleep mode/flags for the SM */
+        status = LMM_SystemSleepModeSet(0U, mode, flags);
     }
 
     /* Return status */
@@ -3086,5 +3206,34 @@ static int32_t MONITOR_CmdSpm(int32_t argc, const char * const argv[])
 static int32_t MONITOR_CmdCustom(int32_t argc, const char * const argv[])
 {
     return BRD_SM_Custom(argc, argv);
+}
+
+/*--------------------------------------------------------------------------*/
+/* Test command                                                             */
+/*--------------------------------------------------------------------------*/
+static int32_t MONITOR_CmdTest(int32_t argc, const char * const argv[])
+{
+    int32_t status = SM_ERR_SUCCESS;
+
+    if (argc < 1)
+    {
+        status = SM_ERR_MISSING_PARAMETERS;
+    }
+    else
+    {
+        uint32_t testMode;
+
+        /* Parse data */
+        status = MONITOR_ConvU32(argv[0], &testMode);
+
+        if (status == SM_ERR_SUCCESS)
+        {
+            /* Set test mode */
+            SM_TestModeSet(testMode);
+        }
+    }
+
+    /* Return status */
+    return status;
 }
 

@@ -234,11 +234,23 @@ configuration files.
 The default configuration for this board is [mx95evk](@ref CONFIG_MX95EVK). It defines the following boot
 mode select (mSel) options which can be specified using the MSEL=\<mSel\> option with mkimage.
 
-| mSel        | Description                                                                             |
+| mSel        | Description (mx95evk)                                                                   |
 |-------------|-----------------------------------------------------------------------------------------|
-| 0 (default) | Boot LM1 (M7) and/or LM2 (AP) if images found in container, no errors if images missing |
+| 0 (default) | Boot LM1 (M7) and/or LM2 (AP) if images found in container, no error if images missing  |
 | 1           | Boot LM1 (M7), error if no image in container                                           |
 | 2           | Boot nothing                                                                            |
+
+An aternative configuration for this board is [mx95alt](@ref CONFIG_MX95ALT). It defines the following boot
+mode select (mSel) options which can be specified using the MSEL=\<mSel\> option with mkimage.
+
+| mSel        | Description (mx95alt)                                                                   |
+|-------------|-----------------------------------------------------------------------------------------|
+| 0 (default) | Boot LM1 (M7) if images found in container, no error if image missing                   |
+| 1           | Boot LM1 (AP), error if no image in container                                           |
+| 2           | Boot LM1 (M7 and AP), error if no image in container                                    |
+
+The mx95alt config puts all cores in one LM and they share all IP. This config **isn't valid** but it is
+useful for testing OS drivers and starting various M7 images booted by the AP.
 
 NXP i.MX95 Stub  {#PORT_MX95_SB}
 ---------------
@@ -477,7 +489,11 @@ complex board ports.
 
 -#  Add the new board directory in the INPUT section of the *sm/doc/common.cfg* file.
 
--#  [optional] Update the SCMI_SUB_VENDOR string in the new board *sm/brd_sm.h* file.
+-#  [optional] Update the BRD_SM_NAME string in the new board *sm/brd_sm.h* file. This value is
+    returned via SCMI_MiscBoardInfo().
+
+-#  [optional] Update the BRD_SM_ATTR value in the new board *sm/brd_sm.h* file. This value is
+    board specific and port defined. It is returned via SCMI_MiscBoardInfo(). 
 
 -#  [Compile the documentation](@ref GUIDE_DOC) and ensure the new board port looks correct in the board
     modules section:

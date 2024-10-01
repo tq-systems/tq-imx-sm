@@ -83,6 +83,8 @@ int32_t DEV_SM_ClockNameGet(uint32_t clockId, string *clockNameAddr,
         *clockNameAddr = s_name[clockId];
     }
 
+    SM_TEST_MODE_ERR(SM_TEST_MODE_DEV_LVL1, SM_ERR_TEST)
+
     /* Return status */
     return status;
 }
@@ -107,6 +109,8 @@ int32_t DEV_SM_ClockDescribe(uint32_t clockId,
         range->highestRate = 1200000000U;
         range->stepSize = 1U;
     }
+
+    SM_TEST_MODE_ERR(SM_TEST_MODE_DEV_LVL2, SM_ERR_TEST)
 
     /* Return status */
     return status;
@@ -278,6 +282,8 @@ int32_t DEV_SM_ClockParentGet(uint32_t clockId, uint32_t *parent)
     {
         status = SM_ERR_NOT_FOUND;
     }
+
+    SM_TEST_MODE_ERR(SM_TEST_MODE_DEV_LVL2, SM_ERR_TEST)
 
     /* Return status */
     return status;

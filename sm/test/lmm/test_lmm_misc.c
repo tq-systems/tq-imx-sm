@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-** Copyright 2023 NXP
+** Copyright 2024 NXP
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -33,18 +33,17 @@
 */
 
 /*==========================================================================*/
-/* All unit tests.                                                          */
+/* Unit test for the device SM System API.                                  */
 /*==========================================================================*/
-
-/* TEST_00010 TEST_00020 TEST_00030 */
 
 /* Include Config */
 
 /* Includes */
 
-#include <stdlib.h>
-#include "sm.h"
 #include "test.h"
+#include "lmm.h"
+#include "dev_sm_api.h"
+#include "sm.h"
 
 /* Local defines */
 
@@ -55,64 +54,29 @@
 /* Local functions */
 
 /*--------------------------------------------------------------------------*/
-/* Test all                                                                 */
+/* Test device SM Sensor                                                    */
 /*--------------------------------------------------------------------------*/
-void TEST_All(void)
+void TEST_LmmMisc(void)
 {
-#ifndef TEST_MIN
-    /* Run device SM tests */
-    TEST_DevSmPower();
-    TEST_DevSmClock();
-    TEST_DevSmPerf();
+    /* LM_00010 LM tests */
+    printf("**** LMM Misc API Tests ***\n\n");
+
+    /* Test API bounds */
+    printf("\n**** LMM Misc API Err Tests ***\n\n");
+
 #ifdef SIMU
-    TEST_DevSmSensor();
+    /* Update control notification flags: Invalid LmId */
+    uint32_t lmId = SM_NUM_LM, ctrlId = 0U, flags = 0U;
+
+    NECHECK(LMM_MiscControlFlagsSet(lmId, ctrlId, flags),
+        SM_ERR_INVALID_PARAMETERS);
+
+    /* Update control notification flags: Invalid LmId */
+    lmId = 0U, ctrlId = SM_NUM_CTRL;
+    NECHECK(LMM_MiscControlFlagsSet(lmId, ctrlId, flags),
+        SM_ERR_NOT_FOUND);
+
 #endif
-    TEST_DevSmReset();
-    TEST_DevSmVoltage();
-    TEST_DevSmBbm();
-    TEST_DevSmCpu();
-    TEST_DevSmControl();
-    TEST_DevSmSystem();
-    TEST_DevSmRdc();
-    TEST_DevSmPin();
-    TEST_DevSm();
-
-    /* Run board SM tests */
-#ifdef SIMU
-    TEST_BrdSmSensor();
-#endif
-
-    /* Run LMM tests */
-    TEST_LmmClock();
-    TEST_LmmPerf();
-    TEST_LmmSys();
-    TEST_LmmCpu();
-    TEST_LmmVoltage();
-#endif
-
-    /* Run SCMI tests */
-    TEST_Scmi();
-    TEST_ScmiBase();
-    TEST_ScmiPower();
-    TEST_ScmiSystem();
-    TEST_ScmiPerf();
-    TEST_ScmiClock();
-    TEST_ScmiSensor();
-    TEST_ScmiReset();
-    TEST_ScmiVoltage();
-    TEST_ScmiPinctrl();
-    TEST_ScmiLmm();
-    TEST_ScmiBbmGpr();
-    TEST_ScmiBbmRtc();
-    TEST_ScmiBbmButton();
-    TEST_ScmiCpu();
-    TEST_ScmiFusa();
-    TEST_ScmiMisc();
-
-    /* Run Utility tests */
-    TEST_UtilitiesConfig();
-
-    /* Exit */
-    BRD_SM_Exit(SM_ERR_SUCCESS, 0U);
+    printf("\n");
 }
 

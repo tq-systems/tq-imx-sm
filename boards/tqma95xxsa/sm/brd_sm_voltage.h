@@ -2,7 +2,7 @@
 /*
 ** ###################################################################
 **
-**     Copyright 2023 NXP
+**     Copyright 2023-2024 NXP
 **     Copyright (c) 2024 TQ-Systems GmbH <oss@tq-group.com>, D-82229 Seefeld, Germany.
 **
 **     Redistribution and use in source and binary forms, with or without modification,
@@ -192,6 +192,13 @@ int32_t BRD_SM_VoltageLevelSet(uint32_t domainId, int32_t voltageLevel);
  * - other from BRD_SM_SupplyLevelGet()
  */
 int32_t BRD_SM_VoltageLevelGet(uint32_t domainId, int32_t *voltageLevel);
+
+/*!
+ * Restore voltage levels.
+ *
+ * This function writes the last set voltage levels back to the PMICs.
+ */
+void BRD_SM_VoltageRestore(void);
 
 #endif /* BRD_SM_VOLTAGE_H */
 

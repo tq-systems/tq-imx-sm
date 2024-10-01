@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 NXP
+ * Copyright 2023-2024 NXP
  *
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
@@ -87,6 +87,8 @@
 #define PF09_REG_SECURE_WR1     0x35U
 #define PF09_REG_SECURE_WR2     0x36U
 #define PF09_REG_SYS_CFG1       0x38U
+#define PF09_REG_GPO_CFG        0x39U
+#define PF09_REG_GPO_CTRL       0x3AU
 
 #define PF09_REG_WD_CTRL1       0x4EU
 #define PF09_REG_WD_CTRL2       0x4FU
@@ -203,10 +205,9 @@ bool PF09_Init(const PF09_Type *dev)
 /*--------------------------------------------------------------------------*/
 /* Get info                                                                 */
 /*--------------------------------------------------------------------------*/
-bool PF09_PmicInfoGet(const PF09_Type *dev, uint8_t **info, uint8_t *len)
+bool PF09_PmicInfoGet(PF09_Type *dev, uint8_t **info, uint8_t *len)
 {
     bool rc = true;
-    static uint8_t devId[5];
 
     if ((info == NULL) || (len == NULL))
     {
@@ -214,11 +215,11 @@ bool PF09_PmicInfoGet(const PF09_Type *dev, uint8_t **info, uint8_t *len)
     }
     else
     {
-        if (devId[1] == 0U)
+        if (dev->id[1] == 0U)
         {
-            for (uint8_t addr = 0U; addr < 5U; addr++)
+            for (uint8_t addr = 0U; addr < PF09_ID_LEN; addr++)
             {
-                rc = PF09_PmicRead(dev, addr, &devId[addr]);
+                rc = PF09_PmicRead(dev, addr, &(dev->id[addr]));
                 if (!rc)
                 {
                     break;
@@ -230,8 +231,8 @@ bool PF09_PmicInfoGet(const PF09_Type *dev, uint8_t **info, uint8_t *len)
     /* Return results */
     if (rc)
     {
-        *info = devId;
-        *len = 5U;
+        *info = dev->id;
+        *len = PF09_ID_LEN;
     }
 
     /* Return status */
@@ -304,7 +305,7 @@ bool PF09_PmicWrite(const PF09_Type *dev, uint8_t regAddr, uint8_t val,
 /*--------------------------------------------------------------------------*/
 bool PF09_PmicRead(const PF09_Type *dev, uint8_t regAddr, uint8_t *val)
 {
-    bool rc = true;
+    bool rc;
 
     if (regAddr < PF09_NUM_REG)
     {
@@ -357,33 +358,42 @@ bool PF09_PmicRead(const PF09_Type *dev, uint8_t regAddr, uint8_t *val)
 /*--------------------------------------------------------------------------*/
 /*  Interrupt enable/disable                                                */
 /*--------------------------------------------------------------------------*/
-bool PF09_IntEnable(const PF09_Type *dev, const uint8_t *mask, bool enable)
+bool PF09_IntEnable(const PF09_Type *dev, const uint8_t *mask,
+    uint32_t maskLen, bool enable)
 {
     bool rc = true;
 
-    /* Loop over all mask registers */
-    for (uint32_t idx = 0U; idx < PF09_MASK_LEN; idx++)
+    /* Check mask array size */
+    if (maskLen <= PF09_MASK_LEN)
     {
-        /* State change? */
-        if (mask[idx] != 0U)
+        /* Loop over  mask registers */
+        for (uint32_t idx = 0U; idx < maskLen; idx++)
         {
-            if (enable)
+            /* State change? */
+            if (mask[idx] != 0U)
             {
-                rc = PF09_PmicWrite(dev, maskInfo[idx].addr + 1U, 0x00U,
-                    mask[idx]);
+                if (enable)
+                {
+                    rc = PF09_PmicWrite(dev, maskInfo[idx].addr +
+                        1U, 0x00U, mask[idx]);
+                }
+                else
+                {
+                    rc = PF09_PmicWrite(dev, maskInfo[idx].addr +
+                        1U, 0xFFU, mask[idx]);
+                }
             }
-            else
-            {
-                rc = PF09_PmicWrite(dev, maskInfo[idx].addr + 1U, 0xFFU,
-                    mask[idx]);
-            }
-        }
 
-        /* Exit on error */
-        if (!rc)
-        {
-            break;
+            /* Exit on error */
+            if (!rc)
+            {
+                break;
+            }
         }
+    }
+    else
+    {
+        rc = false;
     }
 
     /* Return status */
@@ -393,32 +403,41 @@ bool PF09_IntEnable(const PF09_Type *dev, const uint8_t *mask, bool enable)
 /*--------------------------------------------------------------------------*/
 /*  Interrupt status                                                        */
 /*--------------------------------------------------------------------------*/
-bool PF09_IntStatus(const PF09_Type *dev, uint8_t *mask)
+bool PF09_IntStatus(const PF09_Type *dev, uint8_t *mask, uint32_t maskLen)
 {
-    bool rc = true;
+    bool rc;
     uint8_t stat;
 
-    rc = PF09_PmicRead(dev, PF09_REG_SYSTEM_INT, &stat);
-    if (rc)
+    /* Check mask array size */
+    if (maskLen <= PF09_MASK_LEN)
     {
-        /* Loop over all mask registers */
-        for (uint32_t idx = 0U; idx < PF09_MASK_LEN; idx++)
+        rc = PF09_PmicRead(dev, PF09_REG_SYSTEM_INT, &stat);
+        if (rc)
         {
-            if ((stat & maskInfo[idx].sysStat) != 0U)
+            /* Loop over mask registers */
+            for (uint32_t idx = 0U; idx < maskLen; idx++)
             {
-                rc = PF09_PmicRead(dev, maskInfo[idx].addr, &mask[idx]);
-
-                /* Exit on error */
-                if (!rc)
+                if ((stat & maskInfo[idx].sysStat) != 0U)
                 {
-                    break;
+                    rc = PF09_PmicRead(dev, maskInfo[idx].addr,
+                        &mask[idx]);
+
+                    /* Exit on error */
+                    if (!rc)
+                    {
+                        break;
+                    }
+                }
+                else
+                {
+                    mask[idx] = 0U;
                 }
             }
-            else
-            {
-                mask[idx] = 0U;
-            }
         }
+    }
+    else
+    {
+        rc = false;
     }
 
     /* Return status */
@@ -428,24 +447,34 @@ bool PF09_IntStatus(const PF09_Type *dev, uint8_t *mask)
 /*--------------------------------------------------------------------------*/
 /*  Interrupt clear                                                         */
 /*--------------------------------------------------------------------------*/
-bool PF09_IntClear(const PF09_Type *dev, const uint8_t *mask)
+bool PF09_IntClear(const PF09_Type *dev, const uint8_t *mask,
+    uint32_t maskLen)
 {
     bool rc = true;
 
-    /* Loop over all mask registers */
-    for (uint32_t idx = 0U; idx < PF09_MASK_LEN; idx++)
+    /* Check mask array size */
+    if (maskLen <= PF09_MASK_LEN)
     {
-        /* Clear any? */
-        if (mask[idx] != 0U)
+        /* Loop over mask registers */
+        for (uint32_t idx = 0U; idx < maskLen; idx++)
         {
-            rc = PF09_PmicWrite(dev, maskInfo[idx].addr, mask[idx], 0xFFU);
-
-            /* Exit on error */
-            if (!rc)
+            /* Clear any? */
+            if (mask[idx] != 0U)
             {
-                break;
+                rc = PF09_PmicWrite(dev, maskInfo[idx].addr, mask[idx],
+                    0xFFU);
+
+                /* Exit on error */
+                if (!rc)
+                {
+                    break;
+                }
             }
         }
+    }
+    else
+    {
+        rc = false;
     }
 
     /* Return status */
@@ -514,12 +543,12 @@ bool PF09_RegulatorInfoGet(uint8_t regulator, PF09_RegInfo *regInfo)
 }
 
 /*--------------------------------------------------------------------------*/
-/* Change Buck regulator run/stby operation mode                            */
+/* Change buck regulator run/stby operation mode                            */
 /*--------------------------------------------------------------------------*/
 bool PF09_SwModeSet(const PF09_Type *dev, uint8_t regulator, uint8_t state,
     uint8_t mode)
 {
-    bool rc = true;
+    bool rc;
 
     if ((state > PF09_STATE_VSTBY) || (mode > PF09_SW_MODE_PWM))
     {
@@ -537,6 +566,10 @@ bool PF09_SwModeSet(const PF09_Type *dev, uint8_t regulator, uint8_t state,
                 PF09_REG_SW1_MODE + ((regulator - 1U) * 5U),
                 modeVal, modeMask);
         }
+        else
+        {
+            rc = false;
+        }
     }
 
     /* Return status */
@@ -544,12 +577,12 @@ bool PF09_SwModeSet(const PF09_Type *dev, uint8_t regulator, uint8_t state,
 }
 
 /*--------------------------------------------------------------------------*/
-/* Get Buck regulator run/stby operation mode                               */
+/* Get buck regulator run/stby operation mode                               */
 /*--------------------------------------------------------------------------*/
 bool PF09_SwModeGet(const PF09_Type *dev, uint8_t regulator, uint8_t state,
     uint8_t *mode)
 {
-    bool rc = true;
+    bool rc;
 
     if ((state > PF09_STATE_VSTBY) || (mode == NULL))
     {
@@ -569,6 +602,10 @@ bool PF09_SwModeGet(const PF09_Type *dev, uint8_t regulator, uint8_t state,
             /* Mask and shift the mode bits */
             *mode = ((*mode) & modeMask) >> (state * 2U);
         }
+        else
+        {
+            rc = false;
+        }
     }
 
     /* Return status */
@@ -576,12 +613,12 @@ bool PF09_SwModeGet(const PF09_Type *dev, uint8_t regulator, uint8_t state,
 }
 
 /*--------------------------------------------------------------------------*/
-/* Enable/Disable linear regulator run/standby output                       */
+/* Enable/disable linear regulator run/standby output                       */
 /*--------------------------------------------------------------------------*/
 bool PF09_LdoEnable(const PF09_Type *dev, uint8_t regulator, uint8_t state,
     bool ldoEn)
 {
-    bool rc = true;
+    bool rc;
 
     if (state > PF09_STATE_VSTBY)
     {
@@ -626,7 +663,7 @@ bool PF09_LdoEnable(const PF09_Type *dev, uint8_t regulator, uint8_t state,
 bool PF09_LdoIsEnabled(const PF09_Type *dev, uint8_t regulator, uint8_t state,
     bool *ldoEn)
 {
-    bool rc = true;
+    bool rc;
 
     if ((state > PF09_STATE_VSTBY) || (ldoEn == NULL))
     {
@@ -655,6 +692,60 @@ bool PF09_LdoIsEnabled(const PF09_Type *dev, uint8_t regulator, uint8_t state,
         else
         {
             rc = false;
+        }
+    }
+
+    /* Return status */
+    return rc;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Change GPIO run/stby control                                             */
+/*--------------------------------------------------------------------------*/
+bool PF09_GpioCtrlSet(const PF09_Type *dev, uint8_t gpio, uint8_t state,
+    bool ctrl)
+{
+    bool rc;
+
+    if ((state > PF09_STATE_VSTBY) || (gpio > PF09_GPIO4))
+    {
+        rc = false;
+    }
+    else
+    {
+        uint8_t ctrlVal = ctrl ? 0xFFU : 0x00U;
+        uint8_t ctrlMask = 1U << ((state * 4U) + gpio);
+
+        rc = PF09_PmicWrite(dev, PF09_REG_GPO_CTRL, ctrlVal, ctrlMask);
+    }
+
+    /* Return status */
+    return rc;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Get GPIO run/stby control                                                */
+/*--------------------------------------------------------------------------*/
+bool PF09_GpioCtrlGet(const PF09_Type *dev, uint8_t gpio, uint8_t state,
+    bool *ctrl)
+{
+    bool rc;
+
+    if ((state > PF09_STATE_VSTBY) || (ctrl == NULL) || (gpio > PF09_GPIO4))
+    {
+        rc = false;
+    }
+    else
+    {
+        uint8_t ctrlVal;
+
+        rc = PF09_PmicRead(dev, PF09_REG_GPO_CTRL, &ctrlVal);
+
+        if (rc)
+        {
+            uint8_t ctrlMask = 1U << ((state * 4U) + gpio);
+
+            *ctrl = ((ctrlVal & ctrlMask) != 0U);
         }
     }
 
@@ -785,7 +876,7 @@ bool PF09_VoltageGet(const PF09_Type *dev, uint8_t regulator, uint8_t state,
 /*--------------------------------------------------------------------------*/
 bool PF09_TempGet(const PF09_Type *dev, int32_t *temp)
 {
-    bool rc = true;
+    bool rc;
     uint8_t sns;
 
     rc = PF09_PmicRead(dev, PF09_REG_STATUS2_SNS, &sns);
@@ -827,7 +918,7 @@ bool PF09_TempGet(const PF09_Type *dev, int32_t *temp)
 /*--------------------------------------------------------------------------*/
 bool PF09_TempAlarmSet(const PF09_Type *dev, int32_t temp)
 {
-    bool rc = true;
+    bool rc;
 
     /* Disable all */
     rc = PF09_PmicWrite(dev, PF09_REG_STATUS2_MASK, 0x0FU, 0x0FU);
@@ -871,7 +962,7 @@ bool PF09_TempAlarmSet(const PF09_Type *dev, int32_t temp)
 bool PF09_WdogEnable(const PF09_Type *dev, bool wdogEn)
 {
     uint8_t wdEn;
-    bool rc = true;
+    bool rc;
 
     if (wdogEn)
     {

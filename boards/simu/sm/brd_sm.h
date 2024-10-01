@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-** Copyright 2023 NXP
+** Copyright 2023-2024 NXP
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -50,14 +50,18 @@
 /* Includes */
 
 #include "sm.h"
+#include "brd_sm_control.h"
 #include "brd_sm_sensor.h"
 #include "brd_sm_bbm.h"
 #include "brd_sm_api.h"
 
 /* Defines */
 
-/*! Vendor string */
-#define SCMI_SUB_VENDOR  "Simulation"
+/*! Board nanme string */
+#define BRD_SM_NAME  "Simulation"
+
+/*! Board attributes */
+#define BRD_SM_ATTR  0x0
 
 /* Types */
 

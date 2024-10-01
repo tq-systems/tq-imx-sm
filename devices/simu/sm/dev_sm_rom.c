@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-**     Copyright 2023 NXP
+**     Copyright 2023-2024 NXP
 **
 **     Redistribution and use in source and binary forms, with or without modification,
 **     are permitted provided that the following conditions are met:
@@ -65,11 +65,22 @@
 
 static uint32_t s_imageIdx = 0U;
 
+/* Global variables */
+
+rom_passover_t g_romPassover =
+{
+    .tag = PASSOVER_TAG,
+    .size = PASSOVER_SIZE,
+    .ver = PASSOVER_VER
+};
+
 /*--------------------------------------------------------------------------*/
 /* Return handover data                                                     */
 /*--------------------------------------------------------------------------*/
 int32_t DEV_SM_RomHandoverGet(const rom_handover_t **handover)
 {
+    int32_t status = SM_ERR_SUCCESS;
+
     /* Storage for fake handover data */
     static const rom_handover_t s_romHandover =
     {
@@ -97,8 +108,10 @@ int32_t DEV_SM_RomHandoverGet(const rom_handover_t **handover)
     /* Return pointer to data */
     *handover = &s_romHandover;
 
+    SM_TEST_MODE_ERR(SM_TEST_MODE_DEV_LVL1, SM_ERR_TEST)
+
     /* Return status */
-    return SM_ERR_SUCCESS;
+    return status;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -106,19 +119,15 @@ int32_t DEV_SM_RomHandoverGet(const rom_handover_t **handover)
 /*--------------------------------------------------------------------------*/
 int32_t DEV_SM_RomPassoverGet(const rom_passover_t **passover)
 {
-    /* Storage for fake passover data */
-    static const rom_passover_t s_romPassover =
-    {
-        .tag = PASSOVER_TAG,
-        .size = PASSOVER_SIZE,
-        .ver = PASSOVER_VER
-    };
+    int32_t status = SM_ERR_SUCCESS;
 
     /* Return pointer to data */
-    *passover = &s_romPassover;
+    *passover = &g_romPassover;
+
+    SM_TEST_MODE_ERR(SM_TEST_MODE_DEV_LVL1, SM_ERR_TEST)
 
     /* Return status */
-    return SM_ERR_SUCCESS;
+    return status;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -228,6 +237,8 @@ int32_t DEV_SM_RomBootCpuGet(uint32_t cpuId, uint64_t *resetVector,
 int32_t DEV_SM_RomStageSet(uint32_t stage)
 {
     int32_t status = SM_ERR_SUCCESS;
+
+    SM_TEST_MODE_ERR(SM_TEST_MODE_DEV_LVL1, SM_ERR_TEST)
 
     /* Return status */
     return status;

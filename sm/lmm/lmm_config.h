@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-** Copyright 2023 NXP
+** Copyright 2023-2024 NXP
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -76,6 +76,18 @@
 #define LMM_SS_CLK   2U  /*!< Clock command */
 #define LMM_SS_CPU   3U  /*!< CPU command */
 #define LMM_SS_VOLT  4U  /*!< Voltage command */
+#define LMM_SS_RST   5U  /*!< Reset command */
+#define LMM_SS_CTRL  6U  /*!< Control command */
+/** @} */
+
+/*!
+ * @name LM auto boot conditions
+ */
+/** @{ */
+#define LMM_AUTO_NONE    0x0U  /*!< No LM auto boot */
+#define LMM_AUTO_BUTTON  0x1U  /*!< Auto boot from ON/OFF button */
+#define LMM_AUTO_RTC     0x2U  /*!< Auto boot from RTC alarm */
+#define LMM_AUTO_BOTH    0x3U  /*!< Always boot from button & alarm */
 /** @} */
 
 /* Types */
@@ -95,12 +107,13 @@ typedef struct
     uint8_t rpcInst;                   /*!< RPC instance */
     uint8_t safeType;                  /*!< Safety classification */
     uint8_t group;                     /*!< LMM group */
+    uint8_t autoBoot;                  /*!< LMM auto boot */
     uint8_t boot[SM_LM_NUM_MSEL];      /*!< Boot order of LM */
-    uint8_t bootSkip[SM_LM_NUM_MSEL];  /*!< Skip boot in no image */
+    uint8_t bootSkip[SM_LM_NUM_MSEL];  /*!< Skip boot if no image */
 } lmm_config_t;
 
 /*!
- * LMM start structure
+ * LMM start/stop structure
  *
  * See @ref CONFIG_STRUCT for more info.
  */
@@ -112,20 +125,7 @@ typedef struct
     uint8_t mSel;               /*!< Associated mode select */
     uint8_t ss;                 /*!< Start command */
     uint8_t numArg;             /*!< Argument count */
-} lmm_start_t;
-
-/*!
- * LMM stop structure
- *
- * See @ref CONFIG_STRUCT for more info.
- */
-typedef struct
-{
-    uint32_t rsrc;  /*!< Resource */
-    uint8_t lmId;   /*!< LM ID */
-    uint8_t mSel;   /*!< Associated mode select */
-    uint8_t ss;     /*!< Stop command */
-} lmm_stop_t;
+} lmm_startstop_t;
 
 /*!
  * LMM fault structure

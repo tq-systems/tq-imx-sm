@@ -205,9 +205,9 @@
 #define SM_POWERRETMASKGET      DEV_SM_PowerRetMaskGet
 #endif
 
-#ifndef SM_SYSTEMPOWERMODESET
-/*! Redirector (device/board) to set the system power mode */
-#define SM_SYSTEMPOWERMODESET   DEV_SM_SystemPowerModeSet
+#ifndef SM_SYSTEMSLEEPMODESET
+/*! Redirector (device/board) to set the system sleep mode */
+#define SM_SYSTEMSLEEPMODESET   DEV_SM_SystemSleepModeSet
 #endif
 
 #ifndef SM_SYSTEMRESET
@@ -431,7 +431,7 @@
 #endif
 
 #ifndef SM_BBMGETBOOTSTATUS
-/*! Redirector (device/board) to write a BBM GPR */
+/*! Redirector (device/board) to read the BBM boot status */
 #define SM_BBMGETBOOTSTATUS     DEV_SM_BbmGetBootStatus
 #endif
 
@@ -463,6 +463,11 @@
 #ifndef SM_BBMRTCTIMEGET
 /*! Redirector (device/board) to get the BBM RTC time */
 #define SM_BBMRTCTIMEGET        DEV_SM_BbmRtcTimeGet
+#endif
+
+#ifndef SM_BBMRTCSTATEGET
+/*! Redirector (device/board) to get the BBM RTC state */
+#define SM_BBMRTCSTATEGET       DEV_SM_BbmRtcStateGet
 #endif
 
 #ifndef SM_BBMRTCALARMSET
@@ -548,6 +553,16 @@
 #ifndef SM_CONTROLGET
 /*! Redirector (device/board) to read a control */
 #define SM_CONTROLGET           DEV_SM_ControlGet
+#endif
+
+#ifndef SM_CONTROLEXTSET
+/*! Redirector (device/board) to write an extended control */
+#define SM_CONTROLEXTSET        DEV_SM_ControlExtSet
+#endif
+
+#ifndef SM_CONTROLEXTGET
+/*! Redirector (device/board) to read an extended control */
+#define SM_CONTROLEXTGET        DEV_SM_ControlExtGet
 #endif
 
 #ifndef SM_CONTROLACTION

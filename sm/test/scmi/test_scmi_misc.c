@@ -51,6 +51,7 @@
 /* Local variables */
 
 static uint32_t numDevCtrl = 0U;
+static uint32_t numBrdCtrl = 0U;
 
 /* Local functions */
 
@@ -86,10 +87,17 @@ void TEST_ScmiMisc(void)
         BCHECK(ver == SCMI_MISC_PROT_VER);
     }
 
+    /* Negotiate Protocol Attributes */
+    {
+        printf("SCMI_MiscNegotiateProtocolVersion(%u)\n",
+            SM_TEST_DEFAULT_CHN);
+        CHECK(SCMI_MiscNegotiateProtocolVersion(SM_TEST_DEFAULT_CHN,
+            SCMI_MISC_PROT_VER));
+    }
+
     /* Test protocol attributes */
     {
         uint32_t attributes = 0U;
-        uint32_t numBrdCtrl = 0U;
 
         printf("SCMI_MiscProtocolAttributes()\n");
         CHECK(SCMI_MiscProtocolAttributes(SM_TEST_DEFAULT_CHN,
@@ -137,6 +145,122 @@ void TEST_ScmiMisc(void)
             NULL, NULL, NULL));
     }
 
+    /* MiscReasonAttributes */
+    {
+        uint32_t reasonId = DEV_SM_REASON_POR;
+        uint32_t attributes = 0U;
+        uint8_t name[16];
+
+        printf("SCMI_MiscReasonAttributes(%u)\n", SM_TEST_DEFAULT_CHN);
+        CHECK(SCMI_MiscReasonAttributes(SM_TEST_DEFAULT_CHN, reasonId,
+            &attributes, &name[0]));
+
+        /* Check Invalid reason */
+        NECHECK(SCMI_MiscReasonAttributes(SM_TEST_DEFAULT_CHN,
+            SM_NUM_REASON, &attributes, &name[0]), SM_ERR_NOT_FOUND);
+
+        /* Invalid channel number */
+        NECHECK(SCMI_MiscReasonAttributes(SM_NUM_TEST_CHN, SM_NUM_REASON,
+            &attributes, &name[0]), SCMI_ERR_INVALID_PARAMETERS);
+
+#ifdef SIMU
+        /* Branch coverage */
+        CHECK(SCMI_MiscReasonAttributes(SM_TEST_DEFAULT_CHN,
+            DEV_SM_REASON_FAULT, NULL, &name[0]));
+
+        /* Branch coverage */
+        CHECK(SCMI_MiscReasonAttributes(SM_TEST_DEFAULT_CHN,
+            DEV_SM_REASON_FAULT, &attributes, NULL));
+#endif
+    }
+
+    /* MiscSiInfo */
+    {
+        uint32_t deviceId = 0U, siRev = 0U, partNum = 0U;
+        uint8_t name[16];
+
+        printf("SCMI_MiscSiInfo(%u)\n", SM_TEST_DEFAULT_CHN);
+        CHECK(SCMI_MiscSiInfo(SM_TEST_DEFAULT_CHN, &deviceId, &siRev,
+            &partNum, &name[0]));
+        printf("SCMI_MiscSiInfo deviceId: %u siRev: %u partNum: %u name: %s\n",
+            deviceId, siRev, partNum, name);
+
+        /* Branch coverage */
+        {
+            /* Invalid Channel */
+            NECHECK(SCMI_MiscSiInfo(SM_NUM_TEST_CHN, &deviceId, &siRev,
+                &partNum, &name[0]), SCMI_ERR_INVALID_PARAMETERS);
+
+            /* deviceId = NULL */
+            CHECK(SCMI_MiscSiInfo(SM_TEST_DEFAULT_CHN, NULL, &siRev,
+                &partNum, &name[0]));
+
+            /* siRev = NULL */
+            CHECK(SCMI_MiscSiInfo(SM_TEST_DEFAULT_CHN, &deviceId, NULL,
+                &partNum, &name[0]));
+
+            /* partnum = NULL */
+            CHECK(SCMI_MiscSiInfo(SM_TEST_DEFAULT_CHN, &deviceId, &siRev,
+                NULL, &name[0]));
+
+            /* name = NULL */
+            CHECK(SCMI_MiscSiInfo(SM_TEST_DEFAULT_CHN, &deviceId, &siRev,
+                &partNum, NULL));
+        }
+    }
+
+    /* MiscCfgInfo */
+    {
+        uint32_t mSel = 0U;
+        uint8_t cfgName[16];
+
+        printf("SCMI_MiscCfgInfo(%u)\n", SM_TEST_DEFAULT_CHN);
+        CHECK(SCMI_MiscCfgInfo(SM_TEST_DEFAULT_CHN, &mSel,
+            &cfgName[0]));
+        printf("SCMI_MiscCfgInfo mSel: %u cfgName: %s\n",
+            mSel, cfgName);
+
+        /*Branch coverage */
+        {
+            /* Invalid Channel */
+            NECHECK(SCMI_MiscCfgInfo(SM_NUM_TEST_CHN, &mSel, &cfgName[0]),
+                SCMI_ERR_INVALID_PARAMETERS);
+
+            /* mSel = NULL */
+            CHECK(SCMI_MiscCfgInfo(SM_TEST_DEFAULT_CHN, NULL,
+                &cfgName[0]));
+
+            /* cfgName = NULL */
+            CHECK(SCMI_MiscCfgInfo(SM_TEST_DEFAULT_CHN, &mSel,
+                NULL));
+        }
+    }
+
+    /* MiscSyslog */
+    {
+        uint32_t flags = 0x0U, logIndex = 0U;
+        uint32_t numLogFlags = 0U;
+        uint32_t sysLog[16];
+
+        printf("SCMI_MiscSyslog(%u)\n", SM_TEST_DEFAULT_CHN);
+        CHECK(SCMI_MiscSyslog(SM_TEST_DEFAULT_CHN, flags, logIndex,
+            &numLogFlags, &sysLog[0]));
+        printf("SCMI_MiscSyslog: sysLogFlags: %u sysLog: %s\n",
+            numLogFlags, (uint8_t *)sysLog);
+
+        /* Invalid channel */
+        NECHECK(SCMI_MiscSyslog(SM_NUM_TEST_CHN, flags, logIndex,
+            &numLogFlags, &sysLog[0]), SCMI_ERR_INVALID_PARAMETERS);
+
+        /*numLogFlags = NULL */
+        CHECK(SCMI_MiscSyslog(SM_TEST_DEFAULT_CHN, flags, logIndex,
+            NULL, &sysLog[0]));
+
+        /*sysLog = NULL */
+        CHECK(SCMI_MiscSyslog(SM_TEST_DEFAULT_CHN, flags, logIndex,
+            &numLogFlags, NULL));
+    }
+
     /* RPC_00370 Test ROM data */
     {
         uint32_t numPassover = 0U;
@@ -166,6 +290,14 @@ void TEST_ScmiMisc(void)
         /* Branch -- Nullpointer */
         CHECK(SCMI_MiscRomPassoverGet(SM_TEST_DEFAULT_CHN, NULL,
             NULL));
+
+#ifdef SIMU
+        /* Branch coverage */
+        SM_TestModeSet(SM_TEST_MODE_DEV_LVL1);
+        NECHECK(SCMI_MiscRomPassoverGet(SM_TEST_DEFAULT_CHN, &numPassover,
+            passoverBuffer), SM_ERR_TEST);
+        SM_TestModeSet(SM_TEST_MODE_OFF);
+#endif
     }
 
     /* Control Set */
@@ -257,13 +389,21 @@ void TEST_ScmiMisc(void)
             printf("  extInfo[%u]=0x%08X\n", i, extInfo[i]);
         }
 
-        /* Branch -- Invalid Channel */
-        NECHECK(SCMI_MiscResetReason(SM_SCMI_NUM_CHN, flags, &bootFlags,
-            &shutdownFlags, extInfo), SCMI_ERR_INVALID_PARAMETERS);
+        /* Branch coverage */
+        {
+            /* Branch -- Invalid Channel */
+            NECHECK(SCMI_MiscResetReason(SM_SCMI_NUM_CHN, flags, &bootFlags,
+                &shutdownFlags, extInfo), SCMI_ERR_INVALID_PARAMETERS);
 
-        /* Branch -- Null params */
-        CHECK(SCMI_MiscResetReason(SM_TEST_DEFAULT_CHN, flags, NULL,
-            NULL, NULL));
+            /* Branch -- Null params */
+            CHECK(SCMI_MiscResetReason(SM_TEST_DEFAULT_CHN, flags, NULL,
+                NULL, NULL));
+
+            /* Branch -- Get reset reason */
+            flags = SCMI_MISC_REASON_FLAG_SYSTEM(1U);
+            CHECK(SCMI_MiscResetReason(SM_TEST_DEFAULT_CHN, flags, &bootFlags,
+                &shutdownFlags, extInfo));
+        }
     }
 
     /* Invalid notification */
@@ -277,6 +417,29 @@ void TEST_ScmiMisc(void)
 
         printf("RPC_SCMI_MiscDispatchNotification()\n");
         NCHECK(RPC_SCMI_MiscDispatchNotification(msgId, &trigger));
+    }
+
+    /* MiscBoardInfo */
+    {
+        uint32_t attributes = 0U;
+        uint8_t brdName[SCMI_MISC_MAX_BRDNAME];
+
+        printf("SCMI_MiscBoardInfo(%u)\n", SM_TEST_DEFAULT_CHN);
+        CHECK(SCMI_MiscBoardInfo(SM_TEST_DEFAULT_CHN, &attributes, brdName));
+        printf("  brdName=%s\n",  brdName);
+        printf("  attributes=%u\n",  attributes);
+
+        {
+            /* Invalid channel */
+            NECHECK(SCMI_MiscBoardInfo(SM_NUM_TEST_CHN, &attributes, brdName),
+                SCMI_ERR_INVALID_PARAMETERS);
+
+            /* attributes = NULL */
+            CHECK(SCMI_MiscBoardInfo(SM_TEST_DEFAULT_CHN, NULL, brdName));
+
+            /* brdName = NULL */
+            CHECK(SCMI_MiscBoardInfo(SM_TEST_DEFAULT_CHN, &attributes, NULL));
+        }
     }
 
     /* Loop over control test domains */
@@ -450,7 +613,8 @@ static void TEST_ScmiMiscExclusive(bool pass, uint32_t channel,
             /* Reset */
             uint32_t sysManager = 0U;
             printf("LMM_SystemLmShutdown(%u, %u)\n", sysManager, lmId);
-            CHECK(LMM_SystemLmShutdown(sysManager, 0U, lmId, false, &g_swReason));
+            CHECK(LMM_SystemLmShutdown(sysManager, 0U, lmId, false,
+                &g_swReason));
         }
 #endif
     }
