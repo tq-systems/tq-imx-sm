@@ -242,3 +242,5 @@ include ./sm/makefiles/build_info.mak
 include ./sm/makefiles/configtool.mak
 include ./sm/makefiles/cppcheck.mak
 
+doc:
+	$(MAKE) -C sm/doc
