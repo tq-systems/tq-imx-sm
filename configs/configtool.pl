@@ -50,6 +50,7 @@ sub generate_xport;
 sub generate_scmi;
 sub generate_lmm;
 sub generate_dev;
+sub generate_user;
 sub generate_bctrl;
 sub generate_board;
 sub generate_trdc;
@@ -160,6 +161,9 @@ my @cfg = &load_config_files($inputFile);
 
 # Generate DEV config
 &generate_dev($outDir, \@cfg);
+
+# Generate USER config
+&generate_user($outDir, \@cfg);
 
 # Generate BCTRL config
 &generate_bctrl($outDir, \@cfg);
@@ -575,6 +579,7 @@ sub generate_mb
             print $out &header('MB_' . $mbt, 'MB_' . $mbt);
 
             print $out '/* Includes */' . "\n\n";
+            print $out '#include "config_user.h"' . "\n";
             print $out '#include "mb_' . lc $mbt . '_config.h"' . "\n\n";
             print $out '/* Defines */' . "\n\n";
 
@@ -744,6 +749,7 @@ sub generate_xport
             print $out &header($xpt, $xpt);
 
             print $out '/* Includes */' . "\n\n";
+            print $out '#include "config_user.h"' . "\n";
             print $out '#include "rpc_' . $lcXpt . '_config.h"' . "\n\n";
             print $out '/* Defines */' . "\n\n";
 
@@ -914,6 +920,9 @@ sub generate_scmi
 
     # Output header
     print $out &header('SCMI', 'SCMI RPC');
+
+    print $out '/* Includes */' . "\n\n";
+    print $out '#include "config_user.h"' . "\n\n";
 
     print $out '/* Defines */' . "\n\n";
 
@@ -1218,6 +1227,9 @@ sub generate_lmm
     # Output header
     print $out &header('LMM', 'logical machine manager');
 
+    print $out '/* Includes */' . "\n\n";
+    print $out '#include "config_user.h"' . "\n\n";
+
     print $out '/* Defines */' . "\n\n";
 
 	# Get list of start/stop */
@@ -1390,6 +1402,36 @@ sub generate_lmm
 	        {
 	            $parm =~ s/\"//g;
 	            print $out '        .name = "' . $parm . '", \\' . "\n";
+
+				# Check SM info
+				if ($lm_handle eq 'LM0')
+				{
+					if ($parm ne 'SM')
+					{
+					    print STDERR 'error: invalid LM0 name (must be SM)' . "\n";
+					    exit;
+					}
+				}
+				if ($parm eq 'SM')
+				{
+					if ($lm_handle ne 'LM0')
+					{
+					    print STDERR 'error: invalid SM LM (must be LM0)' . "\n";
+					    exit;
+					}
+				}
+	        }
+	        if ((my $parm = &param($lm, 'did')) ne '!')
+	        {
+				# Check SM info
+				if ($lm_handle eq 'LM0')
+				{
+					if ($parm ne '2')
+					{
+					    print STDERR 'error: invalid SM/LM0 DID (must be 2)' . "\n";
+					    exit;
+					}
+				}
 	        }
 	        if ((my $parm = &param($lm, 'rpc')) ne '!')
 	        {
@@ -1397,6 +1439,16 @@ sub generate_lmm
 	            print $out '        .rpcType = SM_RPC_'
 	                . uc $parm . ', \\' . "\n";
 	            $rpcInst{$parm}++;
+
+				# Check SM info
+				if ($lm_handle eq 'LM0')
+				{
+					if ($parm ne 'none')
+					{
+					    print STDERR 'error: invalid SM/LM0 RPC type (must be none)' . "\n";
+					    exit;
+					}
+				}
 	        }
 			if ($rpcType ne 'none')
 			{
@@ -1408,6 +1460,16 @@ sub generate_lmm
 	        {
 	            print $out '        .boot[0] = ' . $parm . 'U, \\' . "\n";
 	            $rpcInst{$parm}++;
+
+				# Check SM info
+				if ($lm_handle eq 'LM0')
+				{
+					if ($parm ne '1')
+					{
+					    print STDERR 'error: invalid SM/LM0 boot order (must be 1)' . "\n";
+					    exit;
+					}
+				}
 	        }
 	        if ((my $parm = &param($lm, 'skip')) ne '!')
 	        {
@@ -1424,6 +1486,16 @@ sub generate_lmm
 	        {
 	            print $out '        .safeType = LMM_SAFE_TYPE_' . uc $parm
 	                . ', \\' . "\n";
+
+				# Check SM info
+				if ($lm_handle eq 'LM0')
+				{
+					if (uc $parm ne 'FEENV')
+					{
+					    print STDERR 'error: invalid SM/LM0 safe type (must be feenv)' . "\n";
+					    exit;
+					}
+				}
 	        }
 
             # Output group
@@ -1608,6 +1680,58 @@ sub generate_dev
     my $fileName = 'config_dev.h';
 
     my @dat = grep(/^MIX\b/, @$cfgRef);
+    my @cpus = grep(/DEV_SM_CPU_/, @$cfgRef);
+
+    # Open file
+    open my $out, '>', $outDir . '/' . $fileName
+        or die "error: failure to open: $outDir/$fileName, $!";
+    if ($verbose)
+    {
+        my $fn = fileparse($fileName);
+        printf("Generating $fn ...\n");
+    }
+
+    # Output header
+    print $out &header('DEV', 'device abstraction');
+
+    print $out '/* Includes */' . "\n\n";
+    print $out '#include "config_user.h"' . "\n\n";
+    print $out '/* Defines */' . "\n\n";
+
+	print $out '/*! Config for device */' . "\n";
+	print $out '#define SM_DEV_CONFIG_DATA \\' . "\n";
+	print $out '    { \\' . "\n";
+    foreach my $cpu (@cpus)
+    {
+        if ((my $parm = &param($cpu, 'sema')) ne '!')
+        {
+            if ($cpu =~ /(DEV_SM_CPU_[A-Z0-9_]+)/)
+            {
+                my $devCpu = $1;
+
+            	print $out '        .cpuSemaAddr[' . $devCpu . '] = '
+            	    . $parm . 'U, \\' . "\n";
+            }
+        }
+    }
+	print $out '    }' . "\n";
+
+    # Output footer
+    print $out &footer('DEV');
+
+    # Close file
+    close($out);
+}
+
+###############################################################################
+
+sub generate_user
+{
+    my ($outDir, $cfgRef) = @_;
+    my $fileName = 'config_user.h';
+
+    my @dat = grep(/^MIX\b/, @$cfgRef);
+    my @cpus = grep(/DEV_SM_CPU_/, @$cfgRef);
 
     # Skip if the file already exists
     if (-e $outDir . '/' . $fileName)
@@ -1625,11 +1749,11 @@ sub generate_dev
     }
 
     # Output header
-    print $out &header('DEV', 'device abstraction');
+    print $out &header('USER', 'manual user settings');
 
     print $out '/* Includes */' . "\n\n";
     print $out '#include "config.h"' . "\n\n";
-    print $out '/* Defines */' . "\n";
+    print $out '/* Defines */' . "\n\n";
 
 	# Output mix defines
     foreach my $mix (@dat)
@@ -1648,7 +1772,7 @@ sub generate_dev
 	}
 
     # Output footer
-    print $out &footer('DEV');
+    print $out &footer('USER');
 
     # Close file
     close($out);
@@ -1682,7 +1806,7 @@ sub generate_bctrl
     print $out &header('BCTRL', 'device block controls');
 
     print $out '/* Includes */' . "\n\n";
-    print $out '#include "config.h"' . "\n\n";
+    print $out '#include "config_user.h"' . "\n\n";
     print $out '/* Defines */' . "\n";
 
     # Loop over the block control list
@@ -1722,6 +1846,11 @@ sub generate_board
     my ($outDir, $cfgRef) = @_;
     my $fileName = 'config_board.h';
 	my $w = 28;
+    my @list = grep(/^BOARD\b/, @$cfgRef);
+	my $debugUartInstance = '0';
+	my $debugUartBaudrate = '115200';
+	my $pmicI2cInstance = '0';
+	my $boardI2cBaudrate = '100000';
 
     # Open file
     open my $out, '>', $outDir . '/' . $fileName
@@ -1736,66 +1865,58 @@ sub generate_board
     print $out &header('BOARD', 'board abstraction');
 
     print $out '/* Includes */' . "\n\n";
-    print $out '#include "config.h"' . "\n\n";
+    print $out '#include "config_user.h"' . "\n\n";
     print $out '/* Defines */' . "\n\n";
 
+	# Output board defines
+    foreach my $line (@list)
+    {
+		$line =~ /\b([A-Z0-9_]+)=([\w\-\.\/"\|]+)\s/ || next;
+		my ($key, $value) = ($1, $2);
+
+		if ($key eq 'DEBUG_UART_INSTANCE')
+		{
+			$debugUartInstance = $value;
+		}
+		elsif ($key eq 'DEBUG_UART_BAUDRATE')
+		{
+			$debugUartBaudrate = $value;
+		}
+		elsif ($key eq 'I2C_INSTANCE')
+		{
+			$pmicI2cInstance = $value;
+		}
+		elsif ($key eq 'I2C_BAUDRATE')
+		{
+			$boardI2cBaudrate = $value;
+		}
+		else
+		{
+			print $out '/*! ' . $key . ' from cfg file */' . "\n";
+			print $out sprintf("#define %*s %s\n\n", -$w,
+				'BOARD_' . $key, $value);
+		}
+	}	
+
     # UART instance
-	if (my $def = &get_define('DEBUG_UART_INSTANCE', $cfgRef))
-	{
-		print $out '/*! Config for UART instance */' . "\n";
-		print $out sprintf("#define %*s %sU\n", -$w,
-			'BOARD_DEBUG_UART_INSTANCE', $def);
-	}
-	else
-	{
-		print $out '/*! Config for UART instance */' . "\n";
-		print $out sprintf("#define %*s %sU\n", -$w,
-			'BOARD_DEBUG_UART_INSTANCE', 0);
-	}
+	print $out '/*! Config for UART instance */' . "\n";
+	print $out sprintf("#define %*s %sU\n", -$w,
+		'BOARD_DEBUG_UART_INSTANCE', $debugUartInstance);
 
     # UART baudrate
-	if (my $def = &get_define('DEBUG_UART_BAUDRATE', $cfgRef))
-	{
-		print $out '/*! Config for UART baudrate */' . "\n";
-		print $out sprintf("#define %*s %sU\n", -$w,
-			'BOARD_DEBUG_UART_BAUDRATE', $def);
-	}
-	else
-	{
-		print $out '/*! Config for UART baudrate */' . "\n";
-		print $out sprintf("#define %*s %sU\n", -$w,
-			'BOARD_DEBUG_UART_BAUDRATE', 115200);
-	}
-
-	print $out "\n";
+	print $out '/*! Config for UART baudrate */' . "\n";
+	print $out sprintf("#define %*s %sU\n\n", -$w,
+		'BOARD_DEBUG_UART_BAUDRATE', $debugUartBaudrate);
 
     # I2C instance
-	if (my $def = &get_define('PMIC_I2C_INSTANCE', $cfgRef))
-	{
-		print $out '/*! Config for PMIC I2C instance */' . "\n";
-		print $out sprintf("#define %*s %sU\n", -$w,
-			'BOARD_I2C_INSTANCE', $def);
-	}
-	else
-	{
-		print $out '/*! Config for PMIC I2C instance */' . "\n";
-		print $out sprintf("#define %*s %sU\n", -$w,
-			'BOARD_I2C_INSTANCE', 0);
-	}
+	print $out '/*! Config for PMIC I2C instance */' . "\n";
+	print $out sprintf("#define %*s %sU\n", -$w,
+		'BOARD_I2C_INSTANCE', $pmicI2cInstance);
 
     # I2C baudrate
-	if (my $def = &get_define('PMIC_I2C_BAUDRATE', $cfgRef))
-	{
-		print $out '/*! Config for PMIC I2C baudrate */' . "\n";
-		print $out sprintf("#define %*s %sU\n", -$w,
-			'BOARD_I2C_BAUDRATE', $def);
-	}
-	else
-	{
-		print $out '/*! Config for PMIC I2C baudrate */' . "\n";
-		print $out sprintf("#define %*s %sU\n", -$w,
-			'BOARD_I2C_BAUDRATE', 100000);
-	}
+	print $out '/*! Config for PMIC I2C baudrate */' . "\n";
+	print $out sprintf("#define %*s %sU\n", -$w,
+		'BOARD_I2C_BAUDRATE', $boardI2cBaudrate);
 
     # Output footer
     print $out &footer('BOARD');
@@ -1836,7 +1957,7 @@ sub generate_trdc
     print $out &header('TRDC', 'TRDC SM abstraction');
 
     print $out '/* Includes */' . "\n\n";
-    print $out '#include "config.h"' . "\n\n";
+    print $out '#include "config_user.h"' . "\n\n";
     print $out '/* Defines */' . "\n";
 
     # Loop over the TRDC list
@@ -1894,6 +2015,9 @@ sub generate_test
 
     # Output header
     print $out &header('TEST', 'unit tests');
+
+    print $out '/* Includes */' . "\n\n";
+    print $out '#include "config_user.h"' . "\n\n";
 
     print $out '/* Defines */' . "\n\n";
 
@@ -2152,6 +2276,13 @@ sub get_perms
         if (@$cfgRef[$i] =~ /^SCMI_AGENT$nextAgent\b/)
         {
             $end = $i;
+            last;
+        }
+
+        if ((@$cfgRef[$i] =~ /^LM\d*\b/) && ($start != 0))
+        {
+            $end = $i;
+            last;
         }
 
         if (@$cfgRef[$i] =~ /^EOF/)
@@ -2159,6 +2290,7 @@ sub get_perms
             if ($end == 0)
             {
                 $end = $i;
+                last;
             }
         }
     }
@@ -2786,7 +2918,20 @@ sub get_trdc
             my $parm = $1;
             my $val = $2;
             my $post = $3;
-            my $num = $val * 1024;
+            my $num;
+
+			if ($post eq 'K')
+			{
+	            $num = $val * 1024;
+			}
+			elsif ($post eq 'M')
+			{
+	            $num = $val * 1024 * 1024;
+			}
+			else
+			{
+	            $num = $val * 1024 * 1024 * 1024;
+			}
 
             $m =~ s/$parm=$val$post/$parm=$num/g;      
         }
@@ -3444,7 +3589,7 @@ sub header
     $rtn .= ' * @file' . "\n";
     $rtn .= ' * @brief' . "\n";
     $rtn .= ' *' . "\n";
-    $rtn .= ' * Header file containing coniguration info for the '
+    $rtn .= ' * Header file containing configuration info for the '
         . $comment . '.' . "\n";
     $rtn .= ' */' . "\n";
     $rtn .= '/*========================================='
@@ -3625,7 +3770,7 @@ sub get_define
 
 	if (@define)
 	{
-        my @words = split(/ /, $define[0]);
+        my @words = split('[,\s]+', $define[0]);
 
 		if ($words[1])
 		{

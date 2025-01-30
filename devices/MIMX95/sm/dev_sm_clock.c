@@ -233,7 +233,9 @@ int32_t DEV_SM_ClockNameGet(uint32_t clockId, string *clockNameAddr,
         [DEV_SM_CLK_A55C5_GPR_SEL] =        "a55c5_gpr_sel",
         [DEV_SM_CLK_A55P_GPR_SEL] =         "a55p_gpr_sel",
         [DEV_SM_CLK_DRAM_GPR_SEL] =         "dram_gpr_sel",
-        [DEV_SM_CLK_TEMPSENSE_GPR_SEL] =    "tempsense_gpr_sel"
+        [DEV_SM_CLK_TEMPSENSE_GPR_SEL] =    "tempsense_gpr_sel",
+
+        [DEV_SM_CLK_GPU_CGC] =              "gpu_cgc"
     };
 
     /* Get max string width */
@@ -322,7 +324,7 @@ int32_t DEV_SM_ClockDescribe(uint32_t clockId,
         [DEV_SM_CLK_MQS1] =                 ES_MAX_HZ_MQS1,
         [DEV_SM_CLK_PDM] =                  ES_MAX_HZ_PDM,
         [DEV_SM_CLK_SAI1] =                 ES_MAX_HZ_SAI1,
-        [DEV_SM_CLK_ELE] =                  ES_MAX_HZ_SENTINEL,
+        [DEV_SM_CLK_ELE] =                  ES_MAX_HZ_ELE,
         [DEV_SM_CLK_TPM2] =                 ES_MAX_HZ_TPM2,
         [DEV_SM_CLK_TSTMR1] =               ES_MAX_HZ_TSTMR1,
         [DEV_SM_CLK_CAMAPB] =               ES_MAX_HZ_CAMAPB,
@@ -437,7 +439,9 @@ int32_t DEV_SM_ClockDescribe(uint32_t clockId,
         [DEV_SM_CLK_A55C5_GPR_SEL] =        ES_MAX_HZ_PFD,
         [DEV_SM_CLK_A55P_GPR_SEL] =         ES_MAX_HZ_PFD,
         [DEV_SM_CLK_DRAM_GPR_SEL] =         ES_MAX_HZ_DRAMPLL,
-        [DEV_SM_CLK_TEMPSENSE_GPR_SEL] =    ES_MAX_HZ_FRO
+        [DEV_SM_CLK_TEMPSENSE_GPR_SEL] =    ES_MAX_HZ_FRO,
+
+        [DEV_SM_CLK_GPU_CGC] =              ES_MAX_HZ_GPU
     };
 
     static uint64_t const s_lowestRateHz[DEV_SM_NUM_CLOCK] =
@@ -502,7 +506,7 @@ int32_t DEV_SM_ClockDescribe(uint32_t clockId,
         [DEV_SM_CLK_MQS1] =                 ES_MIN_HZ_MQS1,
         [DEV_SM_CLK_PDM] =                  ES_MIN_HZ_PDM,
         [DEV_SM_CLK_SAI1] =                 ES_MIN_HZ_SAI1,
-        [DEV_SM_CLK_ELE] =                  ES_MIN_HZ_SENTINEL,
+        [DEV_SM_CLK_ELE] =                  ES_MIN_HZ_ELE,
         [DEV_SM_CLK_TPM2] =                 ES_MIN_HZ_TPM2,
         [DEV_SM_CLK_TSTMR1] =               ES_MIN_HZ_TSTMR1,
         [DEV_SM_CLK_CAMAPB] =               ES_MIN_HZ_CAMAPB,
@@ -617,7 +621,9 @@ int32_t DEV_SM_ClockDescribe(uint32_t clockId,
         [DEV_SM_CLK_A55C5_GPR_SEL] =        ES_MIN_HZ_ROOT,
         [DEV_SM_CLK_A55P_GPR_SEL] =         ES_MIN_HZ_ROOT,
         [DEV_SM_CLK_DRAM_GPR_SEL] =         ES_MIN_HZ_ROOT,
-        [DEV_SM_CLK_TEMPSENSE_GPR_SEL] =    ES_MIN_HZ_OSC24M
+        [DEV_SM_CLK_TEMPSENSE_GPR_SEL] =    ES_MIN_HZ_OSC24M,
+
+        [DEV_SM_CLK_GPU_CGC] =              ES_MIN_HZ_GPU
     };
 
     /* Check clock */
@@ -695,25 +701,42 @@ int32_t DEV_SM_ClockMuxGet(uint32_t clockId, uint32_t idx, uint32_t *mux,
         {
             clockIndex = clockIndex - CLOCK_NUM_ROOT;
 
-            /* Query number of mux inputs */
-            if (!CCM_GprSelMuxNumInputsGet(clockIndex, numMuxes))
+            if (clockIndex < CLOCK_NUM_GPR_SEL)
             {
-                status = SM_ERR_NOT_FOUND;
-            }
-            else
-            {
-                /* Check if mux index exceeds number of inputs */
-                if (idx >= *numMuxes)
+                /* Query number of mux inputs */
+                if (!CCM_GprSelMuxNumInputsGet(clockIndex, numMuxes))
                 {
-                    status = SM_ERR_OUT_OF_RANGE;
+                    status = SM_ERR_NOT_FOUND;
                 }
                 else
                 {
-                    /* Query specified mux input */
-                    if (!CCM_GprSelMuxInputGet(clockIndex, idx, mux))
+                    /* Check if mux index exceeds number of inputs */
+                    if (idx >= *numMuxes)
                     {
-                        status = SM_ERR_NOT_FOUND;
+                        status = SM_ERR_OUT_OF_RANGE;
                     }
+                    else
+                    {
+                        /* Query specified mux input */
+                        if (!CCM_GprSelMuxInputGet(clockIndex, idx, mux))
+                        {
+                            status = SM_ERR_NOT_FOUND;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                clockIndex = clockIndex - CLOCK_NUM_GPR_SEL;
+
+                if (clockIndex < CLOCK_NUM_CGC)
+                {
+                    /* CGCs have no mux options */
+                    status = SM_ERR_NOT_SUPPORTED;
+                }
+                else
+                {
+                    status = SM_ERR_NOT_FOUND;
                 }
             }
         }
@@ -811,7 +834,16 @@ int32_t DEV_SM_ClockRateSet(uint32_t clockId, uint64_t rate,
             }
             else
             {
-                status = SM_ERR_NOT_FOUND;
+                clockIndex = clockIndex - CLOCK_NUM_GPR_SEL;
+
+                if (clockIndex < CLOCK_NUM_CGC)
+                {
+                    status = SM_ERR_INVALID_PARAMETERS;
+                }
+                else
+                {
+                    status = SM_ERR_NOT_FOUND;
+                }
             }
         }
     }
@@ -849,7 +881,16 @@ int32_t DEV_SM_ClockRateGet(uint32_t clockId, uint64_t *rate)
             }
             else
             {
-                status = SM_ERR_NOT_FOUND;
+                clockIndex = clockIndex - CLOCK_NUM_GPR_SEL;
+
+                if (clockIndex < CLOCK_NUM_CGC)
+                {
+                    *rate = CCM_CgcGetRate(clockIndex);
+                }
+                else
+                {
+                    status = SM_ERR_NOT_FOUND;
+                }
             }
         }
     }
@@ -867,9 +908,28 @@ int32_t DEV_SM_ClockEnable(uint32_t clockId, bool enable)
 
     if (clockId < CLOCK_NUM_SRC)
     {
-        if (!CLOCK_SourceSetEnable(clockId, enable))
+        /* Disable bypass when enabling clock source */
+        if (enable)
         {
-            status = SM_ERR_INVALID_PARAMETERS;
+            if (!CLOCK_SourceSetBypass(clockId, false))
+            {
+                status = SM_ERR_INVALID_PARAMETERS;
+            }
+        }
+        if (status == SM_ERR_SUCCESS)
+        {
+            if (!CLOCK_SourceSetEnable(clockId, enable))
+            {
+                status = SM_ERR_INVALID_PARAMETERS;
+            }
+        }
+        /* Enable bypass when disabling clock source */
+        if ((status == SM_ERR_SUCCESS) && !enable)
+        {
+            if (!CLOCK_SourceSetBypass(clockId, true))
+            {
+                status = SM_ERR_INVALID_PARAMETERS;
+            }
         }
     }
     else
@@ -893,7 +953,19 @@ int32_t DEV_SM_ClockEnable(uint32_t clockId, bool enable)
             }
             else
             {
-                status = SM_ERR_NOT_FOUND;
+                clockIndex = clockIndex - CLOCK_NUM_GPR_SEL;
+
+                if (clockIndex < CLOCK_NUM_CGC)
+                {
+                    if (!CCM_CgcSetEnable(clockIndex, enable))
+                    {
+                        status = SM_ERR_INVALID_PARAMETERS;
+                    }
+                }
+                else
+                {
+                    status = SM_ERR_NOT_FOUND;
+                }
             }
         }
     }
@@ -931,7 +1003,16 @@ int32_t DEV_SM_ClockIsEnabled(uint32_t clockId, bool *enabled)
             }
             else
             {
-                status = SM_ERR_NOT_FOUND;
+                clockIndex = clockIndex - CLOCK_NUM_GPR_SEL;
+
+                if (clockIndex < CLOCK_NUM_CGC)
+                {
+                    *enabled = CCM_CgcGetEnable(clockIndex);
+                }
+                else
+                {
+                    status = SM_ERR_NOT_FOUND;
+                }
             }
         }
     }
@@ -978,7 +1059,16 @@ int32_t DEV_SM_ClockParentSet(uint32_t clockId, uint32_t parent)
             }
             else
             {
-                status = SM_ERR_NOT_FOUND;
+                clockIndex = clockIndex - CLOCK_NUM_GPR_SEL;
+
+                if (clockIndex < CLOCK_NUM_CGC)
+                {
+                    status = SM_ERR_INVALID_PARAMETERS;
+                }
+                else
+                {
+                    status = SM_ERR_NOT_FOUND;
+                }
             }
         }
     }
@@ -1025,7 +1115,24 @@ int32_t DEV_SM_ClockParentGet(uint32_t clockId, uint32_t *parent)
             }
             else
             {
-                status = SM_ERR_NOT_FOUND;
+                clockIndex = clockIndex - CLOCK_NUM_GPR_SEL;
+
+                if (clockIndex < CLOCK_NUM_CGC)
+                {
+                    uint32_t rootIdx;
+                    if (CCM_CgcGetParent(clockIndex, &rootIdx))
+                    {
+                        *parent = rootIdx + CLOCK_NUM_SRC;
+                    }
+                    else
+                    {
+                        status = SM_ERR_INVALID_PARAMETERS;
+                    }
+                }
+                else
+                {
+                    status = SM_ERR_NOT_FOUND;
+                }
             }
         }
     }

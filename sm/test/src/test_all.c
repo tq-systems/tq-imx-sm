@@ -45,6 +45,9 @@
 #include <stdlib.h>
 #include "sm.h"
 #include "test.h"
+#if defined(GCOV) && !defined(SIMU)
+#include "gcov_dump.h"
+#endif
 
 /* Local defines */
 
@@ -95,6 +98,7 @@ void TEST_All(void)
     TEST_LmmFuSa();
     TEST_LmmVoltage();
     TEST_LmmPower();
+    TEST_LmmFault();
 #endif
 
     /* Run SCMI tests */
@@ -118,6 +122,11 @@ void TEST_All(void)
 
     /* Run Utility tests */
     TEST_UtilitiesConfig();
+
+#if defined(GCOV) && !defined(SIMU)
+    /* Dump GCOV info */
+    GCOV_InfoDump();
+#endif
 
     /* Exit */
     BRD_SM_Exit(SM_ERR_SUCCESS, 0U);

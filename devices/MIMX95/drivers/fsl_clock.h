@@ -136,7 +136,7 @@
 #define CLOCK_ROOT_MQS1                     15U
 #define CLOCK_ROOT_PDM                      16U
 #define CLOCK_ROOT_SAI1                     17U
-#define CLOCK_ROOT_SENTINEL                 18U
+#define CLOCK_ROOT_ELE                      18U
 #define CLOCK_ROOT_TPM2                     19U
 #define CLOCK_ROOT_TSTMR1                   20U
 #define CLOCK_ROOT_CAMAPB                   21U
@@ -257,6 +257,10 @@
 #define CLOCK_GPR_SEL_DRAM                  8U
 #define CLOCK_GPR_SEL_TEMPSENSE             9U
 
+#define CLOCK_NUM_CGC                       1U
+
+#define CLOCK_CGC_GPU                       0U
+
 #define CLOCK_ROUND_RULE_CEILING            0U
 #define CLOCK_ROUND_RULE_FLOOR              1U
 #define CLOCK_ROUND_RULE_CLOSEST            2U
@@ -301,6 +305,18 @@ typedef struct
     uint32_t selMux[CLOCK_NUM_GPR_MUX_SEL]; /*!< GPR select mux configuration */
 } ccm_gpr_sel_attr_t;
 
+/*!
+ * CCM CGC attribute structure
+ *
+ * Structure for CCM clock-gated clock (CGC) attributes
+ */
+typedef struct
+{
+    uint32_t lpcgIdx;                       /*!< LPCG index controlling the CGC */
+    uint32_t rootIdx;                       /*!< CCM root sourcing the CGC */
+} ccm_cgc_attr_t;
+
+
 /* Functions */
 
 /*!
@@ -336,6 +352,21 @@ bool CLOCK_SourceGetEnable(uint32_t sourceIdx);
  * source, otherwise false.
  */
 bool CLOCK_SourceSetEnable(uint32_t sourceIdx, bool enable);
+
+/*!
+ * Set clock source bypass
+ *
+ * @param[in]       sourceIdx       Clock source identifier
+ * @param[in]       bypass          Bypass flag (1=bypass, 0=no bypass)
+ *
+ * This function allows the caller to configure the bypass operation of
+ * the CCM clock source.  The bypass configuration is restricted to PLLs
+ * available as CCM clock root inputs.
+ *
+ * @return Returns true if the clock source bypass was configured correctly,
+ *         otherwise false.
+ */
+bool CLOCK_SourceSetBypass(uint32_t sourceIdx, bool bypass);
 
 /*!
  * Get clock source rate
@@ -444,6 +475,9 @@ extern const uint8_t g_clockRootMux[][CLOCK_NUM_ROOT_MUX_SEL];
 
 /*! GPR-selected clocks (clock source/clock root) */
 extern const ccm_gpr_sel_attr_t g_clockGprSel[CLOCK_NUM_GPR_SEL];
+
+/*! CCM CGC attributes */
+extern const ccm_cgc_attr_t g_clockCgcAttr[CLOCK_NUM_CGC];
 
 #endif /* FSL_CLOCK_H */
 

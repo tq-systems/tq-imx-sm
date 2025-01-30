@@ -62,54 +62,6 @@ void TEST_DevSmFault(void)
     printf("**** Device SM Fault API Tests ***\n\n");
 
 #ifdef SIMU
-    /* FaultReactionGet */
-    {
-        dev_sm_rst_rec_t resetRec = { 0 };
-
-        resetRec.errId = DEV_SM_FAULT_0;
-        uint32_t reaction = 0;
-        uint32_t lm = 0;
-
-        printf("DEV_SM_FaultReactionGet()\n");
-        CHECK(DEV_SM_FaultReactionGet(resetRec, &reaction, &lm));
-        printf("reaction: %u lm: %u\n", reaction, lm);
-
-        resetRec.errId = DEV_SM_FAULT_1;
-
-        CHECK(DEV_SM_FaultReactionGet(resetRec, &reaction, &lm));
-        printf("reaction: %u lm: %u\n", reaction, lm);
-
-        resetRec.errId = DEV_SM_FAULT_2;
-
-        CHECK(DEV_SM_FaultReactionGet(resetRec, &reaction, &lm));
-        printf("reaction: %u lm: %u\n", reaction, lm);
-
-        resetRec.errId = DEV_SM_FAULT_3;
-
-        CHECK(DEV_SM_FaultReactionGet(resetRec, &reaction, &lm));
-        printf("reaction: %u lm: %u\n", reaction, lm);
-
-        resetRec.errId = DEV_SM_FAULT_4;
-
-        CHECK(DEV_SM_FaultReactionGet(resetRec, &reaction, &lm));
-        printf("reaction: %u lm: %u\n", reaction, lm);
-
-        resetRec.errId = DEV_SM_FAULT_5;
-
-        CHECK(DEV_SM_FaultReactionGet(resetRec, &reaction, &lm));
-        printf("reaction: %u lm: %u\n", reaction, lm);
-
-        resetRec.errId = DEV_SM_FAULT_6;
-
-        CHECK(DEV_SM_FaultReactionGet(resetRec, &reaction, &lm));
-        printf("reaction: %u lm: %u\n", reaction, lm);
-
-        resetRec.errId = DEV_SM_FAULT_7;
-
-        CHECK(DEV_SM_FaultReactionGet(resetRec, &reaction, &lm));
-        printf("reaction: %u lm: %u\n", reaction, lm);
-    }
-
     {
         uint32_t lmId = 0;
         uint32_t faultId  = DEV_SM_FAULT_1;

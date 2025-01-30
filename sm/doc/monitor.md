@@ -19,6 +19,9 @@ CR+LF).
 The monitor can asynchronously display error messages including exception and fault
 reporting. See @ref PORT_NXP_PRINT.
 
+Many monitor commands take numeric arguments. These conform to C standards and as such if
+they start with a 0 are octal and if 0x are hex.
+
 The following commands are supported. Arguments are in *italics*. Optional arguments are
 in [].
 
@@ -44,6 +47,7 @@ Info Commands
 | trdc.raw *rdc* [*did*]      | raw dump of TRDC *rdc*, limit to *did* if specified          |
 | trdc *rdc* [*did*]          | formatted dump of TRDC *rdc*, limit to *did* if specified    |
 | syslog [*flags*]            | display syslog, flags and log device specific                |
+| gcov                        | dump GCOV data if build with GCOV=1                          |
 
 System Commands
 ---------------

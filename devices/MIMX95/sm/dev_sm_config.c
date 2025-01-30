@@ -59,6 +59,10 @@ static bool s_pllContextValidHsio = false;
 static bool s_pllContextValidLdb = false;
 static bool s_pllContextValidDdr = false;
 
+/* Global constant data */
+
+const dev_config_t g_devConfig = SM_DEV_CONFIG_DATA;
+
 /* Local functions */
 
 /*--------------------------------------------------------------------------*/
@@ -131,144 +135,6 @@ int32_t DEV_SM_A55pConfigLoad(void)
 
     /* Process perpheral low-power interfaces */
     (void) CPU_PerLpiProcess(DEV_SM_CPU_A55P, CPU_SLEEP_MODE_RUN);
-
-    /* Return status */
-    return status;
-}
-
-/*--------------------------------------------------------------------------*/
-/* Load A55C0 power domain configuration                                    */
-/*--------------------------------------------------------------------------*/
-int32_t DEV_SM_A55c0ConfigLoad(void)
-{
-    int32_t status;
-    static const uint32_t s_configData[] = SM_A55C0_CONFIG;
-
-    /* Load device config */
-    status = CONFIG_Load(NULL, s_configData);
-
-#ifdef SM_A55C0_CONFIG_FUNC
-    /* Run device config function */
-    if (status == SM_ERR_SUCCESS)
-    {
-        status = SM_A55C0_CONFIG_FUNC();
-    }
-#endif
-
-    /* Return status */
-    return status;
-}
-
-/*--------------------------------------------------------------------------*/
-/* Load A55C1 power domain configuration                                    */
-/*--------------------------------------------------------------------------*/
-int32_t DEV_SM_A55c1ConfigLoad(void)
-{
-    int32_t status;
-    static const uint32_t s_configData[] = SM_A55C1_CONFIG;
-
-    /* Load device config */
-    status = CONFIG_Load(NULL, s_configData);
-
-#ifdef SM_A55C1_CONFIG_FUNC
-    /* Run device config function */
-    if (status == SM_ERR_SUCCESS)
-    {
-        status = SM_A55C1_CONFIG_FUNC();
-    }
-#endif
-
-    /* Return status */
-    return status;
-}
-
-/*--------------------------------------------------------------------------*/
-/* Load A55C2 power domain configuration                                    */
-/*--------------------------------------------------------------------------*/
-int32_t DEV_SM_A55c2ConfigLoad(void)
-{
-    int32_t status;
-    static const uint32_t s_configData[] = SM_A55C2_CONFIG;
-
-    /* Load device config */
-    status = CONFIG_Load(NULL, s_configData);
-
-#ifdef SM_A55C2_CONFIG_FUNC
-    /* Run device config function */
-    if (status == SM_ERR_SUCCESS)
-    {
-        status = SM_A55C2_CONFIG_FUNC();
-    }
-#endif
-
-    /* Return status */
-    return status;
-}
-
-/*--------------------------------------------------------------------------*/
-/* Load A55C3 power domain configuration                                    */
-/*--------------------------------------------------------------------------*/
-int32_t DEV_SM_A55c3ConfigLoad(void)
-{
-    int32_t status;
-    static const uint32_t s_configData[] = SM_A55C3_CONFIG;
-
-    /* Load device config */
-    status = CONFIG_Load(NULL, s_configData);
-
-#ifdef SM_A55C3_CONFIG_FUNC
-    /* Run device config function */
-    if (status == SM_ERR_SUCCESS)
-    {
-        status = SM_A55C3_CONFIG_FUNC();
-    }
-#endif
-
-    /* Return status */
-    return status;
-}
-
-/*--------------------------------------------------------------------------*/
-/* Load A55C4 power domain configuration                                    */
-/*--------------------------------------------------------------------------*/
-int32_t DEV_SM_A55c4ConfigLoad(void)
-{
-    int32_t status;
-    static const uint32_t s_configData[] = SM_A55C4_CONFIG;
-
-    /* Load device config */
-    status = CONFIG_Load(NULL, s_configData);
-
-#ifdef SM_A55C4_CONFIG_FUNC
-    /* Run device config function */
-    if (status == SM_ERR_SUCCESS)
-    {
-        status = SM_A55C4_CONFIG_FUNC();
-    }
-#endif
-
-    /* Return status */
-    return status;
-}
-
-/*--------------------------------------------------------------------------*/
-/* Load A55C5 power domain configuration                                    */
-/*--------------------------------------------------------------------------*/
-int32_t DEV_SM_A55c5ConfigLoad(void)
-{
-    int32_t status;
-    static const uint32_t s_configData[] = SM_A55C5_CONFIG;
-
-    /* Load device config */
-    status = CONFIG_Load(NULL, s_configData);
-
-#ifdef SM_A55C5_CONFIG_FUNC
-    /* Run device config function */
-    if (status == SM_ERR_SUCCESS)
-    {
-        status = SM_A55C5_CONFIG_FUNC();
-    }
-#endif
 
     /* Return status */
     return status;
@@ -802,6 +668,7 @@ int32_t DEV_SM_DdrPowerDownPre(void)
         status = SM_ERR_HARDWARE_ERROR;
     }
 
+    /* Return status */
     return status;
 }
 
@@ -823,6 +690,7 @@ int32_t DEV_SM_DisplayPowerDownPre(void)
         status = SM_ERR_HARDWARE_ERROR;
     }
 
+    /* Return status */
     return status;
 }
 
@@ -844,6 +712,7 @@ int32_t DEV_SM_HsioTopPowerDownPre(void)
         status = SM_ERR_HARDWARE_ERROR;
     }
 
+    /* Return status */
     return status;
 }
 
@@ -861,6 +730,7 @@ int32_t DEV_SM_M7PowerDownPre(void)
         (void) CPU_PerLpiProcess(DEV_SM_CPU_M7P, sleepMode);
     }
 
+    /* Return status */
     return status;
 }
 

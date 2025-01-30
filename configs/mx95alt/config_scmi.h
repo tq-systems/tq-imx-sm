@@ -40,12 +40,16 @@
  * @file
  * @brief
  *
- * Header file containing coniguration info for the SCMI RPC.
+ * Header file containing configuration info for the SCMI RPC.
  */
 /*==========================================================================*/
 
 #ifndef CONFIG_SCMI_H
 #define CONFIG_SCMI_H
+
+/* Includes */
+
+#include "config_user.h"
 
 /* Defines */
 
@@ -114,6 +118,7 @@
         .clkPerms[DEV_SM_CLK_FLEXIO1] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_FLEXIO2] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_FLEXSPI1] = SM_SCMI_PERM_ALL, \
+        .clkPerms[DEV_SM_CLK_GPU_CGC] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_HSIOPCIEAUX] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_HSIOPLL] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_HSIOPLL_VCO] = SM_SCMI_PERM_ALL, \
@@ -256,6 +261,9 @@
         .daisyPerms[DEV_SM_DAISY_LPI2C7_SDA] = SM_SCMI_PERM_ALL, \
         .daisyPerms[DEV_SM_DAISY_LPI2C8_SCL] = SM_SCMI_PERM_ALL, \
         .daisyPerms[DEV_SM_DAISY_LPI2C8_SDA] = SM_SCMI_PERM_ALL, \
+        .daisyPerms[DEV_SM_DAISY_LPSPI4_PCS_0] = SM_SCMI_PERM_ALL, \
+        .daisyPerms[DEV_SM_DAISY_LPSPI4_PCS_1] = SM_SCMI_PERM_ALL, \
+        .daisyPerms[DEV_SM_DAISY_LPSPI4_PCS_2] = SM_SCMI_PERM_ALL, \
         .daisyPerms[DEV_SM_DAISY_LPSPI4_SCK] = SM_SCMI_PERM_ALL, \
         .daisyPerms[DEV_SM_DAISY_LPSPI4_SDI] = SM_SCMI_PERM_ALL, \
         .daisyPerms[DEV_SM_DAISY_LPSPI4_SDO] = SM_SCMI_PERM_ALL, \
@@ -497,6 +505,7 @@
         .pinPerms[DEV_SM_PIN_XSPI1_SCLK] = SM_SCMI_PERM_ALL, \
         .pinPerms[DEV_SM_PIN_XSPI1_SS0_B] = SM_SCMI_PERM_ALL, \
         .pinPerms[DEV_SM_PIN_XSPI1_SS1_B] = SM_SCMI_PERM_ALL, \
+        .rtcPerms[BRD_SM_RTC_PCA2131] = SM_SCMI_PERM_NOTIFY, \
         .rtcPerms[DEV_SM_RTC_BBNSM] = SM_SCMI_PERM_ALL, \
         .sensorPerms[BRD_SM_SENSOR_TEMP_PF09] = SM_SCMI_PERM_ALL, \
         .sensorPerms[BRD_SM_SENSOR_TEMP_PF5301] = SM_SCMI_PERM_ALL, \
@@ -598,6 +607,7 @@
         .clkPerms[DEV_SM_CLK_FLEXIO1] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_FLEXIO2] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_FLEXSPI1] = SM_SCMI_PERM_ALL, \
+        .clkPerms[DEV_SM_CLK_GPU_CGC] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_HSIOPCIEAUX] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_HSIOPLL] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_HSIOPLL_VCO] = SM_SCMI_PERM_ALL, \
@@ -740,6 +750,9 @@
         .daisyPerms[DEV_SM_DAISY_LPI2C7_SDA] = SM_SCMI_PERM_ALL, \
         .daisyPerms[DEV_SM_DAISY_LPI2C8_SCL] = SM_SCMI_PERM_ALL, \
         .daisyPerms[DEV_SM_DAISY_LPI2C8_SDA] = SM_SCMI_PERM_ALL, \
+        .daisyPerms[DEV_SM_DAISY_LPSPI4_PCS_0] = SM_SCMI_PERM_ALL, \
+        .daisyPerms[DEV_SM_DAISY_LPSPI4_PCS_1] = SM_SCMI_PERM_ALL, \
+        .daisyPerms[DEV_SM_DAISY_LPSPI4_PCS_2] = SM_SCMI_PERM_ALL, \
         .daisyPerms[DEV_SM_DAISY_LPSPI4_SCK] = SM_SCMI_PERM_ALL, \
         .daisyPerms[DEV_SM_DAISY_LPSPI4_SDI] = SM_SCMI_PERM_ALL, \
         .daisyPerms[DEV_SM_DAISY_LPSPI4_SDO] = SM_SCMI_PERM_ALL, \
@@ -981,6 +994,7 @@
         .pinPerms[DEV_SM_PIN_XSPI1_SCLK] = SM_SCMI_PERM_ALL, \
         .pinPerms[DEV_SM_PIN_XSPI1_SS0_B] = SM_SCMI_PERM_ALL, \
         .pinPerms[DEV_SM_PIN_XSPI1_SS1_B] = SM_SCMI_PERM_ALL, \
+        .rtcPerms[BRD_SM_RTC_PCA2131] = SM_SCMI_PERM_NOTIFY, \
         .rtcPerms[DEV_SM_RTC_BBNSM] = SM_SCMI_PERM_ALL, \
         .sensorPerms[BRD_SM_SENSOR_TEMP_PF09] = SM_SCMI_PERM_ALL, \
         .sensorPerms[BRD_SM_SENSOR_TEMP_PF5301] = SM_SCMI_PERM_ALL, \
@@ -1073,6 +1087,7 @@
         .clkPerms[DEV_SM_CLK_FLEXIO1] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_FLEXIO2] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_FLEXSPI1] = SM_SCMI_PERM_ALL, \
+        .clkPerms[DEV_SM_CLK_GPU_CGC] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_HSIOPCIEAUX] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_HSIOPLL] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_HSIOPLL_VCO] = SM_SCMI_PERM_ALL, \
@@ -1215,6 +1230,9 @@
         .daisyPerms[DEV_SM_DAISY_LPI2C7_SDA] = SM_SCMI_PERM_ALL, \
         .daisyPerms[DEV_SM_DAISY_LPI2C8_SCL] = SM_SCMI_PERM_ALL, \
         .daisyPerms[DEV_SM_DAISY_LPI2C8_SDA] = SM_SCMI_PERM_ALL, \
+        .daisyPerms[DEV_SM_DAISY_LPSPI4_PCS_0] = SM_SCMI_PERM_ALL, \
+        .daisyPerms[DEV_SM_DAISY_LPSPI4_PCS_1] = SM_SCMI_PERM_ALL, \
+        .daisyPerms[DEV_SM_DAISY_LPSPI4_PCS_2] = SM_SCMI_PERM_ALL, \
         .daisyPerms[DEV_SM_DAISY_LPSPI4_SCK] = SM_SCMI_PERM_ALL, \
         .daisyPerms[DEV_SM_DAISY_LPSPI4_SDI] = SM_SCMI_PERM_ALL, \
         .daisyPerms[DEV_SM_DAISY_LPSPI4_SDO] = SM_SCMI_PERM_ALL, \
@@ -1456,6 +1474,7 @@
         .pinPerms[DEV_SM_PIN_XSPI1_SCLK] = SM_SCMI_PERM_ALL, \
         .pinPerms[DEV_SM_PIN_XSPI1_SS0_B] = SM_SCMI_PERM_ALL, \
         .pinPerms[DEV_SM_PIN_XSPI1_SS1_B] = SM_SCMI_PERM_ALL, \
+        .rtcPerms[BRD_SM_RTC_PCA2131] = SM_SCMI_PERM_NOTIFY, \
         .rtcPerms[DEV_SM_RTC_BBNSM] = SM_SCMI_PERM_ALL, \
         .sensorPerms[BRD_SM_SENSOR_TEMP_PF09] = SM_SCMI_PERM_ALL, \
         .sensorPerms[BRD_SM_SENSOR_TEMP_PF5301] = SM_SCMI_PERM_ALL, \

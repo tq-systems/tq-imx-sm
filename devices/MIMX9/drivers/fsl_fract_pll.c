@@ -40,13 +40,12 @@
 /* Local Types */
 
 /* Local Functions */
+static bool FRACTPLL_DynamicSetRate(uint32_t pllIdx, uint64_t vcoRate);
 static bool FRACTPLL_EnableSsc(uint32_t pllIdx, uint32_t mfi, uint32_t mfn);
 
 /* Local Variables */
 
 static PLL_Type *const s_pllPtrs[] = PLL_BASE_PTRS;
-static uint64_t s_vcoRates[CLOCK_NUM_PLL];
-static bool s_vcoRateIsLatched[CLOCK_NUM_PLL];
 static fracpll_ssc_t s_sscConfig[CLOCK_NUM_PLL];
 
 /*--------------------------------------------------------------------------*/
@@ -58,11 +57,13 @@ bool FRACTPLL_GetEnable(uint32_t pllIdx, uint32_t enMask)
 
     if (pllIdx < CLOCK_NUM_PLL)
     {
-        const PLL_Type *pll = s_pllPtrs[pllIdx];
+        uint32_t pllCtrl = s_pllPtrs[pllIdx]->CTRL.RW;
 
-        if ((pll->CTRL.RW & enMask) != 0U)
+        /* PLLs in bypass are reported as disabled */
+        if ((pllCtrl & PLL_CTRL_CLKMUX_BYPASS_MASK) == 0U)
         {
-            pllEnable = true;
+            /* Extract enable status */
+            pllEnable = (pllCtrl & enMask) != 0U;
         }
     }
 
@@ -127,11 +128,7 @@ bool FRACTPLL_SetEnable(uint32_t pllIdx, uint32_t enMask, bool enable)
         }
         else
         {
-            /* If disabling PLL output, enable bypass */
-            if ((enMask & PLL_CTRL_CLKMUX_EN_MASK) != 0U)
-            {
-                pll->CTRL.SET = PLL_CTRL_CLKMUX_BYPASS_MASK;
-            }
+            /* Disable PLL */
             pll->CTRL.CLR = enMask;
             pll->SPREAD_SPECTRUM.CLR = PLL_SPREAD_SPECTRUM_ENABLE_MASK;
 
@@ -144,6 +141,37 @@ bool FRACTPLL_SetEnable(uint32_t pllIdx, uint32_t enMask, bool enable)
 }
 
 /*--------------------------------------------------------------------------*/
+/* Set PLL bypass                                                           */
+/*--------------------------------------------------------------------------*/
+bool FRACTPLL_SetBypass(uint32_t pllIdx, bool bypass)
+{
+    bool rc = false;
+
+    if (pllIdx < CLOCK_NUM_PLL)
+    {
+        PLL_Type *pll = s_pllPtrs[pllIdx];
+
+        if (bypass)
+        {
+            /* PLL bypass output requires POWERUP and CLKMUX enablement */
+            pll->CTRL.SET = PLL_CTRL_CLKMUX_BYPASS_MASK;
+            pll->CTRL.SET = PLL_CTRL_POWERUP_MASK;
+            pll->CTRL.SET = PLL_CTRL_CLKMUX_EN_MASK;
+        }
+        else
+        {
+            pll->CTRL.CLR = PLL_CTRL_CLKMUX_EN_MASK;
+            pll->CTRL.CLR = PLL_CTRL_POWERUP_MASK;
+            pll->CTRL.CLR = PLL_CTRL_CLKMUX_BYPASS_MASK;
+        }
+
+        rc = true;
+    }
+
+    return rc;
+}
+
+/*--------------------------------------------------------------------------*/
 /* Get PLL clock rate                                                       */
 /*--------------------------------------------------------------------------*/
 uint64_t FRACTPLL_GetRate(uint32_t pllIdx, bool vcoOp)
@@ -152,53 +180,45 @@ uint64_t FRACTPLL_GetRate(uint32_t pllIdx, bool vcoOp)
 
     if (pllIdx < CLOCK_NUM_PLL)
     {
-        /* If latched VCO rate not yet applied, return latched rate */
-        if (vcoOp && s_vcoRateIsLatched[pllIdx])
+        const PLL_Type *pll = s_pllPtrs[pllIdx];
+
+        uint32_t pllDiv = pll->DIV.RW;
+        uint32_t rdiv = (pllDiv & PLL_DIV_RDIV_MASK) >> PLL_DIV_RDIV_SHIFT;
+        if (rdiv == 0U)
         {
-            rate = s_vcoRates[pllIdx];
+            rdiv = 1U;
+        }
+        uint32_t mfi = (pllDiv & PLL_DIV_MFI_MASK) >> PLL_DIV_MFI_SHIFT;
+
+        if (g_pllAttrs[pllIdx].isFrac)
+        {
+            uint32_t mfn = pll->NUMERATOR.RW;
+            mfn = mfn / 4U;
+
+            uint32_t mfd = pll->DENOMINATOR.RW;
+
+            rate = (CLOCK_PLL_FREF_HZ * mfi) + ((CLOCK_PLL_FREF_HZ * mfn)
+                / mfd);
         }
         else
         {
-            const PLL_Type *pll = s_pllPtrs[pllIdx];
+            rate = (CLOCK_PLL_FREF_HZ * mfi);
+        }
 
-            uint32_t pllDiv = pll->DIV.RW;
-            uint32_t rdiv = (pllDiv & PLL_DIV_RDIV_MASK) >> PLL_DIV_RDIV_SHIFT;
-            if (rdiv == 0U)
+        if (vcoOp)
+        {
+            rate = rate / ((uint64_t) rdiv);
+        }
+        else
+        {
+            uint32_t odiv = (pllDiv & PLL_DIV_ODIV_MASK)
+                >> PLL_DIV_ODIV_SHIFT;
+            if (odiv < 2U)
             {
-                rdiv = 1U;
-            }
-            uint32_t mfi = (pllDiv & PLL_DIV_MFI_MASK) >> PLL_DIV_MFI_SHIFT;
-
-            if (g_pllAttrs[pllIdx].isFrac)
-            {
-                uint32_t mfn = pll->NUMERATOR.RW;
-                mfn = mfn / 4U;
-
-                uint32_t mfd = pll->DENOMINATOR.RW;
-
-                rate = (CLOCK_PLL_FREF_HZ * mfi) + ((CLOCK_PLL_FREF_HZ * mfn)
-                    / mfd);
-            }
-            else
-            {
-                rate = (CLOCK_PLL_FREF_HZ * mfi);
+                odiv += 2U;
             }
 
-            if (vcoOp)
-            {
-                rate = rate / ((uint64_t) rdiv);
-            }
-            else
-            {
-                uint32_t odiv = (pllDiv & PLL_DIV_ODIV_MASK)
-                    >> PLL_DIV_ODIV_SHIFT;
-                if (odiv < 2U)
-                {
-                    odiv += 2U;
-                }
-
-                rate = rate / (((uint64_t) rdiv) * ((uint64_t) odiv));
-            }
+            rate = rate / (((uint64_t) rdiv) * ((uint64_t) odiv));
         }
     }
 
@@ -209,21 +229,32 @@ uint64_t FRACTPLL_GetRate(uint32_t pllIdx, bool vcoOp)
 /* Update PLL clock rate                                                    */
 /*--------------------------------------------------------------------------*/
 bool FRACTPLL_UpdateRate(uint32_t pllIdx, uint32_t mfi, uint32_t mfn,
-    uint32_t odiv)
+    uint32_t odiv, bool forceActive)
 {
     bool updateRate = false;
 
     if (pllIdx < CLOCK_NUM_PLL)
     {
-        /* Clear out any previously latched rates */
-        s_vcoRateIsLatched[pllIdx] = false;
-
         PLL_Type *pll = s_pllPtrs[pllIdx];
+        bool pllActive = forceActive;
 
-        /* Bypass PLL */
-        pll->CTRL.SET = PLL_CTRL_CLKMUX_BYPASS_MASK;
-        /* Disable output and PLL */
-        pll->CTRL.CLR = PLL_CTRL_CLKMUX_EN_MASK | PLL_CTRL_POWERUP_MASK;
+        /* Avoid reading power status if PLL forced active */
+        if (!pllActive)
+        {
+            /* Query power status of PLL */
+            pllActive = FRACTPLL_GetEnable(pllIdx, PLL_CTRL_POWERUP_MASK);
+        }
+
+        /* Check if PLL should be disabled for rate update */
+        if (pllActive)
+        {
+            /* Disable PLL output */
+            pll->CTRL.CLR = PLL_CTRL_CLKMUX_EN_MASK;
+
+            /* Disable PLL */
+            pll->CTRL.CLR = PLL_CTRL_POWERUP_MASK;
+        }
+
         /* Set rdiv, mfi, and odiv */
         pll->DIV.RW = PLL_DIV_MFI(mfi) | PLL_DIV_RDIV(0U)
             | PLL_DIV_ODIV(odiv);
@@ -244,31 +275,83 @@ bool FRACTPLL_UpdateRate(uint32_t pllIdx, uint32_t mfi, uint32_t mfn,
 
         if (status == true)
         {
-            /* Wait before POWERUP */
-            SystemTimeDelay(ES_MAX_USEC_PLL_PREP);
-
-            /* Power up for locking */
-            pll->CTRL.SET = PLL_CTRL_POWERUP_MASK;
-            uint32_t pllLockUsec = 0U;
-            while (((pll->PLL_STATUS & PLL_PLL_STATUS_PLL_LOCK_MASK) == 0U) &&
-                (pllLockUsec < ES_MAX_USEC_PLL_LOCK))
+            /* Check if PLL should be enabled after rate update */
+            if (pllActive)
             {
-                SystemTimeDelay(1U);
-                pllLockUsec++;
+                /* Wait before POWERUP */
+                SystemTimeDelay(ES_MAX_USEC_PLL_PREP);
+
+                /* Power up for locking */
+                pll->CTRL.SET = PLL_CTRL_POWERUP_MASK;
+                uint32_t pllLockUsec = 0U;
+                while (((pll->PLL_STATUS & PLL_PLL_STATUS_PLL_LOCK_MASK) == 0U) &&
+                    (pllLockUsec < ES_MAX_USEC_PLL_LOCK))
+                {
+                    SystemTimeDelay(1U);
+                    pllLockUsec++;
+                }
+
+                if ((pll->PLL_STATUS & PLL_PLL_STATUS_PLL_LOCK_MASK) != 0U)
+                {
+                    /* Enable PLL output */
+                    pll->CTRL.SET = PLL_CTRL_CLKMUX_EN_MASK;
+
+                    updateRate = true;
+                }
             }
-
-            if ((pll->PLL_STATUS & PLL_PLL_STATUS_PLL_LOCK_MASK) != 0U)
+            /* Otherwise PLL remains disabled after update */
+            else
             {
-                /* Enable PLL and clean bypass*/
-                pll->CTRL.SET = PLL_CTRL_CLKMUX_EN_MASK;
-                pll->CTRL.CLR = PLL_CTRL_CLKMUX_BYPASS_MASK;
-
                 updateRate = true;
             }
         }
     }
 
     return updateRate;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Dynamically set PLL clock rate                                           */
+/*--------------------------------------------------------------------------*/
+static bool FRACTPLL_DynamicSetRate(uint32_t pllIdx, uint64_t vcoRate)
+{
+    bool rc = false;
+
+    if (pllIdx < CLOCK_NUM_PLL)
+    {
+        PLL_Type *pll = s_pllPtrs[pllIdx];
+
+        /* Query power status of PLL */
+        bool pllActive = FRACTPLL_GetEnable(pllIdx, PLL_CTRL_POWERUP_MASK);
+
+        /* Dynamic set rate requires fractional PLL to be active */
+        if (g_pllAttrs[pllIdx].isFrac && pllActive)
+        {
+            uint32_t mfi = (pll->DIV.RW & PLL_DIV_MFI_MASK) >> PLL_DIV_MFI_SHIFT;
+
+            /* Calculate integer part of VCO rate based on current MFI */
+            uint64_t intRate = (mfi * CLOCK_PLL_FREF_HZ);
+
+            /* Integer part of current VCO rate must be no greater than
+             * new VCO rate to avoid relock
+             */
+            if (intRate <= vcoRate)
+            {
+                /* Calculate fractional part of new VCO rate */
+                uint64_t fracRate = vcoRate - intRate;
+
+                /* Fractional part must have MFN/MFD ratio <= 1 for SSC mode */
+                if (fracRate <= (CLOCK_PLL_FREF_HZ * 1U))
+                {
+                    uint32_t mfn = (uint32_t) (fracRate / CLOCK_PLL_CALC_ACCURACY_HZ);
+                    pll->NUMERATOR.RW = PLL_NUMERATOR_MFN(mfn);
+                    rc = true;
+                }
+            }
+        }
+    }
+
+    return rc;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -280,43 +363,58 @@ bool FRACTPLL_SetRate(uint32_t pllIdx, bool vcoOp, uint64_t rate)
 
     if ((pllIdx < CLOCK_NUM_PLL) && (rate != 0U))
     {
-        bool relockPll = false;
-        uint64_t vcoRate = 0U;
+        PLL_Type *pll = s_pllPtrs[pllIdx];
 
+        /* Check if VCO set rate operation */
         if (vcoOp)
         {
             if ((rate >= ES_MIN_HZ_PLLVCO) &&
                 (rate <= ES_MAX_HZ_PLLVCO))
             {
-                /* For PLLs with DFS outputs, relock PLL */
-                if (g_pllAttrs[pllIdx].numDFS > 0U)
+                /* Attempt to dyanmically update VCO */
+                if (FRACTPLL_DynamicSetRate(pllIdx, rate))
                 {
-                    vcoRate = rate;
-                    relockPll = true;
+                    updateRate = true;
                 }
-                /* For PLL without DFS outputs, defer PLL relock */
+                /* Otherwise VCO update requires relock */
                 else
                 {
-                    s_vcoRates[pllIdx] = rate;
-                    s_vcoRateIsLatched[pllIdx] = true;
-                    updateRate = true;
+                    /* Preserve current ODIV */
+                    uint32_t odiv = (pll->DIV.RW & PLL_DIV_ODIV_MASK) >>
+                        PLL_DIV_ODIV_SHIFT;
+
+                    /* Calculate MFI */
+                    uint32_t mfi = (uint32_t) (rate / CLOCK_PLL_FREF_HZ);
+
+                    /* MFN/MFD calculation only needed for fractional PLLs */
+                    uint32_t mfn = 0U;
+                    if (g_pllAttrs[pllIdx].isFrac)
+                    {
+                        /* Calculate MFN */
+                        mfn = (uint32_t) ((rate - (mfi * CLOCK_PLL_FREF_HZ))
+                            / ((uint64_t) CLOCK_PLL_CALC_ACCURACY_HZ));
+                    }
+
+                    /* Update PLL multiplier */
+                    updateRate = FRACTPLL_UpdateRate(pllIdx, mfi, mfn, odiv, false);
                 }
             }
         }
-        else
-        {
-            relockPll = true;
-            vcoRate = s_vcoRates[pllIdx];
-            s_vcoRateIsLatched[pllIdx] = false;
-        }
 
-        if (relockPll)
+        /* Otherwise post divider operation */
+        else
         {
             uint32_t odiv = 0U;
 
+            /* Get current VCO rate */
+            uint64_t vcoRate = FRACTPLL_GetRate(pllIdx, true);
+
+            /* Ensure integer divide rounds up to the nearest Hz */
+            uint64_t newRate = rate + 1ULL;
+
             /* Calculate integer divider needed to achieve specified rate */
-            uint64_t quotient = vcoRate / rate;
-            uint64_t remain = vcoRate % rate;
+            uint64_t quotient = vcoRate / newRate;
+            uint64_t remain = vcoRate % newRate;
 
             /* ODIV min is /2 */
             if (quotient < 2U)
@@ -342,19 +440,13 @@ bool FRACTPLL_SetRate(uint32_t pllIdx, bool vcoOp, uint64_t rate)
                 }
             }
 
-            /* Calculate MFI */
-            uint32_t mfi = (uint32_t) (vcoRate / CLOCK_PLL_FREF_HZ);
+            /* Update PLL output divider */
+            uint32_t pllDiv = pll->DIV.RW;
+            pllDiv &= (~PLL_DIV_ODIV_MASK);
+            pllDiv |= (odiv << PLL_DIV_ODIV_SHIFT);
+            pll->DIV.RW = pllDiv;
 
-            /* MFN/MFD calculation only needed for fractional PLLs */
-            uint32_t mfn = 0U;
-            if (g_pllAttrs[pllIdx].isFrac)
-            {
-                /* Calculate MFN */
-                mfn = (uint32_t) ((vcoRate - (mfi * CLOCK_PLL_FREF_HZ))
-                    / ((uint64_t) CLOCK_PLL_CALC_ACCURACY_HZ));
-            }
-
-            updateRate = FRACTPLL_UpdateRate(pllIdx, mfi, mfn, odiv);
+            updateRate = true;
         }
     }
 
@@ -454,7 +546,7 @@ uint64_t FRACTPLL_GetDfsRate(uint32_t pllIdx, uint8_t dfsIdx,
 /* Update PLL DFS rate                                                      */
 /*--------------------------------------------------------------------------*/
 bool FRACTPLL_UpdateDfsRate(uint32_t pllIdx, uint8_t dfsIdx, uint32_t mfi,
-    uint32_t mfn)
+    uint32_t mfn, bool forceActive)
 {
     bool updateRate = false;
 
@@ -463,37 +555,57 @@ bool FRACTPLL_UpdateDfsRate(uint32_t pllIdx, uint8_t dfsIdx, uint32_t mfi,
         if (dfsIdx < g_pllAttrs[pllIdx].numDFS)
         {
             PLL_Type *pll = s_pllPtrs[pllIdx];
+            bool dfsActive = forceActive;
 
-            /* Bypass DFS*/
-            pll->NO_OF_DFS[dfsIdx].DFS_CTRL.SET
-                = PLL_NO_OF_DFS_BYPASS_EN_MASK;
-            /* Disable output and DFS */
-            pll->NO_OF_DFS[dfsIdx].DFS_CTRL.CLR
-                = PLL_NO_OF_DFS_CLKOUT_EN_MASK
-                | PLL_NO_OF_DFS_ENABLE_MASK;
+            /* Avoid reading power status if DFS forced active */
+            if (!dfsActive)
+            {
+                /* Query power status of DFS */
+                dfsActive = (pll->NO_OF_DFS[dfsIdx].DFS_CTRL.RW &
+                    PLL_NO_OF_DFS_ENABLE_MASK) != 0U;
+            }
+
+            /* Check if DFS should be disabled for rate update */
+            if (dfsActive)
+            {
+                /* Bypass DFS*/
+                pll->NO_OF_DFS[dfsIdx].DFS_CTRL.SET
+                    = PLL_NO_OF_DFS_BYPASS_EN_MASK;
+
+                /* Disable output and DFS */
+                pll->NO_OF_DFS[dfsIdx].DFS_CTRL.CLR
+                    = PLL_NO_OF_DFS_CLKOUT_EN_MASK
+                    | PLL_NO_OF_DFS_ENABLE_MASK;
+            }
+
             /* Set mfi and mfn */
             pll->NO_OF_DFS[dfsIdx].DFS_DIV.RW = PLL_NO_OF_DFS_MFI(mfi)
                 | PLL_NO_OF_DFS_MFN(mfn);
-            /* Enable output and DFS*/
-            pll->NO_OF_DFS[dfsIdx].DFS_CTRL.SET
-                = PLL_NO_OF_DFS_CLKOUT_EN_MASK;
 
-            /* Enable DFS for locking*/
-            pll->NO_OF_DFS[dfsIdx].DFS_CTRL.SET
-                = PLL_NO_OF_DFS_ENABLE_MASK;
-
-            /* Wait for DFS clock output to be valid */
-            uint32_t dfsOkMask = 1UL << dfsIdx;
-            while ((pll->DFS_STATUS & dfsOkMask) == 0U)
+            /* Check if DFS should be enabled after rate update */
+            if (dfsActive)
             {
-                ; /* Intentional empty while */
-            }
+                /* Enable output and DFS*/
+                pll->NO_OF_DFS[dfsIdx].DFS_CTRL.SET
+                    = PLL_NO_OF_DFS_CLKOUT_EN_MASK;
 
-            /* Clean bypass */
-            pll->NO_OF_DFS[dfsIdx].DFS_CTRL.CLR
-                = PLL_NO_OF_DFS_BYPASS_EN_MASK;
-            __DSB();
-            __ISB();
+                /* Enable DFS for locking*/
+                pll->NO_OF_DFS[dfsIdx].DFS_CTRL.SET
+                    = PLL_NO_OF_DFS_ENABLE_MASK;
+
+                /* Wait for DFS clock output to be valid */
+                uint32_t dfsOkMask = 1UL << dfsIdx;
+                while ((pll->DFS_STATUS & dfsOkMask) == 0U)
+                {
+                    ; /* Intentional empty while */
+                }
+
+                /* Clean bypass */
+                pll->NO_OF_DFS[dfsIdx].DFS_CTRL.CLR
+                    = PLL_NO_OF_DFS_BYPASS_EN_MASK;
+                __DSB();
+                __ISB();
+            }
 
             updateRate = true;
         }
@@ -530,13 +642,16 @@ bool FRACTPLL_SetDfsRate(uint32_t pllIdx, uint8_t dfsIdx,
              *
              */
 
+            /* Ensure integer divide rounds up to the nearest Hz */
+            uint64_t newRate = rate + 1ULL;
+
             /* Calculate MFI */
-            uint32_t mfi = (uint32_t) ((uint64_t) (vcoRate / rate));
+            uint32_t mfi = (uint32_t) ((uint64_t) (vcoRate / newRate));
 
             /* Calculate MFN */
-            uint64_t num = (vcoRate * 5UL) - (((uint64_t) mfi) * rate * 5UL);
-            uint64_t quotient = num / rate;
-            uint64_t remain = num % rate;
+            uint64_t num = (vcoRate * 5UL) - (((uint64_t) mfi) * newRate * 5UL);
+            uint64_t quotient = num / newRate;
+            uint64_t remain = num % newRate;
 
             uint32_t mfn = ((uint32_t) quotient);
 
@@ -565,7 +680,8 @@ bool FRACTPLL_SetDfsRate(uint32_t pllIdx, uint8_t dfsIdx,
                 mfn = 4U;
             }
 
-            updateRate = FRACTPLL_UpdateDfsRate(pllIdx, dfsIdx, mfi, mfn);
+            updateRate = FRACTPLL_UpdateDfsRate(pllIdx, dfsIdx, mfi, mfn,
+                false);
         }
     }
 

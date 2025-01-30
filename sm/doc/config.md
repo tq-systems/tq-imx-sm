@@ -20,6 +20,7 @@ The configuration directory contains the following files:
 |--------------------|-------------------------------------------|
 | Configtool         | [configtool.cfg](@ref CONFIGTOOL)         |
 | Make Includes      | [config.mak](@ref MAKE_CONFIG)            |
+| Manual user config | [config_user.h](@ref USER_CONFIG)         |
 | MU Mailbox         | [config_mb_mu.h](@ref MB_MU_CONFIG)       |
 | Loopback Mailbox   | [config_mb_loopback.h](@ref MB_LB_CONFIG) |
 | SMT                | [config_smt.h](@ref SMT_CONFIG)           |
@@ -86,6 +87,64 @@ Other defines may exit such as defining the board or various USES.
 
     BOARD ?= mcimx95evk
     USES_FUSA ?= 1
+
+User {#USER_CONFIG}
+----------------
+
+- **File:** [config_user.h](@ref configs/mx95evk/config_user.h)
+
+This file contains any configuration the user does not want the tool to always
+overwrite. It is then included in all the other config files. Currently, this
+contains configuration info used to load register data into mix IP when the mix
+powers up after losing state. This can be a sequence and/or a function per mix.
+This configuration must only write to registers accessible to the SM and contained
+in the mix being powered.
+
+Note if the file does not exist then a template version will be written.
+
+### Sequence ###
+
+This file contains a collection of defines, SM_mix_CONFIG, one for each mix (e.g.
+SM_AON_CONFIG, SM_WKUP_CONFIG). These defines specify a programming sequence to be
+applied when the mix powers up.
+
+For example:
+
+    #define SM_WKUP_CONFIG \
+    { \
+        SM_CFG_WA(0x42420028U), 0x00000003U, \
+        SM_CFG_END \
+    }
+
+The only supported sequence type is the absolute data write type:
+
+    SM_CFG_WA(addr), value
+
+The address is **absolute** (full address). All defines must exist and all must end
+with SM_CFG_END.
+
+### Function ###
+
+In addition, an **inline** function can be added to this file for a mix. Calling this
+is then indicated by a define with the name SM_mix_CONFIG_FUNC. For example,
+SM_AON_CONFIG_FUNC or SM_WKUP_CONFIG_FUNC.
+
+    #define SM_AON_CONFIG_FUNC ExampleConfig
+
+    inline int32_t ExampleConfig(void)
+    {
+        Write32(0x42846104, 0x4);
+
+        return SM_ERR_SUCCESS;
+    }
+
+This function can be used as an alternative to the RDC programming sequence.
+It will be called after the programming sequence is applied but before the
+RDC programming sequence described below is applied.
+
+The function can make use of the CONFIG_Load() function if it needs to load a lot
+of data into a specific peripherals. This function is used by the TRDC config file
+below which describes the sequence macros that can be used.
 
 MU Mailbox {#MB_MU_CONFIG}
 ----------------
@@ -374,70 +433,34 @@ Board {#BOARD_CONFIG}
 - **File:** [config_board.h](@ref configs/mx95evk/config_board.h)
 
 Configures the board. The parameters are a **function of the board implementation**.
-For NXP reference board ports, the defines in this file are as follows:
+For NXP reference board ports, the defines (required) in this file are as follows:
 
 - **BOARD_DEBUG_UART_INSTANCE** - Debug monitor UART instance
 - **BOARD_DEBUG_UART_BAUDRATE** - Debug monitor UART baudrate (e.g. 115200)
 - **BOARD_I2C_INSTANCE** - PMIC I2C instance
 - **BOARD_I2C_BAUDRATE** - PMIC I2C baudrate (e.g. 400000)
 
-The instance numbers are the index into the SDK base array for that driver.
+The instance numbers are the index into the SDK base array for that driver. Other
+defines can be added specific to a board implementation.
 
 Device {#DEV_CONFIG}
 ----------------
 
 - **File:** [config_dev.h](@ref configs/mx95evk/config_dev.h)
+- **Structures:** dev_config_t
 
-This file contains configuration info used to load register data into mix IP when
-the mix powers up after losing state. This can be a sequence and/or a function
-per mix. This configuration must only write to registers accessible to the SM
-and contained in the mix being powered.
+This file contains configuration info for the [device](@ref DEV_SM).
+The defines in this file are as follows:
 
-### Sequence ###
+- **SM_DEV_CONFIG_DATA** - fills a single dev_config_t structure for the device
+  - *cpuSemaAddr[]* - Array of semaphore addresses per CPU, 0 = none
 
-This file contains a collection of defines, SM_mix_CONFIG, one for each mix (e.g.
-SM_AON_CONFIG, SM_WKUP_CONFIG). These defines specify a programming sequence to be
-applied when the mix powers up.
+The semaphore address is the memory address where a semaphore will be stored between
+the SM and another CPU. It needs to be in memory both the SM and other CPU can access.
+It is most often stored in an MU SRAM buffer and currently is used to work around
+a GIC access problem when resetting the AP platform.
 
-For example:
-
-    #define SM_WKUP_CONFIG \
-    { \
-        SM_CFG_WA(0x42420028U), 0x00000003U, \
-        SM_CFG_END \
-    }
-
-The only supported sequence type is the absolute data write type:
-
-    SM_CFG_WA(addr), value
-
-The address is **absolute** (full address). All defines must exist and all must end
-with SM_CFG_END.
-
-### Function ###
-
-In addition, an **inline** function can be added to this file for a mix. Calling this
-is then indicated by a define with the name SM_mix_CONFIG_FUNC. For example,
-SM_AON_CONFIG_FUNC or SM_WKUP_CONFIG_FUNC.
-
-    #define SM_AON_CONFIG_FUNC ExampleConfig
-
-    inline int32_t ExampleConfig(void)
-    {
-        Write32(0x42846104, 0x4);
-
-        return SM_ERR_SUCCESS;
-    }
-
-This function can be used as an alternative to the RDC programming sequence.
-It will be called after the programming sequence is applied but before the
-RDC programming sequence described below is applied.
-
-The function can make use of the CONFIG_Load() function if it needs to load a lot
-of data into a specific peripherals. This function is used by the TRDC config file
-below which describes the sequence macros that can be used.
-
-Device {#BCTRL_CONFIG}
+Block Control {#BCTRL_CONFIG}
 ----------------
 
 - **File:** [config_bctrl.h](@ref configs/mx95evk/config_bctrl.h)
@@ -687,13 +710,14 @@ Configtool Commands {#CONFIGTOOL_CMDS}
 
 The configtool supports the following commands and key=value pairs in the input file.
 
-| Command     | Key     | Value                                        |
+| Command     | Key      | Value                                        |
 |-------------|----------|----------------------------- ----------------|
 | MAKE        | soc      | Build includes ./devices/\<VAL\>/sm/Makefile |
 |             | board    | Build includes ./boards/\<VAL\>/sm/Makefile |
 |             | build    | Build includes ./sm/makefiles/\<VAL\>.mak |
 | DOX         | name     | Define doxygen group CONFIG_\<VAL\>, use group for all config files |
 |             | desc     | Group description, quoted |
+| BOARD       | \<DEF\>  | Define BOARD_\<DEF\> as \<VAL\> in config_board.h |
 | DOMn        | did      | Starts a domain (aka DID) section *n*, ends with another DOMn or LMn command, used for resources not part of an LM such as ELE, MTR, DAP, etc.,  the DID is usually defined in the RM and sometimes must be a fixed value e.g. ELE=0, MTR=1 |
 | LMn         | name     | Starts an LM section *n*, *n* starts at 0 and should increment, LM name string, quoted, 15 characters max |
 |             | rpc      | Linked RPC is SM_RPC_\<VAL\>, e.g. ::SM_RPC_SCMI |
@@ -715,7 +739,7 @@ The configtool supports the following commands and key=value pairs in the input 
 |             | mu       | Index into SDK MU base pointer array, platform side |
 |             | test     | Index into SDK MU base pointer array, client side for testing |
 |             | sma      | Shared memory area address, undefined/0 = MU SRAM |
-|             | priority | MU interrupt prority is IRQ_PRIO_NOPREEMPT_\<VAL\>, e.g. IRQ_PRIO_NOPREEMPT_CRITICAL, deault is NORMAL |
+|             | priority | MU interrupt priority is IRQ_PRIO_NOPREEMPT_\<VAL\>, e.g. IRQ_PRIO_NOPREEMPT_CRITICAL, deault is NORMAL |
 | CHANNEL     | xport    | Define a channel of type SM_XPORT_<VAL\>, e.g. ::SM_XPORT_SMT, up to four per mailbox |
 |             | db       | Mailbox doorbell, 0-3 |
 |             | rpc      | RPC type of SM_RPC_<VAL\>, e.g. ::SM_RPC_SCMI |
@@ -775,6 +799,7 @@ Resources support the following key=value pairs.
 |                | stop      | Call config function on that resource when the LM shuts down |
 |                | msel      | Mode for a start/stop (default 0) |
 |                | test      | Perform SCMI unit tests on the resource (no =value) |
+|                | sema      | semaphore address, valid for CPU resources only |
 |                | BCTRL_a_b | *a* is the letter index, b the register name, value is address (for CPUs) or bit |
 | FAULT_a        | reaction  | Define a reaction of type LMM_REACT_<VAL\>, e.g. ::LMM_REACT_SYS_RESET |
 |                | lm        | LM fault affects (default to LM fault configured in) |

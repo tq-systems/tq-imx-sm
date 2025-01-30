@@ -86,6 +86,7 @@ int32_t DEV_SM_Init(uint32_t bootPerfLevel, uint32_t runPerfLevel)
         status = DEV_SM_PowerInit();
     }
 
+#ifdef DEVICE_HAS_ELE
     /* Release M7 */
     if ((status == SM_ERR_SUCCESS) && (SRC_MixIsPwrSwitchOn(DEV_SM_PD_M7)))
     {
@@ -93,6 +94,7 @@ int32_t DEV_SM_Init(uint32_t bootPerfLevel, uint32_t runPerfLevel)
         ELE_EnableAuxRequest(0xBU);
         status = g_eleStatus;
     }
+#endif
 
     /* Init ROM data */
     // coverity[misra_c_2012_rule_2_2_violation:FALSE]
@@ -131,8 +133,10 @@ int32_t DEV_SM_Init(uint32_t bootPerfLevel, uint32_t runPerfLevel)
             status = SM_ERR_SUCCESS;
         }
 
+#ifdef DEVICE_HAS_ELE
         /* No FW loaded, assume ELE is in an aborted state */
         ELE_Abort();
+#endif
     }
 
     /* Loop over powered domains and load state (BLK_CTRL, RDC, etc.) */
@@ -201,22 +205,16 @@ int32_t DEV_SM_PowerUpPost(uint32_t domainId)
             status = DEV_SM_A55pConfigLoad();
             break;
         case DEV_SM_PD_A55C0:
-            status = DEV_SM_A55c0ConfigLoad();
             break;
         case DEV_SM_PD_A55C1:
-            status = DEV_SM_A55c1ConfigLoad();
             break;
         case DEV_SM_PD_A55C2:
-            status = DEV_SM_A55c2ConfigLoad();
             break;
         case DEV_SM_PD_A55C3:
-            status = DEV_SM_A55c3ConfigLoad();
             break;
         case DEV_SM_PD_A55C4:
-            status = DEV_SM_A55c4ConfigLoad();
             break;
         case DEV_SM_PD_A55C5:
-            status = DEV_SM_A55c5ConfigLoad();
             break;
         case DEV_SM_PD_DDR:
             status = DEV_SM_DdrConfigLoad();
