@@ -40,12 +40,16 @@
  * @file
  * @brief
  *
- * Header file containing coniguration info for the SCMI RPC.
+ * Header file containing configuration info for the SCMI RPC.
  */
 /*==========================================================================*/
 
 #ifndef CONFIG_SCMI_H
 #define CONFIG_SCMI_H
+
+/* Includes */
+
+#include "config_user.h"
 
 /* Defines */
 
@@ -61,7 +65,6 @@
         .domId = 4U, \
         .secure = 0U, \
         .seenvId = 1U, \
-        .buttonPerms[DEV_SM_BUTTON_0] = SM_SCMI_PERM_NOTIFY, \
         .clkPerms[DEV_SM_CLK_LPTMR1] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_LPTMR2] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_LPUART5] = SM_SCMI_PERM_ALL, \
@@ -81,15 +84,15 @@
         .faultPerms[DEV_SM_FAULT_SW0] = SM_SCMI_PERM_ALL, \
         .faultPerms[DEV_SM_FAULT_SW1] = SM_SCMI_PERM_ALL, \
         .faultPerms[DEV_SM_FAULT_WDOG5] = SM_SCMI_PERM_ALL, \
-        .fusaPerms = SM_SCMI_PERM_EXCLUSIVE, \
+        .fusaPerms = SM_SCMI_PERM_ALL, \
         .lmmPerms[2] = SM_SCMI_PERM_ALL, \
         .pdPerms[DEV_SM_PD_M7] = SM_SCMI_PERM_ALL, \
         .perfPerms[DEV_SM_PERF_M7] = SM_SCMI_PERM_ALL, \
+        .perlpiPerms[DEV_SM_PERLPI_LPUART3] = SM_SCMI_PERM_ALL, \
         .perlpiPerms[DEV_SM_PERLPI_LPUART5] = SM_SCMI_PERM_ALL, \
         .perlpiPerms[DEV_SM_PERLPI_WDOG5] = SM_SCMI_PERM_ALL, \
         .pinPerms[DEV_SM_PIN_GPIO_IO00] = SM_SCMI_PERM_ALL, \
         .pinPerms[DEV_SM_PIN_GPIO_IO01] = SM_SCMI_PERM_ALL, \
-        .rtcPerms[DEV_SM_RTC_BBNSM] = SM_SCMI_PERM_PRIV, \
         .sensorPerms[BRD_SM_SENSOR_TEMP_PF09] = SM_SCMI_PERM_SET, \
         .sensorPerms[BRD_SM_SENSOR_TEMP_PF5301] = SM_SCMI_PERM_SET, \
         .sensorPerms[BRD_SM_SENSOR_TEMP_PF5302] = SM_SCMI_PERM_SET, \
@@ -194,6 +197,7 @@
         .perlpiPerms[DEV_SM_PERLPI_GPIO5] = SM_SCMI_PERM_ALL, \
         .perlpiPerms[DEV_SM_PERLPI_LPUART2] = SM_SCMI_PERM_ALL, \
         .perlpiPerms[DEV_SM_PERLPI_LPUART4] = SM_SCMI_PERM_ALL, \
+        .perlpiPerms[DEV_SM_PERLPI_LPUART5] = SM_SCMI_PERM_ALL, \
         .perlpiPerms[DEV_SM_PERLPI_LPUART6] = SM_SCMI_PERM_ALL, \
         .perlpiPerms[DEV_SM_PERLPI_LPUART7] = SM_SCMI_PERM_ALL, \
         .perlpiPerms[DEV_SM_PERLPI_LPUART8] = SM_SCMI_PERM_ALL, \
@@ -231,7 +235,6 @@
         .scmiInst = 1U, \
         .domId = 3U, \
         .secure = 0U, \
-        .buttonPerms[DEV_SM_BUTTON_0] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_AUDIOPLL1] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_AUDIOPLL1_VCO] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_AUDIOPLL2] = SM_SCMI_PERM_ALL, \
@@ -259,6 +262,7 @@
         .clkPerms[DEV_SM_CLK_FLEXIO1] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_FLEXIO2] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_FLEXSPI1] = SM_SCMI_PERM_ALL, \
+        .clkPerms[DEV_SM_CLK_GPU_CGC] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_HSIOPCIEAUX] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_HSIOPLL] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_HSIOPLL_VCO] = SM_SCMI_PERM_ALL, \
@@ -381,6 +385,9 @@
         .daisyPerms[DEV_SM_DAISY_LPI2C7_SDA] = SM_SCMI_PERM_ALL, \
         .daisyPerms[DEV_SM_DAISY_LPI2C8_SCL] = SM_SCMI_PERM_ALL, \
         .daisyPerms[DEV_SM_DAISY_LPI2C8_SDA] = SM_SCMI_PERM_ALL, \
+        .daisyPerms[DEV_SM_DAISY_LPSPI4_PCS_0] = SM_SCMI_PERM_ALL, \
+        .daisyPerms[DEV_SM_DAISY_LPSPI4_PCS_1] = SM_SCMI_PERM_ALL, \
+        .daisyPerms[DEV_SM_DAISY_LPSPI4_PCS_2] = SM_SCMI_PERM_ALL, \
         .daisyPerms[DEV_SM_DAISY_LPSPI4_SCK] = SM_SCMI_PERM_ALL, \
         .daisyPerms[DEV_SM_DAISY_LPSPI4_SDI] = SM_SCMI_PERM_ALL, \
         .daisyPerms[DEV_SM_DAISY_LPSPI4_SDO] = SM_SCMI_PERM_ALL, \
