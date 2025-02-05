@@ -245,10 +245,7 @@ void GPIO1_0_IRQHandler(void)
     }
 
     /* Handle controls interrupts */
-    else
-    {
-        BRD_SM_ControlHandler(status, val);
-    }
+    BRD_SM_ControlHandler(status, val);
 
     /* Adjust dynamic IRQ priority */
     (void) DEV_SM_IrqPrioUpdate();
