@@ -70,17 +70,20 @@
 
 /* External variables */
 
-/*! Handle to acces PF09 */
-extern PF09_Type pf09Dev;
+/*! Handle to access PF09 */
+extern PF09_Type g_pf09Dev;
 
-/*! Handle to acces PF5301 */
-extern PF53_Type pf5301Dev;
+/*! Handle to access PF5301 */
+extern PF53_Type g_pf5301Dev;
 
-/*! Handle to acces PF5302 */
-extern PF53_Type pf5302Dev;
+/*! Handle to access PF5302 */
+extern PF53_Type g_pf5302Dev;
 
 /*! Array of dynamic priority info for board IRQs */
-extern irq_prio_info_t s_brdIrqPrioInfo[BOARD_NUM_IRQ_PRIO_IDX];
+extern irq_prio_info_t g_brdIrqPrioInfo[BOARD_NUM_IRQ_PRIO_IDX];
+
+/*! Fault flags from the PMICs */
+extern uint32_t g_pmicFaultFlags;
 
 /* Functions */
 
@@ -92,7 +95,7 @@ extern irq_prio_info_t s_brdIrqPrioInfo[BOARD_NUM_IRQ_PRIO_IDX];
 int32_t BRD_SM_SerialDevicesInit(void);
 
 /*!
- * GPIO 1 interrupt 0 handler (Pin 0..15)
+ * GPIO 1 interrupt 0 handler.
  */
 void GPIO1_0_IRQHandler(void);
 

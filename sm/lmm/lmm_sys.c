@@ -421,6 +421,7 @@ int32_t LM_SystemLmStatus(uint32_t lmId, uint32_t stateLm, uint32_t *state,
         *errStatus = s_lmError[stateLm];
     }
 
+    // cppcheck-suppress unknownMacro
     SM_TEST_MODE_EXEC(SM_TEST_MODE_LMM_ALT1, *errStatus = SM_ERR_TEST)
     SM_TEST_MODE_ERR(SM_TEST_MODE_LMM_LVL1, SM_ERR_TEST)
 
@@ -433,11 +434,11 @@ int32_t LM_SystemLmStatus(uint32_t lmId, uint32_t stateLm, uint32_t *state,
 /*--------------------------------------------------------------------------*/
 int32_t LMM_SystemLmCheck(uint32_t bootLm)
 {
-    int32_t status = SM_ERR_NOT_FOUND;
+    int32_t status = SM_ERR_SUCCESS;
     uint32_t idx = g_lmmConfig[bootLm].start - 1U;
 
     /* Loop over start list */
-    while ((status != SM_ERR_SUCCESS) && (idx < SM_LM_NUM_START))
+    while (idx < SM_LM_NUM_START)
     {
         const lmm_startstop_t *ptr = &s_lmmStart[idx];
 
@@ -447,11 +448,18 @@ int32_t LMM_SystemLmCheck(uint32_t bootLm)
             break;
         }
 
-        /* CPU command? */
-        if (ptr->ss == LMM_SS_CPU)
+        /* CPU command for this mSel? */
+        if ((ptr->mSel == s_modeSel) && (ptr->ss == LMM_SS_CPU))
         {
             /* Check vector */
             status = LMM_CpuBootCheck(ptr->lmId, ptr->rsrc);
+
+            /* Translate and exit */
+            if (status != SM_ERR_SUCCESS)
+            {
+                status = SM_ERR_MISSING_PARAMETERS;
+                break;
+            }
         }
 
         /* Next entry */
@@ -502,7 +510,7 @@ int32_t LMM_SystemLmPowerOn(uint32_t lmId, uint32_t agentId, uint32_t pwrLm)
 int32_t LMM_SystemLmBoot(uint32_t lmId, uint32_t agentId, uint32_t bootLm,
     const lmm_rst_rec_t *bootRec)
 {
-    int32_t status = SM_ERR_SUCCESS;
+    int32_t status;
     lmm_rpc_trigger_t trigger =
     {
         .event = LMM_TRIGGER_SYSTEM,
@@ -512,8 +520,18 @@ int32_t LMM_SystemLmBoot(uint32_t lmId, uint32_t agentId, uint32_t bootLm,
         .parm[3] = lmId
     };
 
+    /* Check LM */
+    status = LMM_SystemLmCheck(bootLm);
+
     /* Boot LM */
-    status = LMM_DoBoot(&trigger, bootRec);
+    if (status == SM_ERR_SUCCESS)
+    {
+        status = LMM_DoBoot(&trigger, bootRec);
+    }
+    else
+    {
+        s_lmError[bootLm] = status;
+    }
 
     SM_TEST_MODE_ERR(SM_TEST_MODE_LMM_LVL1, SM_ERR_TEST)
 
@@ -749,9 +767,23 @@ int32_t LMM_SystemGrpBoot(uint32_t lmId, uint32_t agentId,
             if ((g_lmmConfig[lm].group == group)
                 && (g_lmmConfig[lm].boot[s_modeSel] == bootOrder))
             {
-                /* Boot LM and store status */
-                status = LMM_SystemLmBoot(lmId, agentId, lm,
-                    bootRec);
+                /* Check if possible to boot? */
+                int32_t bootStatus = LMM_SystemLmCheck(lm);
+
+                if (bootStatus == SM_ERR_SUCCESS)
+                {
+                    /* Boot LM and store status */
+                    status = LMM_SystemLmBoot(lmId, agentId, lm,
+                        bootRec);
+                }
+
+                /* Error if not skip */
+                if ((g_lmmConfig[lm].bootSkip[s_modeSel] == 0U)
+                    && (bootStatus != SM_ERR_SUCCESS))
+                {
+                    status = bootStatus;
+                    s_lmError[lm] = status;
+                }
             }
 
             /* Exit loop on error */
@@ -779,9 +811,13 @@ int32_t LMM_SystemGrpBoot(uint32_t lmId, uint32_t agentId,
 /*--------------------------------------------------------------------------*/
 // coverity[misra_c_2012_rule_17_2_violation:FALSE]
 int32_t LMM_SystemGrpShutdown(uint32_t lmId, uint32_t agentId,
-    bool graceful, const lmm_rst_rec_t *shutdownRec, uint8_t group)
+    bool graceful, const lmm_rst_rec_t *shutdownRec, uint8_t group,
+    bool *noReturn)
 {
     int32_t status = SM_ERR_SUCCESS;
+
+    /* Default to a return */
+    *noReturn = false;
 
     /* Loop over LMs */
     for (uint32_t lm = 0U; lm < SM_NUM_LM; lm++)
@@ -794,7 +830,14 @@ int32_t LMM_SystemGrpShutdown(uint32_t lmId, uint32_t agentId,
                 shutdownRec);
 
             /* Error? */
-            if (status != SM_ERR_SUCCESS)
+            if (status == SM_ERR_SUCCESS)
+            {
+                if ((lmId == lm) && !graceful)
+                {
+                    *noReturn = true;
+                }
+            }
+            else
             {
                 break;
             }
@@ -811,7 +854,7 @@ int32_t LMM_SystemGrpShutdown(uint32_t lmId, uint32_t agentId,
 /* Group reset                                                              */
 /*--------------------------------------------------------------------------*/
 int32_t LMM_SystemGrpReset(uint32_t lmId, uint32_t agentId, bool graceful,
-    const lmm_rst_rec_t *resetRec, uint8_t group)
+    const lmm_rst_rec_t *resetRec, uint8_t group, bool *noReturn)
 {
     int32_t status;
 
@@ -819,7 +862,7 @@ int32_t LMM_SystemGrpReset(uint32_t lmId, uint32_t agentId, bool graceful,
     {
         /* Shutdown LMs */
         status = LMM_SystemGrpShutdown(lmId, agentId, graceful, resetRec,
-            group);
+            group, noReturn);
 
         /* Boot LMs */
         if (status == SM_ERR_SUCCESS)

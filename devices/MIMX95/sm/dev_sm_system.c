@@ -42,6 +42,7 @@
 #include "dev_sm.h"
 #include "lmm.h"
 #include "fsl_ddr.h"
+#include "fsl_fract_pll.h"
 #include "fsl_power.h"
 #include "fsl_reset.h"
 #include "fsl_sysctr.h"
@@ -59,6 +60,10 @@ static uint32_t s_sysSleepFlags = 0U;
 static dev_sm_rst_rec_t s_shutdownRecord = { 0 };
 static BLK_CTRL_DDRMIX_Type ddr_blk_ctrl;
 
+/* Local functions */
+
+static void CLOCK_SourceBypass(bool bypass, bool preserve);
+
 /*--------------------------------------------------------------------------*/
 /* Initialize system functions                                              */
 /*--------------------------------------------------------------------------*/
@@ -66,6 +71,7 @@ int32_t DEV_SM_SystemInit(void)
 {
     int32_t status = SM_ERR_SUCCESS;
     uint32_t srcResetReason = 0U;
+    uint32_t pmicAckCtrl;
 
     /* Get reset reason from SRC */
     srcResetReason = RST_SystemGetResetReason();
@@ -81,13 +87,25 @@ int32_t DEV_SM_SystemInit(void)
         s_shutdownRecord.valid = true;
     }
 
+#ifdef DEVICE_HAS_ELE
     /* Enable GPC-to-ELE handshake */
-    GPC_GLOBAL->GPC_SENTINEL_HDSK_CTRL = 1U;
+    GPC_GLOBAL->GPC_ELE_HDSK_CTRL = 1U;
+#endif
 
     /* Default to keep M7 clocks running during sleep modes */
     BLK_CTRL_S_AONMIX->M7_CFG |=
         (BLK_CTRL_S_AONMIX_M7_CFG_CORECLK_FORCE_ON_MASK |
-        BLK_CTRL_S_AONMIX_M7_CFG_HCLK_FORCE_ON_MASK);
+            BLK_CTRL_S_AONMIX_M7_CFG_HCLK_FORCE_ON_MASK);
+
+    /* Configure PMIC standby timings */
+    pmicAckCtrl = GPC_GLOBAL->GPC_PMIC_STBY_ACK_CTRL;
+    pmicAckCtrl &= ~GPC_GLOBAL_GPC_PMIC_STBY_ACK_CTRL_STBY_OFF_CNT_CFG_MASK;
+    pmicAckCtrl |= GPC_GLOBAL_GPC_PMIC_STBY_ACK_CTRL_STBY_OFF_CNT_CFG(
+        BOARD_PMIC_RESUME_TICKS);
+    GPC_GLOBAL->GPC_PMIC_STBY_ACK_CTRL = pmicAckCtrl;
+
+    /* Enable bypass for clock sources */
+    CLOCK_SourceBypass(true, false);
 
     /* Return status */
     return status;
@@ -205,7 +223,7 @@ int32_t DEV_SM_SystemReasonNameGet(uint32_t resetReason,
         [DEV_SM_REASON_SW] =          "sw",
         [DEV_SM_REASON_SM_ERR] =      "sm_err",
         [DEV_SM_REASON_FUSA_SRECO] =  "fusa_sreco",
-        [DEV_SM_REASON_UNUSED4] =     "unused4",
+        [DEV_SM_REASON_PMIC] =        "pmic",
         [DEV_SM_REASON_UNUSED5] =     "unused5",
         [DEV_SM_REASON_UNUSED6] =     "unused6",
         [DEV_SM_REASON_UNUSED7] =     "unused7",
@@ -307,7 +325,7 @@ int32_t DEV_SM_SystemSleep(uint32_t sleepMode)
 {
     static const uint32_t s_clkRootSleepList[DEV_SM_NUM_SLEEP_ROOTS] =
     {
-        [0] = CLOCK_ROOT_SENTINEL,
+        [0] = CLOCK_ROOT_ELE,
         [1] = CLOCK_ROOT_BUSAON,
         [2] = CLOCK_ROOT_M33
     };
@@ -373,7 +391,7 @@ int32_t DEV_SM_SystemSleep(uint32_t sleepMode)
         }
     }
 
-    /* Initalize wake masks */
+    /* Initialize wake masks */
     for (uint32_t wakeIdx = 0;
         wakeIdx < GPC_CPU_CTRL_CMC_IRQ_WAKEUP_MASK_COUNT;
         wakeIdx++)
@@ -506,10 +524,10 @@ int32_t DEV_SM_SystemSleep(uint32_t sleepMode)
             BLK_CTRL_S_AONMIX->LP_HANDSHAKE_SM = 0U;
             uint32_t lpHs2Sm = BLK_CTRL_S_AONMIX->LP_HANDSHAKE2_SM;
             BLK_CTRL_S_AONMIX->LP_HANDSHAKE2_SM = 0U;
-            uint32_t lpHsEle = BLK_CTRL_S_AONMIX->LP_HANDSHAKE_SENTINEL;
-            BLK_CTRL_S_AONMIX->LP_HANDSHAKE_SENTINEL = 0U;
-            uint32_t lpHs2Ele = BLK_CTRL_S_AONMIX->LP_HANDSHAKE2_SENTINEL;
-            BLK_CTRL_S_AONMIX->LP_HANDSHAKE2_SENTINEL = 0U;
+            uint32_t lpHsEle = BLK_CTRL_S_AONMIX->LP_HANDSHAKE_ELE;
+            BLK_CTRL_S_AONMIX->LP_HANDSHAKE_ELE = 0U;
+            uint32_t lpHs2Ele = BLK_CTRL_S_AONMIX->LP_HANDSHAKE2_ELE;
+            BLK_CTRL_S_AONMIX->LP_HANDSHAKE2_ELE = 0U;
 
             /* Configure SM GPC_CTRL and NVIC for system-level wake events */
             for (uint32_t wakeIdx = 0;
@@ -582,6 +600,9 @@ int32_t DEV_SM_SystemSleep(uint32_t sleepMode)
             /* Power down eFUSE */
             GPC_GLOBAL->GPC_EFUSE_CTRL =
                 GPC_GLOBAL_GPC_EFUSE_CTRL_EFUSE_PD_EN_MASK;
+
+            /* Disable bypass for clock sources */
+            CLOCK_SourceBypass(false, true);
 
             if (activeSleep)
             {
@@ -720,14 +741,17 @@ int32_t DEV_SM_SystemSleep(uint32_t sleepMode)
                 }
             }
 
+            /* Enable bypass for clock sources */
+            CLOCK_SourceBypass(true, true);
+
             /* Power up eFUSE */
             GPC_GLOBAL->GPC_EFUSE_CTRL = 0U;
 
             /* Restore GPC LP handshakes */
             BLK_CTRL_S_AONMIX->LP_HANDSHAKE_SM = lpHsSm;
             BLK_CTRL_S_AONMIX->LP_HANDSHAKE2_SM = lpHs2Sm;
-            BLK_CTRL_S_AONMIX->LP_HANDSHAKE_SENTINEL = lpHsEle;
-            BLK_CTRL_S_AONMIX->LP_HANDSHAKE2_SENTINEL = lpHs2Ele;
+            BLK_CTRL_S_AONMIX->LP_HANDSHAKE_ELE = lpHsEle;
+            BLK_CTRL_S_AONMIX->LP_HANDSHAKE2_ELE = lpHs2Ele;
 
             /* If WAKEUPMIX powered down during SUSPEND, force power up */
             if (lpmSettingWakeup <= sleepMode)
@@ -1043,5 +1067,39 @@ int32_t DEV_SM_SystemDramRetentionExit(void)
 
     /* Return status */
     return status;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Configure bypass for clock sources                                       */
+/*--------------------------------------------------------------------------*/
+static void CLOCK_SourceBypass(bool bypass, bool preserve)
+{
+    if (preserve)
+    {
+        /* Update PLL bypass only if not currently in use */
+        if (!FRACTPLL_GetEnable(CLOCK_PLL_AUDIO1, PLL_CTRL_POWERUP_MASK))
+        {
+            (void) FRACTPLL_SetBypass(CLOCK_PLL_AUDIO1, bypass);
+        }
+
+        /* Update PLL bypass only if not currently in use */
+        if (!FRACTPLL_GetEnable(CLOCK_PLL_AUDIO2, PLL_CTRL_POWERUP_MASK))
+        {
+            (void) FRACTPLL_SetBypass(CLOCK_PLL_AUDIO2, bypass);
+        }
+
+        /* Update PLL bypass only if not currently in use */
+        if (!FRACTPLL_GetEnable(CLOCK_PLL_VIDEO1, PLL_CTRL_POWERUP_MASK))
+        {
+            (void) FRACTPLL_SetBypass(CLOCK_PLL_VIDEO1, bypass);
+        }
+    }
+    else
+    {
+        /* Configure bypass for PLLs used as clock sources */
+        (void) FRACTPLL_SetBypass(CLOCK_PLL_AUDIO1, bypass);
+        (void) FRACTPLL_SetBypass(CLOCK_PLL_AUDIO2, bypass);
+        (void) FRACTPLL_SetBypass(CLOCK_PLL_VIDEO1, bypass);
+    }
 }
 

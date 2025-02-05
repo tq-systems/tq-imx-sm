@@ -77,19 +77,18 @@
 #define PF09_REG_PWRON_INT      0x22U
 #define PF09_REG_PWRON_MASK     0x23U
 #define PF09_REG_IO_INT         0x24U
-
 #define PF09_REG_HFAULT_FLAGS   0x2EU
 #define PF09_REG_FAULT_FLAGS    0x2FU
 #define PF09_REG_FS0B_CFG       0x30U
 #define PF09_REG_FCCU_CFG       0x31U
 #define PF09_REG_RSTB_CFG1      0x32U
-
 #define PF09_REG_SECURE_WR1     0x35U
 #define PF09_REG_SECURE_WR2     0x36U
+#define PF09_REG_VMON_CFG1      0x37U
 #define PF09_REG_SYS_CFG1       0x38U
 #define PF09_REG_GPO_CFG        0x39U
 #define PF09_REG_GPO_CTRL       0x3AU
-
+#define PF09_REG_LDO3_PWRUP     0x4AU
 #define PF09_REG_WD_CTRL1       0x4EU
 #define PF09_REG_WD_CTRL2       0x4FU
 #define PF09_REG_WD_CFG1        0x50U
@@ -195,9 +194,15 @@ static const mask_reg_t maskInfo[PF09_MASK_LEN] =
 /*--------------------------------------------------------------------------*/
 bool PF09_Init(const PF09_Type *dev)
 {
-    uint8_t devId;
+    uint8_t revId;
 
-    bool rc = PF09_PmicRead(dev, PF09_REG_DEV_FAM_ID, &devId);
+    bool rc = PF09_PmicRead(dev, PF09_REG_REV_ID, &revId);
+
+    /* Disable XRESET monitor in STANDBY */
+    if (rc && (revId < 0x20U))
+    {
+        rc = PF09_XrstStbyEnable(dev, false);
+    }
 
     return rc;
 }
@@ -1102,6 +1107,49 @@ bool PF09_XrstStbyEnable(const PF09_Type *dev, bool xrstEn)
 
     /* Write 8-bits */
     rc = PF09_PmicWrite(dev, PF09_REG_SYS_CFG1, code, 0x4U);
+
+    /* Return status */
+    return rc;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Save and clear fault flags                                               */
+/*--------------------------------------------------------------------------*/
+bool PF09_FaultFlags(const PF09_Type *dev, uint32_t *flags, bool clear)
+{
+    bool rc;
+    uint8_t fl;
+
+    /* Get fault flags */
+    rc = PF09_PmicRead(dev, PF09_REG_FAULT_FLAGS, &fl);
+
+    if (rc)
+    {
+        *flags = fl;
+
+        if (clear)
+        {
+            /* Clear fault flags */
+            rc = PF09_PmicWrite(dev, PF09_REG_FAULT_FLAGS, fl, 0xFFU);
+        }
+    }
+
+    if (rc && ((fl & PF09_HFAULT_FLG) != 0U))
+    {
+        /* Get hard fault flags */
+        rc = PF09_PmicRead(dev, PF09_REG_HFAULT_FLAGS, &fl);
+
+        if (rc)
+        {
+            *flags |= (((uint32_t) fl) << 8U);
+
+            if (clear)
+            {
+                /* Clear hard fault flags */
+                rc = PF09_PmicWrite(dev, PF09_REG_HFAULT_FLAGS, fl, 0xFFU);
+            }
+        }
+    }
 
     /* Return status */
     return rc;

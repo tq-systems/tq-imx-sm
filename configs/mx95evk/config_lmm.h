@@ -40,12 +40,16 @@
  * @file
  * @brief
  *
- * Header file containing coniguration info for the logical machine manager.
+ * Header file containing configuration info for the logical machine manager.
  */
 /*==========================================================================*/
 
 #ifndef CONFIG_LMM_H
 #define CONFIG_LMM_H
+
+/* Includes */
+
+#include "config_user.h"
 
 /* Defines */
 
@@ -163,7 +167,7 @@
     {.lmId = 1U, .mSel = 1U, .ss = LMM_SS_CPU, .rsrc = DEV_SM_CPU_M7P}, \
     {.lmId = 1U, .mSel = 2U, .ss = LMM_SS_CPU, .rsrc = DEV_SM_CPU_M7P}, \
     {.lmId = 1U, .mSel = 0U, .ss = LMM_SS_PD, .rsrc = DEV_SM_PD_M7}, \
-    {.lmId = 1U, .mSel = 2U, .ss = LMM_SS_PD, .rsrc = DEV_SM_PD_M7}, \
+    {.lmId = 1U, .mSel = 1U, .ss = LMM_SS_PD, .rsrc = DEV_SM_PD_M7}, \
     {.lmId = 1U, .mSel = 2U, .ss = LMM_SS_PD, .rsrc = DEV_SM_PD_M7}, \
     {.lmId = 2U, .mSel = 0U, .ss = LMM_SS_CPU, .rsrc = DEV_SM_CPU_A55P}, \
     {.lmId = 2U, .mSel = 1U, .ss = LMM_SS_CPU, .rsrc = DEV_SM_CPU_A55P}, \
@@ -201,14 +205,14 @@
 #define SM_LM_FAULT_DATA \
     [DEV_SM_FAULT_SW3] = {.reaction = LMM_REACT_GRP_RESET, .lm = 0U}, \
     [DEV_SM_FAULT_SW4] = {.reaction = LMM_REACT_SYS_RESET, .lm = 0U}, \
-    [DEV_SM_FAULT_WDOG5] = {.reaction = LMM_REACT_LM_RESET, .lm = 1U}, \
     [DEV_SM_FAULT_M7_LOCKUP] = {.reaction = LMM_REACT_LM_RESET, .lm = 1U}, \
     [DEV_SM_FAULT_M7_RESET] = {.reaction = LMM_REACT_LM_RESET, .lm = 1U}, \
     [DEV_SM_FAULT_SW0] = {.reaction = LMM_REACT_FUSA, .lm = 1U}, \
     [DEV_SM_FAULT_SW1] = {.reaction = LMM_REACT_LM_RESET, .lm = 1U}, \
+    [DEV_SM_FAULT_WDOG5] = {.reaction = LMM_REACT_LM_RESET, .lm = 1U}, \
+    [DEV_SM_FAULT_SW2] = {.reaction = LMM_REACT_LM_RESET, .lm = 2U}, \
     [DEV_SM_FAULT_WDOG3] = {.reaction = LMM_REACT_LM_RESET, .lm = 2U}, \
-    [DEV_SM_FAULT_WDOG4] = {.reaction = LMM_REACT_LM_RESET, .lm = 2U}, \
-    [DEV_SM_FAULT_SW2] = {.reaction = LMM_REACT_LM_RESET, .lm = 2U},
+    [DEV_SM_FAULT_WDOG4] = {.reaction = LMM_REACT_LM_RESET, .lm = 2U},
 
 #endif /* CONFIG_LMM_H */
 

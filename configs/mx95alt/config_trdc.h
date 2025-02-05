@@ -40,7 +40,7 @@
  * @file
  * @brief
  *
- * Header file containing coniguration info for the TRDC SM abstraction.
+ * Header file containing configuration info for the TRDC SM abstraction.
  */
 /*==========================================================================*/
 
@@ -49,7 +49,7 @@
 
 /* Includes */
 
-#include "config.h"
+#include "config_user.h"
 
 /* Defines */
 
@@ -114,7 +114,7 @@
         SM_CFG_W1(0x00010468U), 0x33330030U, \
         SM_CFG_W1(0x0001046cU), 0x33333333U, \
         SM_CFG_W1(0x00010470U), 0x33333333U, \
-        SM_CFG_W1(0x00010474U), 0x00003030U, \
+        SM_CFG_W1(0x00010474U), 0x00003000U, \
         SM_CFG_W1(0x00010580U), 0x000003C0U, \
         SM_CFG_W1(0x000105a8U), 0x00000003U, \
         SM_CFG_W1(0x00010640U), 0x99999999U, \
@@ -128,7 +128,7 @@
         SM_CFG_W1(0x00010668U), 0x00009900U, \
         SM_CFG_W1(0x0001066cU), 0x90909000U, \
         SM_CFG_W1(0x00010670U), 0x00009090U, \
-        SM_CFG_W1(0x00010674U), 0x00000909U, \
+        SM_CFG_W1(0x00010674U), 0x00000999U, \
         SM_CFG_W1(0x00010780U), 0x999990C0U, \
         SM_CFG_Z1(0x00010850U), \
         SM_CFG_Z1(0x00010854U), \
@@ -944,7 +944,7 @@
         SM_CFG_W1(0x0001a024U), 0x6600U, \
         SM_CFG_W1(0x0001a028U), 0x7777U, \
         SM_CFG_W1(0x0001a040U), 0x08000000U, \
-        SM_CFG_W1(0x0001a044U), 0xFFFFFC11U, \
+        SM_CFG_W1(0x0001a044U), 0x87FFFC11U, \
         SM_CFG_Z1(0x0001a04cU), \
         SM_CFG_Z1(0x0001a054U), \
         SM_CFG_Z1(0x0001a05cU), \
@@ -983,7 +983,7 @@
         SM_CFG_W1(0x0001a948U), 0x08000001U, \
         SM_CFG_W1(0x0001a94cU), 0x87FFFC01U, \
         SM_CFG_W1(0x0001a950U), 0x08000001U, \
-        SM_CFG_W1(0x0001a954U), 0xFFFFFC01U, \
+        SM_CFG_W1(0x0001a954U), 0x87FFFC01U, \
         SM_CFG_Z1(0x0001a95cU), \
         SM_CFG_Z1(0x0001aa44U), \
         SM_CFG_Z1(0x0001aa4cU), \
@@ -1284,13 +1284,13 @@
         SM_CFG_Z1(0x0001814cU), \
         SM_CFG_Z1(0x00018154U), \
         SM_CFG_Z1(0x0001815cU), \
-        SM_CFG_W1(0x00018240U), 0x4A000000U, \
+        SM_CFG_W1(0x00018240U), 0x4A050000U, \
         SM_CFG_W1(0x00018244U), 0x4A0AC001U, \
         SM_CFG_Z1(0x0001824cU), \
         SM_CFG_Z1(0x00018254U), \
         SM_CFG_Z1(0x0001825cU), \
-        SM_CFG_W1(0x00018340U), 0x4A000001U, \
-        SM_CFG_W1(0x00018344U), 0x4A0AC011U, \
+        SM_CFG_W1(0x00018340U), 0x4A060001U, \
+        SM_CFG_W1(0x00018344U), 0x4A09C011U, \
         SM_CFG_W1(0x00018348U), 0x20380001U, \
         SM_CFG_W1(0x0001834cU), 0x2047C011U, \
         SM_CFG_Z1(0x00018354U), \
@@ -1315,14 +1315,14 @@
         SM_CFG_Z1(0x0001884cU), \
         SM_CFG_Z1(0x00018854U), \
         SM_CFG_Z1(0x0001885cU), \
-        SM_CFG_W1(0x00018940U), 0x4A000000U, \
-        SM_CFG_W1(0x00018944U), 0x4A0AC001U, \
-        SM_CFG_W1(0x00018948U), 0x4A000000U, \
-        SM_CFG_W1(0x0001894cU), 0x4A0AC001U, \
-        SM_CFG_W1(0x00018950U), 0x4A020000U, \
-        SM_CFG_W1(0x00018954U), 0x4A02C001U, \
-        SM_CFG_W1(0x00018958U), 0x4A030000U, \
-        SM_CFG_W1(0x0001895cU), 0x4A03C001U, \
+        SM_CFG_W1(0x00018940U), 0x4A020000U, \
+        SM_CFG_W1(0x00018944U), 0x4A02C001U, \
+        SM_CFG_W1(0x00018948U), 0x4A030000U, \
+        SM_CFG_W1(0x0001894cU), 0x4A03C001U, \
+        SM_CFG_W1(0x00018950U), 0x4A050000U, \
+        SM_CFG_W1(0x00018954U), 0x4A0AC001U, \
+        SM_CFG_W1(0x00018958U), 0x4A060000U, \
+        SM_CFG_W1(0x0001895cU), 0x4A09C001U, \
         SM_CFG_W1(0x00018960U), 0x20380000U, \
         SM_CFG_W1(0x00018964U), 0x2047C001U, \
         SM_CFG_Z1(0x00018a44U), \

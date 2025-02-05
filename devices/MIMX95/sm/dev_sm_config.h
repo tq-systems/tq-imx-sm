@@ -50,10 +50,26 @@
 /* Includes */
 
 #include "sm.h"
+#include "dev_sm_cpu.h"
 
 /* Defines */
 
 /* Types */
+
+/*!
+ * Device config structure
+ *
+ * See @ref CONFIG_STRUCT for more info.
+ */
+typedef struct
+{
+    uint32_t cpuSemaAddr[DEV_SM_NUM_CPU];  /*!< CPU semaphore address */
+} dev_config_t;
+
+/* Global constant data */
+
+/*! Device config */
+extern const dev_config_t g_devConfig;
 
 /* Functions */
 
@@ -70,48 +86,6 @@ int32_t DEV_SM_CameraConfigLoad(void);
  * @return Returns the status (::SM_ERR_SUCCESS = success).
  */
 int32_t DEV_SM_A55pConfigLoad(void);
-
-/*!
- * Load the A55C0 power domain configuration.
- *
- * @return Returns the status (::SM_ERR_SUCCESS = success).
- */
-int32_t DEV_SM_A55c0ConfigLoad(void);
-
-/*!
- * Load the A55C1 power domain configuration.
- *
- * @return Returns the status (::SM_ERR_SUCCESS = success).
- */
-int32_t DEV_SM_A55c1ConfigLoad(void);
-
-/*!
- * Load the A55C2 power domain configuration.
- *
- * @return Returns the status (::SM_ERR_SUCCESS = success).
- */
-int32_t DEV_SM_A55c2ConfigLoad(void);
-
-/*!
- * Load the A55C3 power domain configuration.
- *
- * @return Returns the status (::SM_ERR_SUCCESS = success).
- */
-int32_t DEV_SM_A55c3ConfigLoad(void);
-
-/*!
- * Load the A55C4 power domain configuration.
- *
- * @return Returns the status (::SM_ERR_SUCCESS = success).
- */
-int32_t DEV_SM_A55c4ConfigLoad(void);
-
-/*!
- * Load the A55C5 power domain configuration.
- *
- * @return Returns the status (::SM_ERR_SUCCESS = success).
- */
-int32_t DEV_SM_A55c5ConfigLoad(void);
 
 /*!
  * Load the DDR power domain configuration.

@@ -44,7 +44,9 @@
 #include "mb_mu.h"
 #include "config_mb_mu.h"
 #include "lmm.h"
+#ifdef DEVICE_HAS_FCCU
 #include "eMcem_Vfccu.h"
+#endif
 
 /* Local defines */
 
@@ -447,8 +449,8 @@ void ELE_Group1_IRQHandler(const uint32_t *sp)
 {
     /* Call common handler */
     ExceptionHandler(ELE_Group1_IRQn, sp,
-        BLK_CTRL_S_AONMIX->SENTINEL_RST_REQ_STAT,
-        BLK_CTRL_S_AONMIX->SENTINEL_IRQ_REQ_STAT);
+        BLK_CTRL_S_AONMIX->ELE_RST_REQ_STAT,
+        BLK_CTRL_S_AONMIX->ELE_IRQ_REQ_STAT);
 }
 
 /*--------------------------------------------------------------------------*/
@@ -458,8 +460,8 @@ void ELE_Group2_IRQHandler(const uint32_t *sp)
 {
     /* Call common handler */
     ExceptionHandler(ELE_Group2_IRQn, sp,
-        BLK_CTRL_S_AONMIX->SENTINEL_RST_REQ_STAT,
-        BLK_CTRL_S_AONMIX->SENTINEL_IRQ_REQ_STAT);
+        BLK_CTRL_S_AONMIX->ELE_RST_REQ_STAT,
+        BLK_CTRL_S_AONMIX->ELE_IRQ_REQ_STAT);
 }
 
 /*--------------------------------------------------------------------------*/
@@ -469,8 +471,8 @@ void ELE_Group3_IRQHandler(const uint32_t *sp)
 {
     /* Call common handler */
     ExceptionHandler(ELE_Group3_IRQn, sp,
-        BLK_CTRL_S_AONMIX->SENTINEL_RST_REQ_STAT,
-        BLK_CTRL_S_AONMIX->SENTINEL_IRQ_REQ_STAT);
+        BLK_CTRL_S_AONMIX->ELE_RST_REQ_STAT,
+        BLK_CTRL_S_AONMIX->ELE_IRQ_REQ_STAT);
 }
 
 /*--------------------------------------------------------------------------*/
@@ -622,7 +624,9 @@ void MU6_B_IRQHandler(void)
 /*--------------------------------------------------------------------------*/
 void FCCU_INT0_IRQHandler(void)
 {
+#ifdef DEVICE_HAS_FCCU
     VFCCU_ALARM_ISR();
+#endif
 }
 
 /*--------------------------------------------------------------------------*/
@@ -875,9 +879,9 @@ static irq_prio_info_t *IrqPrioMap(IRQn_Type irq)
     /* Loop over board-defined IRQ table entries */
     while ((pInfo == NULL) && (idx < BOARD_NUM_IRQ_PRIO_IDX))
     {
-        if (s_brdIrqPrioInfo[idx].irqId == irq)
+        if (g_brdIrqPrioInfo[idx].irqId == irq)
         {
-            pInfo = &s_brdIrqPrioInfo[idx];
+            pInfo = &g_brdIrqPrioInfo[idx];
         }
 
         idx++;
@@ -909,7 +913,7 @@ static void IrqPrioBoost(irq_prio_info_t const *pInfo, uint32_t relPrio)
         /* Check if dynamic priority is enabled for this IRQ */
         if (pInfo->dynPrioEn)
         {
-            /* Get current priorty */
+            /* Get current priority */
             IRQn_Type irqId = pInfo->irqId;
             uint32_t irqPrio = NVIC_GetPriority(irqId);
 
@@ -940,7 +944,7 @@ static void IrqPrioUpdateRelative(irq_prio_info_t const *pInfo,
         while (idx < BOARD_NUM_IRQ_PRIO_IDX)
         {
             /* Get table entry */
-            irq_prio_info_t const *pInfoRel = &s_brdIrqPrioInfo[idx];
+            irq_prio_info_t const *pInfoRel = &g_brdIrqPrioInfo[idx];
 
             /* Check if table entry is active IRQ */
             if (pInfo != pInfoRel)
@@ -982,7 +986,7 @@ static void IrqPrioUpdate(irq_prio_info_t *pInfo)
         /* Update IRQ counter */
         ++pInfo->irqCntr;
 
-        /* Get current priorty */
+        /* Get current priority */
         IRQn_Type irqId = pInfo->irqId;
         uint32_t irqPrio = NVIC_GetPriority(irqId);
 

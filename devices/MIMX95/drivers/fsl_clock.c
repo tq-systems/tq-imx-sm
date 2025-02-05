@@ -222,10 +222,10 @@ const uint8_t g_clockRootMux[CLOCK_NUM_ROOT][CLOCK_NUM_ROOT_MUX_SEL] =
     [CLOCK_ROOT_SAI1][2] = CLOCK_SRC_AUDIOPLL2,
     [CLOCK_ROOT_SAI1][3] = CLOCK_SRC_EXT,
 
-    [CLOCK_ROOT_SENTINEL][0] = CLOCK_SRC_OSC24M,
-    [CLOCK_ROOT_SENTINEL][1] = CLOCK_SRC_SYSPLL1_PFD0,
-    [CLOCK_ROOT_SENTINEL][2] = CLOCK_SRC_SYSPLL1_PFD1_DIV2,
-    [CLOCK_ROOT_SENTINEL][3] = CLOCK_SRC_FRO,
+    [CLOCK_ROOT_ELE][0] = CLOCK_SRC_OSC24M,
+    [CLOCK_ROOT_ELE][1] = CLOCK_SRC_SYSPLL1_PFD0,
+    [CLOCK_ROOT_ELE][2] = CLOCK_SRC_SYSPLL1_PFD1_DIV2,
+    [CLOCK_ROOT_ELE][3] = CLOCK_SRC_FRO,
 
     [CLOCK_ROOT_TPM2][0] = CLOCK_SRC_OSC24M,
     [CLOCK_ROOT_TPM2][1] = CLOCK_SRC_SYSPLL1_PFD0,
@@ -835,6 +835,16 @@ const ccm_gpr_sel_attr_t g_clockGprSel[CLOCK_NUM_GPR_SEL] =
     }
 };
 
+/* CCM CGC attributes */
+const ccm_cgc_attr_t g_clockCgcAttr[CLOCK_NUM_CGC] =
+{
+    [CLOCK_CGC_GPU]
+    {
+        .lpcgIdx = 24U,
+        .rootIdx = CLOCK_ROOT_GPU,
+    }
+};
+
 /*--------------------------------------------------------------------------*/
 /* Check if CCM clock source power domain enabled                           */
 /*--------------------------------------------------------------------------*/
@@ -1258,6 +1268,38 @@ bool CLOCK_SourceSetEnable(uint32_t sourceIdx, bool enable)
 }
 
 /*--------------------------------------------------------------------------*/
+/* Set CCM clock source bypass                                              */
+/*--------------------------------------------------------------------------*/
+bool CLOCK_SourceSetBypass(uint32_t sourceIdx, bool bypass)
+{
+    bool rc = true;
+
+    /* Bypass configuration is restricted to PLLs available as CCM clock
+     * root inputs.
+     */
+    switch(sourceIdx)
+    {
+        case CLOCK_SRC_AUDIOPLL1_VCO:
+            rc = FRACTPLL_SetBypass(CLOCK_PLL_AUDIO1, bypass);
+            break;
+
+        case CLOCK_SRC_AUDIOPLL2_VCO:
+            rc = FRACTPLL_SetBypass(CLOCK_PLL_AUDIO2, bypass);
+            break;
+
+        case CLOCK_SRC_VIDEOPLL1_VCO:
+            rc = FRACTPLL_SetBypass(CLOCK_PLL_VIDEO1, bypass);
+            break;
+
+        default:
+            ; /* Intentional empty default */
+            break;
+    }
+
+    return rc;
+}
+
+/*--------------------------------------------------------------------------*/
 /* Get CCM clock source rate                                                */
 /*--------------------------------------------------------------------------*/
 uint64_t CLOCK_SourceGetRate(uint32_t sourceIdx)
@@ -1426,6 +1468,7 @@ bool CLOCK_SourceSetRate(uint32_t sourceIdx, uint64_t rate,
 {
     bool updateRate = false;
 
+    /* Clock sources in MIXes not always-on require power dependency check. */
     if (CLOCK_SourcePdIsOn(sourceIdx))
     {
         switch(sourceIdx)
@@ -1525,6 +1568,22 @@ bool CLOCK_SourceSetRate(uint32_t sourceIdx, uint64_t rate,
             default:
                 ; /* Intentional empty default */
                 break;
+        }
+    }
+
+    if (updateRate)
+    {
+        /* Overclocking of clock sources is not supported.  Floor rounding
+         * rule can be met when hardare supports exact requested rate.  Closest
+         * rounding rule handled same as ceiling rounding rule.
+         */
+        if (roundRule == CLOCK_ROUND_RULE_FLOOR)
+        {
+            uint64_t actualRate = CLOCK_SourceGetRate(sourceIdx);
+            if (actualRate < rate)
+            {
+                updateRate = false;
+            }
         }
     }
 

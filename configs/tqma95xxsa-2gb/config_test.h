@@ -40,12 +40,16 @@
  * @file
  * @brief
  *
- * Header file containing coniguration info for the unit tests.
+ * Header file containing configuration info for the unit tests.
  */
 /*==========================================================================*/
 
 #ifndef CONFIG_TEST_H
 #define CONFIG_TEST_H
+
+/* Includes */
+
+#include "config_user.h"
 
 /* Defines */
 
@@ -139,21 +143,25 @@
 /*--------------------------------------------------------------------------*/
 
 /*! Config for number of tests */
-#define SM_SCMI_NUM_TEST  29U
+#define SM_SCMI_NUM_TEST  34U
 
 /*! Config data array for tests */
 #define SM_SCMI_TEST_CONFIG_DATA \
-    {.testId = TEST_BUTTON, .channel = 5U, .rsrc = DEV_SM_BUTTON_0}, \
     {.testId = TEST_CLK, .channel = 5U, .rsrc = DEV_SM_CLK_DISPOCRAM}, \
     {.testId = TEST_CLK, .channel = 5U, .rsrc = DEV_SM_CLK_ENETREF}, \
     {.testId = TEST_CLK, .channel = 5U, .rsrc = DEV_SM_CLK_ENETTIMER1}, \
     {.testId = TEST_CLK, .channel = 5U, .rsrc = DEV_SM_CLK_LPUART8}, \
+    {.testId = TEST_CLK, .channel = 5U, .rsrc = DEV_SM_CLK_MQS1}, \
+    {.testId = TEST_CLK, .channel = 5U, .rsrc = DEV_SM_CLK_SAI1}, \
+    {.testId = TEST_CTRL, .channel = 5U, .rsrc = DEV_SM_CTRL_MQS1_SETTINGS}, \
+    {.testId = TEST_CTRL, .channel = 5U, .rsrc = DEV_SM_CTRL_SAI1_MCLK}, \
     {.testId = TEST_DAISY, .channel = 5U, .rsrc = DEV_SM_DAISY_NETC_EMDC}, \
     {.testId = TEST_DAISY, .channel = 5U, .rsrc = DEV_SM_DAISY_NETC_EMDIO}, \
     {.testId = TEST_DAISY, .channel = 5U, .rsrc = DEV_SM_DAISY_NETC_ETH0_RMII_RX_ER}, \
     {.testId = TEST_DAISY, .channel = 5U, .rsrc = DEV_SM_DAISY_NETC_ETH1_RMII_RX_ER}, \
     {.testId = TEST_DAISY, .channel = 5U, .rsrc = DEV_SM_DAISY_NETC_TMR_1588_TRIG1}, \
     {.testId = TEST_DAISY, .channel = 5U, .rsrc = DEV_SM_DAISY_NETC_TMR_1588_TRIG2}, \
+    {.testId = TEST_DAISY, .channel = 5U, .rsrc = DEV_SM_DAISY_SAI1_MCLK}, \
     {.testId = TEST_GPR, .channel = 5U, .rsrc = DEV_SM_GPR_4}, \
     {.testId = TEST_PD, .channel = 0U, .rsrc = DEV_SM_PD_A55P}, \
     {.testId = TEST_PD, .channel = 0U, .rsrc = DEV_SM_PD_M7}, \
@@ -171,7 +179,8 @@
     {.testId = TEST_PERF, .channel = 5U, .rsrc = DEV_SM_PERF_VPU}, \
     {.testId = TEST_PERLPI, .channel = 5U, .rsrc = DEV_SM_PERLPI_LPUART8}, \
     {.testId = TEST_PIN, .channel = 5U, .rsrc = DEV_SM_PIN_UART2_RXD}, \
-    {.testId = TEST_RTC, .channel = 5U, .rsrc = DEV_SM_RTC_BBNSM}
+    {.testId = TEST_RTC, .channel = 5U, .rsrc = DEV_SM_RTC_BBNSM}, \
+    {.testId = TEST_SENSOR, .channel = 0U, .rsrc = DEV_SM_SENSOR_TEMP_ANA}
 
 /*! Default channel for non-agent specific tests */
 #define SM_TEST_DEFAULT_CHN  0U

@@ -69,7 +69,7 @@
 #define DEV_SM_REASON_CM7_SWREQ    RST_REASON_CM7_SWREQ    /*!< 3: CM7 SW request */
 #define DEV_SM_REASON_FCCU         RST_REASON_FCCU         /*!< 4: FCCU */
 #define DEV_SM_REASON_JTAG_SW      RST_REASON_JTAG_SW      /*!< 5: JTAG SW */
-#define DEV_SM_REASON_ELE          RST_REASON_SENTINEL     /*!< 6: ELE */
+#define DEV_SM_REASON_ELE          RST_REASON_ELE          /*!< 6: ELE */
 #define DEV_SM_REASON_TEMPSENSE    RST_REASON_TEMPSENSE    /*!< 7: Sensor panic */
 #define DEV_SM_REASON_WDOG1        RST_REASON_WDOG1        /*!< 8: WDOG 1 */
 #define DEV_SM_REASON_WDOG2        RST_REASON_WDOG2        /*!< 9: WDOG 2 */
@@ -82,7 +82,7 @@
 #define DEV_SM_REASON_SW           RST_REASON_UNUSED1      /*!< 16: SW requested */
 #define DEV_SM_REASON_SM_ERR       RST_REASON_UNUSED2      /*!< 17: SM error/exit */
 #define DEV_SM_REASON_FUSA_SRECO   RST_REASON_UNUSED3      /*!< 18: FuSa global recovery */
-#define DEV_SM_REASON_UNUSED4      RST_REASON_UNUSED4      /*!< 19: Unused */
+#define DEV_SM_REASON_PMIC         RST_REASON_UNUSED4      /*!< 19: PMIC */
 #define DEV_SM_REASON_UNUSED5      RST_REASON_UNUSED5      /*!< 20: Unused */
 #define DEV_SM_REASON_UNUSED6      RST_REASON_UNUSED6      /*!< 21: Unused */
 #define DEV_SM_REASON_UNUSED7      RST_REASON_UNUSED7      /*!< 22: Unused */

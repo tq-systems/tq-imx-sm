@@ -847,7 +847,7 @@ static int32_t FusaSeenvStateGet(const scmi_caller_t *caller,
                     (uint32_t) g_scmiAgentConfig[agent].seenvId)
                 {
                     target.lmId = g_scmiConfig[g_scmiAgentConfig[
-                                agent].scmiInst].lmId;
+                        agent].scmiInst].lmId;
                     break;
                 }
             }
@@ -1295,7 +1295,7 @@ static int32_t FusaScheckEvntrig(const scmi_caller_t *caller,
 /*                                                                          */
 /* Process the FUSA_SCHECK_TEST_EXEC message. Platform handler for          */
 /* SCMI_FusaScheckTestExec(). Requires access greater than or equal to      */
-/* EXCLUSIVE.                                                               */
+/* SET.                                                                     */
 /*                                                                          */
 /* Return errors:                                                           */
 /* - SM_ERR_SUCCESS: if fault handling disabled for the caller.             */

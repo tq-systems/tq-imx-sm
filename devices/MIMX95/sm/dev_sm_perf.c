@@ -1225,7 +1225,7 @@ static dev_sm_perf_cfg_t const s_perfCfg[DEV_SM_NUM_PERF] =
 {
     [DEV_SM_PERF_ELE] =
     {
-        .rootClk = CLOCK_ROOT_SENTINEL,
+        .rootClk = CLOCK_ROOT_ELE,
         .srcMixIdx = PWR_MIX_SLICE_IDX_AON,
         .psCfg = &s_psCfgSoc,
         .desc = s_perfDescEle,
@@ -2036,7 +2036,8 @@ static int32_t DEV_SM_PerfPllFreqUpdate(uint32_t pllIdx,
     if (!FRACTPLL_UpdateRate(pllIdx,
         pllCfg->mfi,
         pllCfg->mfn,
-        pllCfg->odiv))
+        pllCfg->odiv,
+        true))
     {
         status = SM_ERR_HARDWARE_ERROR;
     }
@@ -2056,7 +2057,8 @@ static int32_t DEV_SM_PerfPfdFreqUpdate(uint32_t pllIdx, uint8_t pfdIdx,
     if (!FRACTPLL_UpdateDfsRate(pllIdx,
         pfdIdx,
         pfdUpdate->mfi,
-        pfdUpdate->mfn))
+        pfdUpdate->mfn,
+        true))
     {
         status = SM_ERR_HARDWARE_ERROR;
     }
@@ -2394,6 +2396,7 @@ static int32_t DEV_SM_PerfA55FreqUpdate(uint32_t perfLevel)
         if (perfLevel > DEV_SM_PERF_LVL_PRK)
         {
             status = DEV_SM_PerfPllFreqUpdate(CLOCK_PLL_ARM,
+                // cppcheck-suppress arrayIndexOutOfBoundsCond
                 &s_perfPllCfgA55[perfLevel]);
             if (status == SM_ERR_SUCCESS)
             {
@@ -2558,7 +2561,7 @@ static int32_t DEV_SM_PerfCurrentGet(uint32_t domainId, uint32_t *perfLevel)
 
     if (status == SM_ERR_SUCCESS)
     {
-        /* Get rate of clock assoicated with PERF domain*/
+        /* Get rate of clock associated with PERF domain*/
         uint64_t rate;
         status = DEV_SM_ClockRateGet(clockId, &rate);
 
