@@ -95,7 +95,7 @@ extern uint32_t g_pmicFaultFlags;
 int32_t BRD_SM_SerialDevicesInit(void);
 
 /*!
- * GPIO 1 interrupt 0 handler (Pin 0..15)
+ * GPIO 1 interrupt 0 handler.
  */
 void GPIO1_0_IRQHandler(void);
 
