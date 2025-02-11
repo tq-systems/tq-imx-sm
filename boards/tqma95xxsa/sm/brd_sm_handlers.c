@@ -53,6 +53,9 @@
 #define BOARD_PF5301_DEV_ADDR       0x2AU
 #define BOARD_PF5302_DEV_ADDR       0x29U
 
+/* GPIO1 IRQ for PMIC */
+#define BOARD_PF09_GPIO1_IRQNUM     14U
+
 /* Local types */
 
 /* Local variables */
@@ -220,9 +223,9 @@ int32_t BRD_SM_SerialDevicesInit(void)
             0U
         };
 
-        /* Init GPIO1-14 - PMIC IRQ*/
-        RGPIO_PinInit(GPIO1, 14U, &gpioConfig);
-        RGPIO_SetPinInterruptConfig(GPIO1, 14U, kRGPIO_InterruptOutput0,
+        /* Init PMIC IRQ */
+        RGPIO_PinInit(GPIO1, BOARD_PF09_GPIO1_IRQNUM, &gpioConfig);
+        RGPIO_SetPinInterruptConfig(GPIO1, BOARD_PF09_GPIO1_IRQNUM, kRGPIO_InterruptOutput0,
             kRGPIO_InterruptLogicZero);
     }
 
@@ -244,10 +247,10 @@ void GPIO1_0_IRQHandler(void)
     RGPIO_ClearPinsInterruptFlags(GPIO1, kRGPIO_InterruptOutput0, flags);
 
     /* Handle PF09 interrupt */
-    if ((flags & (0x1U << 14U)) != 0U)
+    if ((flags & (0x1U << BOARD_PF09_GPIO1_IRQNUM)) != 0U)
     {
         /* Asserts low */
-        if (RGPIO_PinRead(GPIO1, 14U) == 0U)
+        if (RGPIO_PinRead(GPIO1, BOARD_PF09_GPIO1_IRQNUM) == 0U)
         {
             BRD_SM_Pf09Handler();
         }
