@@ -105,6 +105,7 @@ Following configurations are supported in this release:
 
 | name               | purpose                                            |
 | :----------------- | : -----------------------------------------------: |
+| tqma95xxla-4gb     | TQMa95xxLA 4 GiB LPDDR5, only Cortex-A55 supported |
 | tqma95xxsa-2gb     | TQMa95xxSA 2 GiB LPDDR5, only Cortex-A55 supported |
 | tqma95xxsa-2gb-m7  | TQMa95xxSA 2 GiB LPDDR5, Cortex-A + Cortex-M7      |
 | tqma95xxsa-4gb     | TQMa95xxSA 4 GiB LPDDR5, only Cortex-A55 supported |
