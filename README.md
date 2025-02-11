@@ -99,7 +99,7 @@ Then copy the resulting binary image file, *build/tqma95xxsa-2gb/m33_image.bin*,
 it to the boot device, and boot the board. The SM will display a debug monitor prompt on the M33 debug
 UART.
 
-The above config is for Linux system testing on SoM with 2GB RAM.
+(The above used config is for Linux system testing on SoM with 2GB RAM.)
 
 Following configurations are supported in this release:
 

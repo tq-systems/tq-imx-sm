@@ -14,11 +14,14 @@ Releases are named with the following scheme:
 
 ### Added
 
+* support for 4GiB RAM variant of TQMa95xxLA
 * support for 4GiB RAM variant of TQMa95xxSA
 * support to build multiple RAM configurations for TQMa95xxSA
 
 ### Changed
 
+* TQMa95xxSA: use define instead of magic number for PMIC IRQ
+* integrate updates from NXP version lf-6.6.52-2.2.0
 * Makefile: support building documentation from top level dir
 * integrate updates from NXP version lf-6.6.36-2.1.0
 * integrate updates from NXP version lf-6.6.23-2.0.0
