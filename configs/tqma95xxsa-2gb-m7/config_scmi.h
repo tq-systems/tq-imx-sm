@@ -88,7 +88,6 @@
         .lmmPerms[2] = SM_SCMI_PERM_ALL, \
         .pdPerms[DEV_SM_PD_M7] = SM_SCMI_PERM_ALL, \
         .perfPerms[DEV_SM_PERF_M7] = SM_SCMI_PERM_ALL, \
-        .perlpiPerms[DEV_SM_PERLPI_LPUART3] = SM_SCMI_PERM_ALL, \
         .perlpiPerms[DEV_SM_PERLPI_LPUART5] = SM_SCMI_PERM_ALL, \
         .perlpiPerms[DEV_SM_PERLPI_WDOG5] = SM_SCMI_PERM_ALL, \
         .pinPerms[DEV_SM_PIN_GPIO_IO00] = SM_SCMI_PERM_ALL, \
