@@ -84,7 +84,6 @@
         .lmmPerms[2] = SM_SCMI_PERM_ALL, \
         .pdPerms[DEV_SM_PD_M7] = SM_SCMI_PERM_ALL, \
         .perfPerms[DEV_SM_PERF_M7] = SM_SCMI_PERM_ALL, \
-        .perlpiPerms[DEV_SM_PERLPI_LPUART3] = SM_SCMI_PERM_ALL, \
         .perlpiPerms[DEV_SM_PERLPI_WDOG5] = SM_SCMI_PERM_ALL, \
         .sensorPerms[BRD_SM_SENSOR_TEMP_PF09] = SM_SCMI_PERM_SET, \
         .sensorPerms[BRD_SM_SENSOR_TEMP_PF5301] = SM_SCMI_PERM_SET, \
