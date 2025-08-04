@@ -95,7 +95,7 @@ int32_t BRD_SM_SerialDevicesInit(void)
         g_pf09Dev.devAddr = BOARD_PF09_DEV_ADDR;
         g_pf09Dev.crcEn = true;
 
-        /* Inialize PF09 PMIC */
+        /* Initialize PF09 PMIC */
         if (!PF09_Init(&g_pf09Dev))
         {
             status = SM_ERR_HARDWARE_ERROR;
@@ -182,7 +182,7 @@ int32_t BRD_SM_SerialDevicesInit(void)
         g_pf5301Dev.i2cBase = s_i2cBases[BOARD_I2C_INSTANCE];
         g_pf5301Dev.devAddr = BOARD_PF5301_DEV_ADDR;
 
-        /* Inialize PF0901 PMIC */
+        /* Initialize PF0901 PMIC */
         if (!PF53_Init(&g_pf5301Dev))
         {
             status = SM_ERR_HARDWARE_ERROR;
@@ -196,7 +196,7 @@ int32_t BRD_SM_SerialDevicesInit(void)
         g_pf5302Dev.i2cBase = s_i2cBases[BOARD_I2C_INSTANCE];
         g_pf5302Dev.devAddr = BOARD_PF5302_DEV_ADDR;
 
-        /* Inialize PF0901 PMIC */
+        /* Initialize PF0901 PMIC */
         if (!PF53_Init(&g_pf5302Dev))
         {
             status = SM_ERR_HARDWARE_ERROR;
