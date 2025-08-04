@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-** Copyright 2023-2024 NXP
+** Copyright 2023-2025 NXP
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -60,11 +60,11 @@ void TEST_DevSmClock(void)
     dev_sm_clock_range_t clockRange;
     uint64_t rate = 0U;
     bool enabled = false;
+    uint32_t mux = 0U;
+    uint32_t numMuxes = 0U;
 
 #ifdef SIMU
     uint32_t parent = 0U;
-    uint32_t mux = 0U;
-    uint32_t numMuxes = 0U;
     uint32_t extConfigVal = 0U;
 #endif
 
@@ -81,26 +81,26 @@ void TEST_DevSmClock(void)
         printf("DEV_SM_ClockDescribe(%u)\n", clockId);
         CHECK(DEV_SM_ClockDescribe(clockId, &clockRange));
 
-        if (SM_UINT64_H(clockRange.lowestRate) == 0U)
+        if (UINT64_H(clockRange.lowestRate) == 0U)
         {
             printf("  lowestRate=%u\n",
-                SM_UINT64_L(clockRange.lowestRate));
+                UINT64_L(clockRange.lowestRate));
         }
         else
         {
             printf("  lowestRate=>4GHz\n");
         }
-        if (SM_UINT64_H(clockRange.highestRate) == 0U)
+        if (UINT64_H(clockRange.highestRate) == 0U)
         {
             printf("  highestRate=%u\n",
-                SM_UINT64_L(clockRange.highestRate));
+                UINT64_L(clockRange.highestRate));
         }
         else
         {
             printf("  highestRate=>4GHz\n");
         }
         printf("  stepSize=%u\n",
-            SM_UINT64_L(clockRange.stepSize));
+            UINT64_L(clockRange.stepSize));
 
 #ifdef SIMU
         {
@@ -148,7 +148,7 @@ void TEST_DevSmClock(void)
 
         printf("DEV_SM_ClockRateGet(%u)\n", clockId);
         CHECK(DEV_SM_ClockRateGet(clockId, &rate));
-        printf("  rate=%u\n", SM_UINT64_L(rate));
+        printf("  rate=%u\n", UINT64_L(rate));
 
 #ifdef SIMU
         CHECK(DEV_SM_ClockParentGet(clockId, &parent));
@@ -160,6 +160,15 @@ void TEST_DevSmClock(void)
             &extConfigVal));
 #endif
     }
+
+#ifndef SIMU
+    /* Pass invalid argument for idx*/
+    NECHECK(DEV_SM_ClockMuxGet(5U, 1U, &mux, &numMuxes),
+        SM_ERR_OUT_OF_RANGE);
+
+    NECHECK(DEV_SM_ClockMuxGet(CLOCK_NUM_ROOT, 4U, &mux, &numMuxes),
+        SM_ERR_OUT_OF_RANGE);
+#endif
 
     /* Test API bounds */
     NECHECK(DEV_SM_ClockNameGet(DEV_SM_NUM_CLOCK, &name, &len),
@@ -186,12 +195,57 @@ void TEST_DevSmClock(void)
         SM_ERR_NOT_FOUND);
 #endif
 
-#ifdef SIMU
     NECHECK(DEV_SM_ClockExtendedSet(DEV_SM_NUM_CLOCK,
-        DEV_SM_CLOCK_EXT_SSC, 0x0U), SM_ERR_NOT_FOUND);
+        DEV_SM_CLOCK_EXT_SSC, 0x0U), SM_ERR_INVALID_PARAMETERS);
+
+    /* To execute the default swtich case of DEV_SM_ClockExtendedSet &
+     * DEV_SM_ClockExtendedGet */
+    NECHECK(DEV_SM_ClockExtendedSet(DEV_SM_NUM_CLOCK,
+        DEV_SM_CLOCK_EXT_SSC + 1U, 0x0U), SM_ERR_NOT_FOUND);
+
+    uint32_t extConfigValue = 0U;
     NECHECK(DEV_SM_ClockExtendedGet(DEV_SM_NUM_CLOCK,
-        DEV_SM_CLOCK_EXT_SSC,
-        &extConfigVal), SM_ERR_NOT_FOUND);
+        DEV_SM_CLOCK_EXT_SSC + 1U, &extConfigValue), SM_ERR_NOT_FOUND);
+
+    NECHECK(DEV_SM_ClockExtendedGet(DEV_SM_NUM_CLOCK,
+        DEV_SM_CLOCK_EXT_SSC, &extConfigValue), SM_ERR_INVALID_PARAMETERS);
+
+#ifndef SIMU
+    CHECK(DEV_SM_ClockExtendedGet(CLOCK_SRC_SYSPLL1_VCO,
+        DEV_SM_CLOCK_EXT_SSC, &extConfigValue));
+
+    /*
+     * To cover the default case where clockId is CLOCK_SRC_EXT2 and
+     * round select doesn't belogs any of the following:
+     * DEV_SM_CLOCK_ROUND_DOWN, DEV_SM_CLOCK_ROUND_UP,
+     * DEV_SM_CLOCK_ROUND_AUTO
+     */
+    NECHECK(DEV_SM_ClockRateSet(CLOCK_SRC_EXT2,
+        0x0UL, 0x3U), SM_ERR_INVALID_PARAMETERS);
+
+    /*
+     * To cover the default case where clockId is CLOCK_SRC_EXT
+     * and round select doesn't belogs any of the following:
+     * DEV_SM_CLOCK_ROUND_DOWN, DEV_SM_CLOCK_ROUND_UP,
+     * DEV_SM_CLOCK_ROUND_AUTO
+     */
+    NECHECK(DEV_SM_ClockRateSet(CLOCK_NUM_SRC,
+        0x0UL, 0x3U), SM_ERR_INVALID_PARAMETERS);
+
+    /*
+     * To cover the condition, where clockId validated towards
+     * CLOCK_NUM_GPR_SEL
+     */
+    NECHECK(DEV_SM_ClockRateSet(CLOCK_NUM_ROOT + 1U,
+        0x0UL, 0x3U), SM_ERR_INVALID_PARAMETERS);
+
+    /*
+     * To cover the condition, where clockId validated towards
+     * CLOCK_NUM_CGC
+     */
+    NECHECK(DEV_SM_ClockRateSet((CLOCK_NUM_ROOT + CLOCK_NUM_GPR_SEL + 1U),
+        0x0UL, 0x3U), SM_ERR_INVALID_PARAMETERS);
+
 #endif
     printf("\n");
 }

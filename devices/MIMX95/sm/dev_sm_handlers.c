@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-**     Copyright 2023-2024 NXP
+**     Copyright 2023-2025 NXP
 **
 **     Redistribution and use in source and binary forms, with or without modification,
 **     are permitted provided that the following conditions are met:
@@ -259,6 +259,8 @@ static void IrqPrioUpdate(irq_prio_info_t *pInfo);
 /*--------------------------------------------------------------------------*/
 void NMI_Handler(const uint32_t *sp)
 {
+    int32_t status = SM_ERR_SUCCESS;
+
     dev_sm_rst_rec_t resetRec =
     {
         .reason = DEV_SM_REASON_FCCU,
@@ -273,11 +275,17 @@ void NMI_Handler(const uint32_t *sp)
     /* Save reset reason info */
     DEV_SM_SystemShutdownRecSet(resetRec);
 
-    /* Wait for delayed FCCU reaction (PMIC reset) */
-    // coverity[infinite_loop:FALSE]
-    while (true)
+    SM_TEST_MODE_ERR(SM_TEST_MODE_DEV_LVL1, SM_ERR_TEST)
+
+    // coverity[misra_c_2012_rule_14_3_violation:FALSE]
+    if (status == SM_ERR_SUCCESS)
     {
-        ; /* Intentional empty while */
+        /* Wait for delayed FCCU reaction (PMIC reset) */
+        // coverity[infinite_loop:FALSE]
+        while (true)
+        {
+            ;  /* Intentional empty while */
+        }
     }
 }
 
@@ -338,10 +346,16 @@ void UsageFault_Handler(const uint32_t *sp)
 /*--------------------------------------------------------------------------*/
 void SysTick_Handler(void)
 {
+    s_smTimeMsec += BOARD_TICK_PERIOD_MSEC;
+
+    /* Call system tick */
+    DEV_SM_SystemTick(BOARD_TICK_PERIOD_MSEC);
+
+    /* Call sensor tick */
+    DEV_SM_SensorTick(BOARD_TICK_PERIOD_MSEC);
+
     /* Call board tick */
     BRD_SM_TimerTick(BOARD_TICK_PERIOD_MSEC);
-
-    s_smTimeMsec += BOARD_TICK_PERIOD_MSEC;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -420,8 +434,16 @@ void TMPSNS_ANA_2_IRQHandler(void)
 /*--------------------------------------------------------------------------*/
 void TMPSNS_CORTEXA_1_IRQHandler(void)
 {
-    DEV_SM_SensorHandler(1U, 1U);
-    IrqPrioUpdate(&s_irqPrioInfo[DEV_SM_IRQ_PRIO_IDX_TMPSNS_CORTEXA_1]);
+    int32_t status = SM_ERR_SUCCESS;
+
+    SM_TEST_MODE_ERR(SM_TEST_MODE_DEV_LVL1, SM_ERR_TEST)
+
+    // coverity[misra_c_2012_rule_14_3_violation:FALSE]
+    if (status == SM_ERR_SUCCESS)
+    {
+        DEV_SM_SensorHandler(1U, 1U);
+        IrqPrioUpdate(&s_irqPrioInfo[DEV_SM_IRQ_PRIO_IDX_TMPSNS_CORTEXA_1]);
+    }
 }
 
 /*--------------------------------------------------------------------------*/
@@ -429,8 +451,16 @@ void TMPSNS_CORTEXA_1_IRQHandler(void)
 /*--------------------------------------------------------------------------*/
 void TMPSNS_CORTEXA_2_IRQHandler(void)
 {
-    DEV_SM_SensorHandler(1U, 2U);
-    IrqPrioUpdate(&s_irqPrioInfo[DEV_SM_IRQ_PRIO_IDX_TMPSNS_CORTEXA_2]);
+    int32_t status = SM_ERR_SUCCESS;
+
+    SM_TEST_MODE_ERR(SM_TEST_MODE_DEV_LVL1, SM_ERR_TEST)
+
+    // coverity[misra_c_2012_rule_14_3_violation:FALSE]
+    if (status == SM_ERR_SUCCESS)
+    {
+        DEV_SM_SensorHandler(1U, 2U);
+        IrqPrioUpdate(&s_irqPrioInfo[DEV_SM_IRQ_PRIO_IDX_TMPSNS_CORTEXA_2]);
+    }
 }
 
 /*--------------------------------------------------------------------------*/
@@ -643,7 +673,18 @@ void GPC_SM_REQ_IRQHandler(void)
     {
         (void) DEV_SM_PowerUpPost(lpHsMode.srcMixIdx);
         CPU_MixPowerUpNotify(lpHsMode.srcMixIdx);
+#if (defined(FSL_FEATURE_LP_HANDSHAKE_SM_HAS_ERRATA_52232) && FSL_FEATURE_LP_HANDSHAKE_SM_HAS_ERRATA_52232)
+        if (DEV_SM_SiVerGet() < DEV_SM_SIVER_B0)
+        {
+            PWR_LpHandshakeAckRevA();
+        }
+        else
+        {
+            PWR_LpHandshakeAck();
+        }
+#else
         PWR_LpHandshakeAck();
+#endif
         (void) DEV_SM_PowerUpAckComplete(lpHsMode.srcMixIdx);
     }
     /* Else powering down or asserting reset */
@@ -651,7 +692,18 @@ void GPC_SM_REQ_IRQHandler(void)
     {
         (void) DEV_SM_PowerDownPre(lpHsMode.srcMixIdx);
         CPU_MixPowerDownNotify(lpHsMode.srcMixIdx);
+#if (defined(FSL_FEATURE_LP_HANDSHAKE_SM_HAS_ERRATA_52232) && FSL_FEATURE_LP_HANDSHAKE_SM_HAS_ERRATA_52232)
+        if (DEV_SM_SiVerGet() < DEV_SM_SIVER_B0)
+        {
+            PWR_LpHandshakeAckRevA();
+        }
+        else
+        {
+            PWR_LpHandshakeAck();
+        }
+#else
         PWR_LpHandshakeAck();
+#endif
     }
 }
 
@@ -821,6 +873,13 @@ int32_t DEV_SM_IrqPrioUpdate(void)
 static void ExceptionHandler(IRQn_Type excId, const uint32_t *sp,
     uint32_t faultStatus, uint32_t faultAddr)
 {
+    int32_t status = SM_ERR_SUCCESS;
+
+    /*
+     * Intentional: errId is a generic variable to return both signed and
+     * unsigned data depending on the reason.
+     */
+    // coverity[cert_int31_c_violation:FALSE]
     dev_sm_rst_rec_t resetRec =
     {
         .reason = DEV_SM_REASON_CM33_EXC,
@@ -838,8 +897,14 @@ static void ExceptionHandler(IRQn_Type excId, const uint32_t *sp,
     LMM_FuSaExceptionHandler(&resetRec);
 #endif
 
-    /* Finalize system reset flow */
-    (void) DEV_SM_SystemRstComp(&resetRec);
+    SM_TEST_MODE_ERR(SM_TEST_MODE_DEV_LVL1, SM_ERR_TEST)
+
+    // coverity[misra_c_2012_rule_14_3_violation:FALSE]
+    if (status == SM_ERR_SUCCESS)
+    {
+        /* Finalize system reset flow */
+        (void) DEV_SM_SystemRstComp(&resetRec);
+    }
 }
 
 /*--------------------------------------------------------------------------*/
@@ -847,7 +912,7 @@ static void ExceptionHandler(IRQn_Type excId, const uint32_t *sp,
 /*--------------------------------------------------------------------------*/
 static void FaultHandler(uint32_t faultId)
 {
-    int32_t status;
+    int32_t status = SM_ERR_SUCCESS;
     dev_sm_rst_rec_t resetRec =
     {
         .reason = DEV_SM_REASON_FCCU,
@@ -856,8 +921,14 @@ static void FaultHandler(uint32_t faultId)
         .valid = true
     };
 
-    /* Finalize fault flow */
-    status = DEV_SM_FaultComplete(resetRec);
+    SM_TEST_MODE_ERR(SM_TEST_MODE_DEV_LVL1, SM_ERR_TEST)
+
+    // coverity[misra_c_2012_rule_14_3_violation:FALSE]
+    if (status == SM_ERR_SUCCESS)
+    {
+        /* Finalize fault flow */
+        status = DEV_SM_FaultComplete(resetRec);
+    }
 
     /* Reset if fault handling failed */
     if (status != SM_ERR_SUCCESS)

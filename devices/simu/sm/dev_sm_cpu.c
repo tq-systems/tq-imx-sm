@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-**     Copyright 2023-2024 NXP
+**     Copyright 2023-2025 NXP
 **
 **     Redistribution and use in source and binary forms, with or without modification,
 **     are permitted provided that the following conditions are met:
@@ -40,12 +40,15 @@
 
 #include "sm.h"
 #include "dev_sm.h"
+#include "lmm.h"
 
 /* Local defines */
 
 /* Local types */
 
 /* Local variables */
+
+static uint32_t s_cpuWakeListA55 = 0U;
 
 /*--------------------------------------------------------------------------*/
 /* Return CPU name                                                          */
@@ -56,12 +59,17 @@ int32_t DEV_SM_CpuNameGet(uint32_t cpuId, string *cpuNameAddr,
     int32_t status = SM_ERR_SUCCESS;
     static int32_t s_maxLen = 0;
 
-    static string const s_name[DEV_SM_NUM_POWER] =
+    static string const s_name[DEV_SM_NUM_CPU] =
     {
         [DEV_SM_CPU_0] = "cpu0",
         [DEV_SM_CPU_1] = "cpu1",
         [DEV_SM_CPU_2] = "cpu2",
-        [DEV_SM_CPU_3] = "cpu3"
+        [DEV_SM_CPU_3] = "cpu3",
+        [DEV_SM_CPU_4] = "cpu4",
+        [DEV_SM_CPU_5] = "cpu5",
+        [DEV_SM_CPU_6] = "cpu6",
+        [DEV_SM_CPU_7] = "cpu7",
+        [DEV_SM_CPU_8] = "cpu8"
     };
 
     /* Get max string width */
@@ -96,7 +104,7 @@ int32_t DEV_SM_CpuInfoGet(uint32_t cpuId, uint32_t *runMode,
     /* Check CPU */
     if (cpuId >= DEV_SM_NUM_CPU)
     {
-        status = SM_ERR_NOT_FOUND;
+        status = SM_ERR_INVALID_PARAMETERS;
     }
     else
     {
@@ -110,14 +118,24 @@ int32_t DEV_SM_CpuInfoGet(uint32_t cpuId, uint32_t *runMode,
 }
 
 /*--------------------------------------------------------------------------*/
+/* Check if a CPU is active or suspended                                    */
+/*--------------------------------------------------------------------------*/
+bool DEV_SM_CpuIsActive(uint32_t cpuId)
+{
+    /* No CPUs suspended */
+    return false;
+}
+
+/*--------------------------------------------------------------------------*/
 /* CPU start                                                                */
 /*--------------------------------------------------------------------------*/
 int32_t DEV_SM_CpuStart(uint32_t cpuId)
 {
     int32_t status = SM_ERR_SUCCESS;
+    bool cpuDisabled = DEV_SM_FuseCpuDisabled(cpuId);
 
     /* Check CPU */
-    if (cpuId >= DEV_SM_NUM_CPU)
+    if (cpuDisabled || (cpuId >= DEV_SM_NUM_CPU))
     {
         status = SM_ERR_NOT_FOUND;
     }
@@ -132,9 +150,10 @@ int32_t DEV_SM_CpuStart(uint32_t cpuId)
 int32_t DEV_SM_CpuHold(uint32_t cpuId)
 {
     int32_t status = SM_ERR_SUCCESS;
+    bool cpuDisabled = DEV_SM_FuseCpuDisabled(cpuId);
 
     /* Check CPU */
-    if (cpuId >= DEV_SM_NUM_CPU)
+    if (cpuDisabled || (cpuId >= DEV_SM_NUM_CPU))
     {
         status = SM_ERR_NOT_FOUND;
     }
@@ -149,9 +168,10 @@ int32_t DEV_SM_CpuHold(uint32_t cpuId)
 int32_t DEV_SM_CpuStop(uint32_t cpuId)
 {
     int32_t status = SM_ERR_SUCCESS;
+    bool cpuDisabled = DEV_SM_FuseCpuDisabled(cpuId);
 
     /* Check CPU */
-    if (cpuId >= DEV_SM_NUM_CPU)
+    if (cpuDisabled || (cpuId >= DEV_SM_NUM_CPU))
     {
         status = SM_ERR_NOT_FOUND;
     }
@@ -167,9 +187,10 @@ int32_t DEV_SM_CpuResetVectorCheck(uint32_t cpuId, uint64_t resetVector,
     bool table)
 {
     int32_t status = SM_ERR_SUCCESS;
+    bool cpuDisabled = DEV_SM_FuseCpuDisabled(cpuId);
 
     /* Check CPU */
-    if (cpuId >= DEV_SM_NUM_CPU)
+    if (cpuDisabled || (cpuId >= DEV_SM_NUM_CPU))
     {
         status = SM_ERR_NOT_FOUND;
     }
@@ -184,9 +205,10 @@ int32_t DEV_SM_CpuResetVectorCheck(uint32_t cpuId, uint64_t resetVector,
 int32_t DEV_SM_CpuResetVectorSet(uint32_t cpuId, uint64_t resetVector)
 {
     int32_t status = SM_ERR_SUCCESS;
+    bool cpuDisabled = DEV_SM_FuseCpuDisabled(cpuId);
 
     /* Check CPU */
-    if (cpuId >= DEV_SM_NUM_CPU)
+    if (cpuDisabled || (cpuId >= DEV_SM_NUM_CPU))
     {
         status = SM_ERR_NOT_FOUND;
     }
@@ -202,9 +224,10 @@ int32_t DEV_SM_CpuSleepModeSet(uint32_t cpuId, uint32_t sleepMode,
     uint32_t sleepFlags)
 {
     int32_t status = SM_ERR_SUCCESS;
+    bool cpuDisabled = DEV_SM_FuseCpuDisabled(cpuId);
 
     /* Check CPU */
-    if (cpuId >= DEV_SM_NUM_CPU)
+    if (cpuDisabled || (cpuId >= DEV_SM_NUM_CPU))
     {
         status = SM_ERR_NOT_FOUND;
     }
@@ -227,10 +250,19 @@ int32_t DEV_SM_CpuIrqWakeSet(uint32_t cpuId, uint32_t maskIdx,
 {
     int32_t status = SM_ERR_SUCCESS;
 
-    /* Check CPU */
-    if (cpuId >= DEV_SM_NUM_CPU)
+    if (maskIdx >= 12U /*GPC_CPU_CTRL_CMC_IRQ_WAKEUP_MASK_COUNT*/)
     {
-        status = SM_ERR_NOT_FOUND;
+        status = SM_ERR_INVALID_PARAMETERS;
+    }
+    else
+    {
+        bool cpuDisabled = DEV_SM_FuseCpuDisabled(cpuId);
+
+        /* Check CPU */
+        if (cpuDisabled || (cpuId >= DEV_SM_NUM_CPU))
+        {
+            status = SM_ERR_NOT_FOUND;
+        }
     }
 
     /* Return status */
@@ -245,10 +277,19 @@ int32_t DEV_SM_CpuNonIrqWakeSet(uint32_t cpuId, uint32_t maskIdx,
 {
     int32_t status = SM_ERR_SUCCESS;
 
-    /* Check CPU */
-    if (cpuId >= DEV_SM_NUM_CPU)
+    if (maskIdx >= 1U)
     {
-        status = SM_ERR_NOT_FOUND;
+        status = SM_ERR_INVALID_PARAMETERS;
+    }
+    else
+    {
+        bool cpuDisabled = DEV_SM_FuseCpuDisabled(cpuId);
+
+        /* Check CPU */
+        if (cpuDisabled || (cpuId >= DEV_SM_NUM_CPU))
+        {
+            status = SM_ERR_NOT_FOUND;
+        }
     }
 
     /* Return status */
@@ -262,9 +303,10 @@ int32_t DEV_SM_CpuPdLpmConfigSet(uint32_t cpuId, uint32_t domainId,
     uint32_t lpmSetting, uint32_t retMask)
 {
     int32_t status = SM_ERR_SUCCESS;
+    bool cpuDisabled = DEV_SM_FuseCpuDisabled(cpuId);
 
     /* Check CPU */
-    if (cpuId >= DEV_SM_NUM_CPU)
+    if (cpuDisabled || (cpuId >= DEV_SM_NUM_CPU))
     {
         status = SM_ERR_NOT_FOUND;
     }
@@ -280,9 +322,52 @@ int32_t DEV_SM_CpuPerLpmConfigSet(uint32_t cpuId, uint32_t perId,
     uint32_t lpmSetting)
 {
     int32_t status = SM_ERR_SUCCESS;
+    bool cpuDisabled = DEV_SM_FuseCpuDisabled(cpuId);
 
     /* Check CPU */
-    if (cpuId >= DEV_SM_NUM_CPU)
+    if (cpuDisabled || (cpuId >= DEV_SM_NUM_CPU))
+    {
+        status = SM_ERR_NOT_FOUND;
+    }
+
+    /* Return status */
+    return status;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Get the wake list for a CPU                                              */
+/*--------------------------------------------------------------------------*/
+int32_t DEV_SM_CpuWakeListGet(uint32_t cpuId, uint32_t *cpuWakeList)
+{
+    int32_t status = SM_ERR_SUCCESS;
+
+    /* Check CPU */
+    if (cpuId == 8U)
+    {
+        *cpuWakeList = s_cpuWakeListA55;
+    }
+    else
+    {
+        status = SM_ERR_NOT_FOUND;
+    }
+
+    /* Return status */
+    return status;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Set the wake list for a CPU                                              */
+/*--------------------------------------------------------------------------*/
+int32_t DEV_SM_CpuWakeListSet(uint32_t cpuId, uint32_t cpuWakeList)
+{
+    int32_t status = SM_ERR_SUCCESS;
+
+    /* Check CPU */
+    if (cpuId == 8U)
+    {
+        s_cpuWakeListA55 = cpuWakeList;
+    }
+    else
     {
         status = SM_ERR_NOT_FOUND;
     }

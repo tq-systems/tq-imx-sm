@@ -1,6 +1,6 @@
 ## ###################################################################
 ##
-## Copyright 2023-2024 NXP
+## Copyright 2023-2025 NXP
 ##
 ## Redistribution and use in source and binary forms, with or without modification,
 ## are permitted provided that the following conditions are met:
@@ -109,6 +109,11 @@ ifdef config
     CONFIG := $(config)
 endif
 
+# Configure profiling
+ifdef p
+    P := $(p)
+endif
+
 # Default to MX95 EVK
 CONFIG ?= mx95evk
 FLAGS += -DSM_CONFIGURATION="$(CONFIG)"
@@ -127,6 +132,14 @@ USES_FUSA ?= 0
 
 ifeq ($(USES_FUSA),1)
 	FLAGS += -DUSES_FUSA
+endif
+
+ifdef GEN_CONFIG_VER
+FLAGS += -DGEN_CONFIG_VER=$(GEN_CONFIG_VER)
+endif
+
+ifdef P
+FLAGS += -DDEV_SM_MSG_PROF_CNT=$(P)
 endif
 
 INCLUDE += -I$(ROOT_DIR)/configs/$(CONFIG)
@@ -174,7 +187,7 @@ ifeq ($(BUILD_EMU), 1)
 	FLAGS += -DBUILD_EMU
 endif
 
-img : cfg.exists $(TARGETS)
+img : tc.check cfg.exists $(TARGETS)
 
 # prevent clean and img running in parallel
 all:
@@ -186,6 +199,11 @@ all:
 DEPS := $(OBJS:.o=.d)
 
 -include $(DEPS)
+
+tc.check:
+ifneq ($(TC_VER_CHECK),)
+	$(warning $(TC_VER_CHECK))
+endif
 
 cfg.exists:
 	@if [ ! -d "$(ROOT_DIR)/configs/$(CONFIG)" ]; then (echo "Incorrect/missing $(CONFIG) config"; exit 1); fi

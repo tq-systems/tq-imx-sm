@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-**     Copyright 2023-2024 NXP
+**     Copyright 2023-2025 NXP
 **
 **     Redistribution and use in source and binary forms, with or without modification,
 **     are permitted provided that the following conditions are met:
@@ -46,6 +46,9 @@
 #include "fsl_power.h"
 #include "fsl_reset.h"
 #include "fsl_sysctr.h"
+#ifdef USES_RX_REPLICA
+#include "fsl_ddr_rx_replica.h"
+#endif
 
 /* Local defines */
 
@@ -53,16 +56,40 @@
 
 /* Local types */
 
+#ifdef DEV_SM_MSG_PROF_CNT
+/*!
+ * Message profile current buffer
+ */
+typedef struct
+{
+    uint64_t msgStartUsec;          /*!< Current message start timestamp */
+    uint64_t msgEndUsec;            /*!< Current message end timestamp */
+    dev_sm_sys_msg_prof_t msgProf;  /*!< Current message log entry */
+} dev_sm_sys_msg_cur_t;
+#endif
+
 /* Local variables */
 
 static uint32_t s_sysSleepMode = 0U;
 static uint32_t s_sysSleepFlags = 0U;
 static dev_sm_rst_rec_t s_shutdownRecord = { 0 };
-static BLK_CTRL_DDRMIX_Type ddr_blk_ctrl;
+static BLK_CTRL_DDRMIX_Type s_ddrBlkCtrl;
+#ifdef USES_RX_REPLICA
+static ddr_rxclkdelay_wa_data_t s_rxClkDelay;
+static uint32_t s_ddrMseconds = 0U;
+#endif
+#ifdef DEV_SM_MSG_PROF_CNT
+static dev_sm_sys_msg_cur_t s_curMsgRecord = { 0 };
+#endif
 
 /* Local functions */
 
-static void CLOCK_SourceBypass(bool bypass, bool preserve);
+static void DEV_SM_ClockSourceBypass(bool bypass, bool preserve);
+#ifdef USES_RX_REPLICA
+static void DEV_SM_RxReplicaInit(void);
+static void DEV_SM_RxReplicaDeinit(void);
+static void DEV_SM_RxReplicaReinit(void);
+#endif
 
 /*--------------------------------------------------------------------------*/
 /* Initialize system functions                                              */
@@ -105,7 +132,42 @@ int32_t DEV_SM_SystemInit(void)
     GPC_GLOBAL->GPC_PMIC_STBY_ACK_CTRL = pmicAckCtrl;
 
     /* Enable bypass for clock sources */
-    CLOCK_SourceBypass(true, false);
+    DEV_SM_ClockSourceBypass(true, false);
+
+    /* Rev A does not support SMMU TBU/TCU SW control  */
+    if (DEV_SM_SiVerGet() >= DEV_SM_SIVER_B0)
+    {
+        /* Configure SMMU TCU/TBU Q-channel control by SW */
+        CCM_CTRL->LPCG[CLOCK_LPCG_WAKEUPMIX_TBU].AUTHEN |=
+            CCM_LPCG_AUTHEN_ACK_MODE_MASK;
+        CCM_CTRL->LPCG[CLOCK_LPCG_WAKEUPMIX_TBU].DIRECT =
+            CCM_LPCG_DIRECT_CLKOFF_ACK_TIMEOUT_CNTR_CFG_MASK |
+            CCM_LPCG_DIRECT_CLKOFF_ACK_TIMEOUT_EN_MASK |
+            CCM_LPCG_DIRECT_ON_MASK;
+        CCM_CTRL->LPCG[CLOCK_LPCG_NOCMIX_TBU].AUTHEN |=
+            CCM_LPCG_AUTHEN_ACK_MODE_MASK;
+        CCM_CTRL->LPCG[CLOCK_LPCG_NOCMIX_TBU].DIRECT =
+            CCM_LPCG_DIRECT_CLKOFF_ACK_TIMEOUT_CNTR_CFG_MASK |
+            CCM_LPCG_DIRECT_CLKOFF_ACK_TIMEOUT_EN_MASK |
+            CCM_LPCG_DIRECT_ON_MASK;
+        CCM_CTRL->LPCG[CLOCK_LPCG_NOCMIX_TCU].AUTHEN |=
+            CCM_LPCG_AUTHEN_ACK_MODE_MASK;
+        CCM_CTRL->LPCG[CLOCK_LPCG_NOCMIX_TCU].DIRECT =
+            CCM_LPCG_DIRECT_CLKOFF_ACK_TIMEOUT_CNTR_CFG_MASK |
+            CCM_LPCG_DIRECT_CLKOFF_ACK_TIMEOUT_EN_MASK |
+            CCM_LPCG_DIRECT_ON_MASK;
+    }
+
+    /* Power down DDRMIX if uninitialized by OEI */
+    if (!CLOCK_SourceGetEnable(CLOCK_SRC_DRAMPLL_VCO))
+    {
+        SRC_MixSoftPowerDown(PWR_MIX_SLICE_IDX_DDR);
+    }
+
+#ifdef USES_RX_REPLICA
+    /* Init RX Replica workaround */
+    DEV_SM_RxReplicaInit();
+#endif
 
     /* Return status */
     return status;
@@ -128,8 +190,14 @@ int32_t DEV_SM_SystemReset(void)
 {
     int32_t status = SM_ERR_SUCCESS;
 
-    /* Request warm reset */
-    RST_SystemRequestReset();
+    SM_TEST_MODE_ERR(SM_TEST_MODE_DEV_LVL1, SM_ERR_TEST)
+
+    // coverity[misra_c_2012_rule_14_3_violation:FALSE]
+    if (status == SM_ERR_SUCCESS)
+    {
+        /* Request warm reset */
+        RST_SystemRequestReset();
+    }
 
     /* Return status */
     return status;
@@ -145,11 +213,13 @@ int32_t DEV_SM_SystemStageReset(uint32_t stage, uint32_t container)
     /* Configure stage */
     status = DEV_SM_RomStageSet(stage);
 
-    /* Configure container */
     if (status == SM_ERR_SUCCESS)
     {
+        /* Configure container */
         status = DEV_SM_RomContainerSet(container);
     }
+
+    SM_TEST_MODE_ERR(SM_TEST_MODE_DEV_LVL1, SM_ERR_TEST)
 
     if (status == SM_ERR_SUCCESS)
     {
@@ -168,8 +238,14 @@ int32_t DEV_SM_SystemShutdown(void)
 {
     int32_t status = SM_ERR_SUCCESS;
 
-    /* Request shutdown */
-    PWR_SystemPowerDown();
+    SM_TEST_MODE_ERR(SM_TEST_MODE_DEV_LVL1, SM_ERR_TEST)
+
+    // coverity[misra_c_2012_rule_14_3_violation:FALSE]
+    if (status == SM_ERR_SUCCESS)
+    {
+        /* Request shutdown */
+        PWR_SystemPowerDown();
+    }
 
     /* Return status */
     return status;
@@ -180,8 +256,16 @@ int32_t DEV_SM_SystemShutdown(void)
 /*--------------------------------------------------------------------------*/
 void DEV_SM_SystemShutdownRecSet(dev_sm_rst_rec_t shutdownRec)
 {
-    /* Store shutdown record */
-    BRD_SM_ShutdownRecordSave(shutdownRec);
+    int32_t status = SM_ERR_SUCCESS;
+
+    SM_TEST_MODE_ERR(SM_TEST_MODE_DEV_LVL1, SM_ERR_TEST)
+
+    // coverity[misra_c_2012_rule_14_3_violation:FALSE]
+    if (status == SM_ERR_SUCCESS)
+    {
+        /* Store shutdown record */
+        BRD_SM_ShutdownRecordSave(shutdownRec);
+    }
 }
 
 /*--------------------------------------------------------------------------*/
@@ -267,7 +351,7 @@ int32_t DEV_SM_SystemPostBoot(uint32_t mSel, uint32_t initFlags)
     uint32_t priMask;
 
     /* Clear BBM */
-    status = DEV_SM_BbmClear();
+    status = DEV_SM_BbmClear(true);
 
     /* Disable interrupts */
     priMask = DisableGlobalIRQ();
@@ -291,18 +375,35 @@ int32_t DEV_SM_SystemPostBoot(uint32_t mSel, uint32_t initFlags)
 /*--------------------------------------------------------------------------*/
 int32_t DEV_SM_SystemRstComp(const dev_sm_rst_rec_t *resetRec)
 {
-    return SM_SYSTEMRSTCOMP(resetRec);
+    int32_t status = SM_ERR_SUCCESS;
+
+    SM_TEST_MODE_ERR(SM_TEST_MODE_DEV_LVL1, SM_ERR_TEST)
+
+    // coverity[misra_c_2012_rule_14_3_violation:FALSE]
+    if (status == SM_ERR_SUCCESS)
+    {
+        /* Request shutdown */
+        status = SM_SYSTEMRSTCOMP(resetRec);
+    }
+
+    /* Return status */
+    return status;
 }
 
 /*--------------------------------------------------------------------------*/
 /* Report SM error to log and reset                                         */
 /*--------------------------------------------------------------------------*/
-void DEV_SM_SystemError(int32_t status, uint32_t pc)
+void DEV_SM_SystemError(int32_t errStatus, uint32_t pc)
 {
+    /*
+     * Intentional: errId is a generic variable to return both signed and
+     * unsigned data depending on the reason.
+     */
+    // coverity[cert_int31_c_violation:FALSE]
     dev_sm_rst_rec_t resetRec =
     {
         .reason = DEV_SM_REASON_SM_ERR,
-        .errId = (uint32_t) status,
+        .errId = (uint32_t) errStatus,
         .validErr = true,
         .valid = true
     };
@@ -456,6 +557,23 @@ int32_t DEV_SM_SystemSleep(uint32_t sleepMode)
                         }
                     }
                 }
+                /* Disable GPC wakeups for CPUs forced to sleep */
+                else
+                {
+                    /* IRQs enabled at NVIC level become GPC wake sources */
+                    for (uint32_t wakeIdx = 0;
+                        wakeIdx < GPC_CPU_CTRL_CMC_IRQ_WAKEUP_MASK_COUNT;
+                        wakeIdx++)
+                    {
+                        uint32_t wakeVal;
+                        if (CPU_IrqWakeGet(cpuIdx, wakeIdx, &wakeVal))
+                        {
+                            cpuWakeMask[cpuIdx][wakeIdx] = wakeVal;
+                            (void) CPU_IrqWakeSet(cpuIdx, wakeIdx,
+                                0xFFFFFFFFU);
+                        }
+                    }
+                }
             }
         }
     }
@@ -602,7 +720,7 @@ int32_t DEV_SM_SystemSleep(uint32_t sleepMode)
                 GPC_GLOBAL_GPC_EFUSE_CTRL_EFUSE_PD_EN_MASK;
 
             /* Disable bypass for clock sources */
-            CLOCK_SourceBypass(false, true);
+            DEV_SM_ClockSourceBypass(false, true);
 
             if (activeSleep)
             {
@@ -742,7 +860,7 @@ int32_t DEV_SM_SystemSleep(uint32_t sleepMode)
             }
 
             /* Enable bypass for clock sources */
-            CLOCK_SourceBypass(true, true);
+            DEV_SM_ClockSourceBypass(true, true);
 
             /* Power up eFUSE */
             GPC_GLOBAL->GPC_EFUSE_CTRL = 0U;
@@ -809,27 +927,18 @@ int32_t DEV_SM_SystemSleep(uint32_t sleepMode)
             UINT64_L(sleepExitStart - sleepEntryStart);
     }
 
-    /* Restore GPC wake masks for sleeping CPUs */
+    /* Restore GPC wake sources modified during sleep flow */
     for (uint32_t cpuIdx = 0U; cpuIdx < CPU_NUM_IDX; cpuIdx++)
     {
         if (cpuIdx != CPU_IDX_M33P)
         {
-            /* Check if sleep is forced for the CPU */
-            bool sleepForce;
-            if (CPU_SleepForceGet(cpuIdx, &sleepForce))
+            /* Restore saved GPC wake sources */
+            for (uint32_t wakeIdx = 0U;
+                wakeIdx < GPC_CPU_CTRL_CMC_IRQ_WAKEUP_MASK_COUNT;
+                wakeIdx++)
             {
-                /* If sleep is not forced, manage GPC masks */
-                if (!sleepForce)
-                {
-                    /* IRQs enabled at NVIC level become GPC wake sources */
-                    for (uint32_t wakeIdx = 0U;
-                        wakeIdx < GPC_CPU_CTRL_CMC_IRQ_WAKEUP_MASK_COUNT;
-                        wakeIdx++)
-                    {
-                        (void) CPU_IrqWakeSet(cpuIdx, wakeIdx,
-                            cpuWakeMask[cpuIdx][wakeIdx]);
-                    }
-                }
+                (void) CPU_IrqWakeSet(cpuIdx, wakeIdx,
+                    cpuWakeMask[cpuIdx][wakeIdx]);
             }
         }
     }
@@ -909,17 +1018,21 @@ int32_t DEV_SM_SystemDramRetentionEnter(void)
     if (status == SM_ERR_SUCCESS)
     {
         /* Save DDRMIX block control */
-        ddr_blk_ctrl.HWFFC_CTRL = BLK_CTRL_DDRMIX->HWFFC_CTRL;
-        ddr_blk_ctrl.DDRC_STOP_CTRL = BLK_CTRL_DDRMIX->DDRC_STOP_CTRL;
-        ddr_blk_ctrl.AUTO_CG_CTRL = BLK_CTRL_DDRMIX->AUTO_CG_CTRL;
-        ddr_blk_ctrl.DDRC_EXCLUSIVE_EN = BLK_CTRL_DDRMIX->DDRC_EXCLUSIVE_EN;
-        ddr_blk_ctrl.DDRC_URGENT_EN = BLK_CTRL_DDRMIX->DDRC_URGENT_EN;
-        ddr_blk_ctrl.RT_MASTER_ID_0_1 = BLK_CTRL_DDRMIX->RT_MASTER_ID_0_1;
-        ddr_blk_ctrl.RT_MASTER_ID_2_3 = BLK_CTRL_DDRMIX->RT_MASTER_ID_2_3;
-        ddr_blk_ctrl.AXI_PARITY_ERR_INJECT =
+        s_ddrBlkCtrl.HWFFC_CTRL = BLK_CTRL_DDRMIX->HWFFC_CTRL;
+        s_ddrBlkCtrl.DDRC_STOP_CTRL = BLK_CTRL_DDRMIX->DDRC_STOP_CTRL;
+        s_ddrBlkCtrl.AUTO_CG_CTRL = BLK_CTRL_DDRMIX->AUTO_CG_CTRL;
+        s_ddrBlkCtrl.DDRC_EXCLUSIVE_EN = BLK_CTRL_DDRMIX->DDRC_EXCLUSIVE_EN;
+        s_ddrBlkCtrl.DDRC_URGENT_EN = BLK_CTRL_DDRMIX->DDRC_URGENT_EN;
+        s_ddrBlkCtrl.RT_MASTER_ID_0_1 = BLK_CTRL_DDRMIX->RT_MASTER_ID_0_1;
+        s_ddrBlkCtrl.RT_MASTER_ID_2_3 = BLK_CTRL_DDRMIX->RT_MASTER_ID_2_3;
+        s_ddrBlkCtrl.AXI_PARITY_ERR_INJECT =
             BLK_CTRL_DDRMIX->AXI_PARITY_ERR_INJECT;
-        ddr_blk_ctrl.RT_MASTER_ID_4_5 = BLK_CTRL_DDRMIX->RT_MASTER_ID_4_5;
-        ddr_blk_ctrl.RT_MASTER_ID_6_7 = BLK_CTRL_DDRMIX->RT_MASTER_ID_6_7;
+        s_ddrBlkCtrl.RT_MASTER_ID_4_5 = BLK_CTRL_DDRMIX->RT_MASTER_ID_4_5;
+        s_ddrBlkCtrl.RT_MASTER_ID_6_7 = BLK_CTRL_DDRMIX->RT_MASTER_ID_6_7;
+
+#ifdef USES_RX_REPLICA
+        DEV_SM_RxReplicaDeinit();
+#endif
 
         /* Enter retention */
         if (!DDR_EnterRetention(ddr))
@@ -1052,17 +1165,23 @@ int32_t DEV_SM_SystemDramRetentionExit(void)
         }
 
         /* Restore DDRMIX block control */
-        BLK_CTRL_DDRMIX->HWFFC_CTRL = ddr_blk_ctrl.HWFFC_CTRL;
-        BLK_CTRL_DDRMIX->DDRC_STOP_CTRL = ddr_blk_ctrl.DDRC_STOP_CTRL;
-        BLK_CTRL_DDRMIX->AUTO_CG_CTRL = ddr_blk_ctrl.AUTO_CG_CTRL;
-        BLK_CTRL_DDRMIX->DDRC_EXCLUSIVE_EN = ddr_blk_ctrl.DDRC_EXCLUSIVE_EN;
-        BLK_CTRL_DDRMIX->DDRC_URGENT_EN = ddr_blk_ctrl.DDRC_URGENT_EN;
-        BLK_CTRL_DDRMIX->RT_MASTER_ID_0_1 = ddr_blk_ctrl.RT_MASTER_ID_0_1;
-        BLK_CTRL_DDRMIX->RT_MASTER_ID_2_3 = ddr_blk_ctrl.RT_MASTER_ID_2_3;
+        BLK_CTRL_DDRMIX->HWFFC_CTRL = s_ddrBlkCtrl.HWFFC_CTRL;
+        BLK_CTRL_DDRMIX->DDRC_STOP_CTRL = s_ddrBlkCtrl.DDRC_STOP_CTRL;
+        BLK_CTRL_DDRMIX->AUTO_CG_CTRL = s_ddrBlkCtrl.AUTO_CG_CTRL;
+        BLK_CTRL_DDRMIX->DDRC_EXCLUSIVE_EN = s_ddrBlkCtrl.DDRC_EXCLUSIVE_EN;
+        BLK_CTRL_DDRMIX->DDRC_URGENT_EN = s_ddrBlkCtrl.DDRC_URGENT_EN;
+        BLK_CTRL_DDRMIX->RT_MASTER_ID_0_1 = s_ddrBlkCtrl.RT_MASTER_ID_0_1;
+        BLK_CTRL_DDRMIX->RT_MASTER_ID_2_3 = s_ddrBlkCtrl.RT_MASTER_ID_2_3;
         BLK_CTRL_DDRMIX->AXI_PARITY_ERR_INJECT =
-            ddr_blk_ctrl.AXI_PARITY_ERR_INJECT;
-        BLK_CTRL_DDRMIX->RT_MASTER_ID_4_5 = ddr_blk_ctrl.RT_MASTER_ID_4_5;
-        BLK_CTRL_DDRMIX->RT_MASTER_ID_6_7 = ddr_blk_ctrl.RT_MASTER_ID_6_7;
+            s_ddrBlkCtrl.AXI_PARITY_ERR_INJECT;
+        BLK_CTRL_DDRMIX->RT_MASTER_ID_4_5 = s_ddrBlkCtrl.RT_MASTER_ID_4_5;
+        BLK_CTRL_DDRMIX->RT_MASTER_ID_6_7 = s_ddrBlkCtrl.RT_MASTER_ID_6_7;
+
+#ifdef USES_RX_REPLICA
+        /* Perform one-time RxReplica work-around prior to DDR accesses and
+         * before enabling periodic operation */
+        DEV_SM_RxReplicaReinit();
+#endif
     }
 
     /* Return status */
@@ -1070,9 +1189,33 @@ int32_t DEV_SM_SystemDramRetentionExit(void)
 }
 
 /*--------------------------------------------------------------------------*/
+/* System timer tick                                                        */
+/*--------------------------------------------------------------------------*/
+void DEV_SM_SystemTick(uint32_t msec)
+{
+    /* Poll for CPU state changes */
+    LMM_SystemCpuModeChanged(DEV_SM_CPU_M7P);
+    LMM_SystemCpuModeChanged(DEV_SM_CPU_A55P);
+
+#ifdef USES_RX_REPLICA
+    /* Tick DDR */
+    s_ddrMseconds += msec;
+
+    /* Handle DDR periodic tick */
+    if (s_ddrMseconds >= 1000U)
+    {
+        s_ddrMseconds = 0U;
+        DDR_RxReplicaWa(&s_rxClkDelay, 16U);
+    }
+#endif
+}
+
+/*==========================================================================*/
+
+/*--------------------------------------------------------------------------*/
 /* Configure bypass for clock sources                                       */
 /*--------------------------------------------------------------------------*/
-static void CLOCK_SourceBypass(bool bypass, bool preserve)
+static void DEV_SM_ClockSourceBypass(bool bypass, bool preserve)
 {
     if (preserve)
     {
@@ -1102,4 +1245,172 @@ static void CLOCK_SourceBypass(bool bypass, bool preserve)
         (void) FRACTPLL_SetBypass(CLOCK_PLL_VIDEO1, bypass);
     }
 }
+
+#ifdef USES_RX_REPLICA
+/*--------------------------------------------------------------------------*/
+/* DDR RX Replica workaround Init                                           */
+/*--------------------------------------------------------------------------*/
+static void DEV_SM_RxReplicaInit(void)
+{
+    uint64_t rate;
+    int32_t status = SM_ERR_SUCCESS;
+
+    status = DEV_SM_ClockRateGet(DEV_SM_CLK_DRAMPLL, &rate);
+
+    if (status == SM_ERR_SUCCESS)
+    {
+        s_rxClkDelay.dramFreqMhz = U64_U32(rate / 1000000U);
+        s_rxClkDelay.pmro = DEV_SM_FuseGet(DEV_SM_FUSE_PMRO);
+
+        /* if PMRO fuse is not set, assume default */
+        if (s_rxClkDelay.pmro == 0U)
+        {
+            s_rxClkDelay.pmro = 0x5000U;
+        }
+
+        (void) DDR_RxClkDelayInit(&s_rxClkDelay, DDR_RXCLK_DELAY_CNT);
+    }
+}
+
+/*--------------------------------------------------------------------------*/
+/* DDR RX Replica workaround Deinit                                         */
+/*--------------------------------------------------------------------------*/
+static void DEV_SM_RxReplicaDeinit(void)
+{
+    s_rxClkDelay.initComplete = false;
+    s_ddrMseconds = 0U;
+}
+
+/*--------------------------------------------------------------------------*/
+/* DDR RX Replica workaround Reinit                                         */
+/*--------------------------------------------------------------------------*/
+static void DEV_SM_RxReplicaReinit(void)
+{
+    s_ddrMseconds = 0U;
+    s_rxClkDelay.initComplete = true;
+    DDR_RxReplicaWa(&s_rxClkDelay, 128U);
+}
+#endif
+
+#ifdef DEV_SM_MSG_PROF_CNT
+/*--------------------------------------------------------------------------*/
+/* Message profile start notification                                       */
+/*--------------------------------------------------------------------------*/
+void DEV_SM_SystemMsgProfStart(uint32_t mu)
+{
+    /* Capture timestamp of message start */
+    s_curMsgRecord.msgStartUsec = DEV_SM_Usec64Get();
+}
+
+/*--------------------------------------------------------------------------*/
+/* Message profile describe notification                                    */
+/*--------------------------------------------------------------------------*/
+void DEV_SM_SystemMsgProfDescribe(uint32_t scmiChannel, uint32_t chanType,
+    uint32_t protocolId, uint32_t messageId)
+{
+    /* Capture message attributes */
+    s_curMsgRecord.msgProf.scmiChannel = scmiChannel;
+    s_curMsgRecord.msgProf.chanType = chanType;
+    s_curMsgRecord.msgProf.protocolId = protocolId;
+    s_curMsgRecord.msgProf.msgId = messageId;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Message profile end notification                                         */
+/*--------------------------------------------------------------------------*/
+void DEV_SM_SystemMsgProfEnd(uint32_t mu)
+{
+    /* Capture timestamp of message end */
+    s_curMsgRecord.msgEndUsec = DEV_SM_Usec64Get();
+    uint32_t curMsgLatUsec = (uint32_t) (s_curMsgRecord.msgEndUsec
+        - s_curMsgRecord.msgStartUsec);
+    s_curMsgRecord.msgProf.msgLatUsec = curMsgLatUsec;
+
+    /* Begin processing of message profile results */
+    bool bDone = false;
+    bool bExisting = false;
+    const dev_sm_sys_msg_prof_t *pCurMsgProf =
+        &s_curMsgRecord.msgProf;
+
+    /* Search profile log for an exiting entry of this message */
+    uint32_t idx = 0U;
+    do
+    {
+        const dev_sm_sys_msg_prof_t *pMsgProf =
+            &g_syslog.sysMsgRecord.msgProf[idx];
+
+        /* Attempt to match all attributes except timestamp */
+        if ((pMsgProf->scmiChannel == pCurMsgProf->scmiChannel) &&
+            (pMsgProf->chanType == pCurMsgProf->chanType) &&
+            (pMsgProf->protocolId == pCurMsgProf->protocolId) &&
+            (pMsgProf->msgId == pCurMsgProf->msgId))
+        {
+            bExisting = true;
+        }
+        else
+        {
+            idx++;
+        }
+    } while (!bExisting && (idx < DEV_SM_MSG_PROF_CNT));
+
+    /* Existing entry requires possible update of the profile log */
+    if (bExisting)
+    {
+        /* Check if existing entry has smaller latency */
+        if (curMsgLatUsec > g_syslog.sysMsgRecord.msgProf[idx].msgLatUsec)
+        {
+            /* Remove existing entry */
+            uint32_t j = idx;
+            uint32_t k = j + 1U;
+            while (k < DEV_SM_MSG_PROF_CNT)
+            {
+                g_syslog.sysMsgRecord.msgProf[j] =
+                    g_syslog.sysMsgRecord.msgProf[k];
+                j++;
+                k++;
+            }
+
+            /* Insert a blank entry */
+            g_syslog.sysMsgRecord.msgProf[j].scmiChannel = 0U;
+            g_syslog.sysMsgRecord.msgProf[j].chanType= 0U;
+            g_syslog.sysMsgRecord.msgProf[j].protocolId = 0U;
+            g_syslog.sysMsgRecord.msgProf[j].msgId = 0U;
+            g_syslog.sysMsgRecord.msgProf[j].msgLatUsec = 0U;
+        }
+        else
+        {
+            /* Existing entry has larger latency, we are done */
+            bDone = true;
+        }
+    }
+
+    /* Attempt to insert this message profile into the log */
+    idx = 0U;
+    while ((idx < DEV_SM_MSG_PROF_CNT) && (!bDone))
+    {
+        const dev_sm_sys_msg_prof_t *pMsgProf =
+            &g_syslog.sysMsgRecord.msgProf[idx];
+
+        if (curMsgLatUsec > pMsgProf->msgLatUsec)
+        {
+            /* Shift entries down */
+            uint32_t j = DEV_SM_MSG_PROF_CNT - 1U;
+            uint32_t k = j - 1U;
+            while (j > idx)
+            {
+                g_syslog.sysMsgRecord.msgProf[j] =
+                    g_syslog.sysMsgRecord.msgProf[k];
+                j--;
+                k--;
+            }
+
+            /* Insert log entry for this message*/
+            g_syslog.sysMsgRecord.msgProf[idx] = *pCurMsgProf;
+
+            bDone = true;
+        }
+        idx++;
+    }
+}
+#endif
 

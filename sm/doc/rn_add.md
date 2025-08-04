@@ -14,7 +14,7 @@ is done without the debug monitor (M=0). The default is monitor enabled (M=1). F
 
 Turning off the debug monitor will eliminate the linking of the standard C library.
 
-The tool chain used with this SM is Arm GNU Toolchain Version **12.3.Rel1** obtained from 
+The tool chain used with this SM is Arm GNU Toolchain Version **$TC_VER** obtained from
 [Arm GNU Toolchain](https://developer.arm.com/Tools%20and%20Software/GNU%20Toolchain).
 Use the x86_64 Linux hosted AArch32 bare-metal target (arm-none-eabi) toolchain.
 
@@ -24,7 +24,11 @@ versions of doxygen include 1.8.17, 1.9.1, and 1.9.8.
 SCMI API Changes {#RN_ADD_API}
 ================
 
-None
+- Added num agents to attributes returned by SCMI_LmmAttributes() - this returns the
+  number of agents an LM contains
+- Reduced SCMI_LMM_PROTO_ATTR_NUM_LM() to five bits as the max is current 16.
+- Added SCMI_LmmResetVectorSet() to allow an agent without CPU permissions but with
+  LM permissions to configure the boot address of booting CPUs
 
 Configuration Changes {#RN_ADD_CONFIG}
 =====================
@@ -32,48 +36,49 @@ Configuration Changes {#RN_ADD_CONFIG}
 The following are cfg file changes that customers **must** make to their cfg files
 and rebuild their config headers.
 
-- Added BOARD command to define board parameters, replaces UART and PMIC commands
-- Added sema parameter for CPUs. **Must** be defined for the Cortex-A platform resource,
-  otherwise Linux will not boot.
-- Moved 256K of OCRAM to secure for ATF
-- Removed A55 ROM
-- Added new clock resources (CLOCK_EXT, CLOCK_DISP1PIX, etc.)
-- Reduced ELE DDR range
-- Move user manual config from config_dev.h to config_user.h.
+On i.MX95:
 
-The following are changes made to NXP configurations that are customer optional:
+- Enabled NETC, NPU, USB, SDHC traffic to go to the SMMU (kpa=0); these changes are
+  required to match the associated Linux BSP
+- Removed erroneous V2X_FH assignment to AP-NS
+- Moved V2X_SHE1 from the M7 to AP-NS; not doing this will require Linux BSP changes
 
-- Lots of cleanup (sort items, full 36-bit memory addresses, move some resources/APIs to
-  correct section)
-- Moved MSGINTR1 to the M7
-- Removed AP access to M7 TCM
-- Added missing clocks used by the SM (LM0)
-- Gave AP rights to set PCA2131 alarm
-- Fixed incorrect reference to msel=2 (should be 1)
-- Added configinfo to dump a cfg file in an md table format
-- Added permission defines to cfg files to better support configinfo
-- Updated all API sections to use permission defines
-- Updated ELE section of cfg files to use memory defines
-- Updated V2X section to use owner defines
-- Disabled CRC for M7 SMT channels in the mx95alt.cfg file
+On i.MX94:
+
+- BLK_CTRL_CORTEX moved to SM ownership; required else Linux will power off the
+  A55 platform by accident
+- Power domain for the M33S changed from PD_NETC to PD_M33S (new virtual domain)
+
+On all:
+
+- Split EDMA2_CH60_61 and DMA2_CH62_63 into A and B sides as HW allows each to have
+  unique assignment
+
+Configtool version incremented to 2; **requires** customer configs to be rebuilt.
+
+Optional:
+
+- Removed extra notification queue depth settings (only first applies)
+- Support make variable specifications in the cfg file, use var=no_rx_replica to
+  disable the DDR RX replica workaround
 
 Board Interface Changes {#RN_ADD_BOARD}
 =======================
 
-None
+- BRD_SM_SupplyLevelSet() and BRD_SM_SupplyLevelGet() microvolt parameter changed
+  to integer (int32_t); mostly done to eliminate CERT-C issues with conversions but
+  also to allow boards to have configurable negative voltages if needed.
 
 Board Implementation Changes {#RN_ADD_BOARD_IMP}
 ============================
 
 Customers **must** make the following changes in their board port:
 
-- PMIC configuration changes to workaround PMIC errata
-- Changes to save/restore the PF53 voltages across system sleep
-- Define BOARD_PMIC_RESUME_TICKS for optimal resume time
+- Changes to voltage supply functions to support the change to integer voltages
+- Mask PMIC soft fault bits when determining if a reset was cause by the PMIC
+- Fix issue with external RTC (PCA2131) alarm interrupt
 
-The following are changes made to NXP ports that are customer optional but
-strongly recommended:
+Optional, but recommended:
 
-- Update shutdown record from PMIC fault status
-- Coding standards fixes
+- Many CERT-C changes
 

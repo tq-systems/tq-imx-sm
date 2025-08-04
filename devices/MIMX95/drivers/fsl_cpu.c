@@ -1,5 +1,5 @@
 /*
- * Copyright 2023-2024 NXP
+ * Copyright 2023-2025 NXP
  *
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
@@ -29,7 +29,7 @@
 
 /* Includes */
 
-#include "sm.h"
+#include "fsl_def.h"
 #include "fsl_ccm.h"
 #include "fsl_cpu.h"
 #include "fsl_power.h"
@@ -42,8 +42,8 @@
 /* Local Types */
 
 typedef struct {
-  uint32_t LPM0;
-  uint32_t LPM1;
+    uint32_t LPM0;
+    uint32_t LPM1;
 } cpu_per_lpi_lpgc_t;
 
 typedef struct {
@@ -74,8 +74,6 @@ static bool CPU_VirtLpcgLpmGet(uint32_t lpcgIdx, uint32_t cpuIdx,
 /* Local Variables */
 
 static GPC_CPU_CTRL_Type *const s_gpcCpuCtrlPtrs[] = GPC_CPU_CTRL_BASE_PTRS;
-// coverity[misra_c_2012_rule_8_9_violation:FALSE]
-static GICR_Type *const s_gicrPtrs[] = GICR_BASE_PTRS;
 
 static uint32_t s_cpuDdrMixDependMask;
 static uint32_t s_cpuNocMixDependMask;
@@ -446,10 +444,10 @@ bool CPU_Init(uint32_t cpuIdx, uint32_t cpuSemaAddr)
         /* CPUs supporting SLEEPHOLD should not enable A55 handshake */
         if ((cmcMisc & GPC_CPU_CTRL_CMC_MISC_SLEEP_HOLD_EN_MASK) != 0U)
         {
-            s_gpcCpuCtrlPtrs[cpuIdx]->CMC_SLEEP_A55_HDSK_CTRL |= 
+            s_gpcCpuCtrlPtrs[cpuIdx]->CMC_SLEEP_A55_HDSK_CTRL |=
                 GPC_CPU_CTRL_CMC_SLEEP_A55_HDSK_CTRL_DISABLE_MASK;
 
-            s_gpcCpuCtrlPtrs[cpuIdx]->CMC_WAKEUP_A55_HDSK_CTRL |= 
+            s_gpcCpuCtrlPtrs[cpuIdx]->CMC_WAKEUP_A55_HDSK_CTRL |=
                 GPC_CPU_CTRL_CMC_WAKEUP_A55_HDSK_CTRL_DISABLE_MASK;
         }
 
@@ -584,7 +582,17 @@ static bool CPU_SwMultiWakeup(uint32_t cpuIdx)
     {
         /* Wake each CPU */
         rc = CPU_SwWakeup(cpuIdxCur);
-        --cpuIdxCur;
+
+        /* Check cpuIdxCur doesn't wrap */
+        if (cpuIdxCur > 0U)
+        {
+            --cpuIdxCur;
+        }
+        else
+        {
+            /* Handling for cpuIdxCur wrapping */
+            rc = false;
+        }
     } while (rc && (cpuIdxCur >= cpuIdxEnd));
 
     return rc;
@@ -606,20 +614,20 @@ static bool CPU_WdogReset(uint32_t cpuIdx)
             /* Assert WDOG module reset */
             uint32_t rstline = wdogInfo->rstLine;
             rc = SRC_MixSetResetLine(rstline, RST_LINE_CTRL_ASSERT);
-            
+
             /* Wait for reset assertion to complete */
             uint32_t resetType = RST_LINE_CTRL_UNKNOWN;
             while (rc && (resetType != RST_LINE_CTRL_ASSERT))
             {
                 rc = SRC_MixGetResetLine(rstline, &resetType);
             }
-            
+
             /* Deassert WDOG module reset */
             if (rc)
             {
                 rc = SRC_MixSetResetLine(rstline, RST_LINE_CTRL_DEASSERT);
             }
-            
+
             /* Wait for reset deassertion to complete */
             resetType = RST_LINE_CTRL_UNKNOWN;
             while (rc && (resetType != RST_LINE_CTRL_DEASSERT))
@@ -727,7 +735,7 @@ bool CPU_IrqSet(uint32_t cpuIdx, bool enableCpuIrq)
                 NVIC_ClearPendingIRQ(lockupIrq);
             }
         }
-        
+
         IRQn_Type secWdogIrq = NotAvail_IRQn;
         IRQn_Type nonsecWdogIrq = NotAvail_IRQn;
         cpu_wdog_info_t const *wdogInfo = s_cpuMgmtInfo[cpuIdx].wdogInfo;
@@ -783,7 +791,7 @@ bool CPU_GpcHandshakeSet(uint32_t cpuIdx,bool enableHandshake)
 {
     bool rc = false;
 
-    switch(cpuIdx)
+    switch (cpuIdx)
     {
         case CPU_IDX_M7P:
             PWR_LpHandshakeMaskSet(PWR_MIX_SLICE_IDX_M7, enableHandshake);
@@ -818,7 +826,7 @@ bool CPU_ResetSet(uint32_t cpuIdx, uint32_t resetType)
 {
     bool rc = false;
 
-    switch(cpuIdx)
+    switch (cpuIdx)
     {
         case CPU_IDX_M7P:
             rc = SRC_MixSetResetLine(RST_LINE_M7MIX, resetType);
@@ -839,7 +847,8 @@ bool CPU_ResetSet(uint32_t cpuIdx, uint32_t resetType)
                     uint32_t gicdIdxLast = CPU_IDX_A55C_LAST - CPU_IDX_A55C0;
                     for (uint32_t gicdIdx = 0U; gicdIdx <= gicdIdxLast; gicdIdx++)
                     {
-                        GICR_Type *GICR = s_gicrPtrs[gicdIdx];
+                        GICR_Type *const gicrPtrs[] = GICR_BASE_PTRS;
+                        GICR_Type *GICR = gicrPtrs[gicdIdx];
 
                         /* Set ProcessorSleep to quiesce GIC redistributor instance */
                         GICR->GICR_WAKER |= GICR_WAKER_PROCESSORSLEEP_MASK;
@@ -864,13 +873,13 @@ bool CPU_ResetSet(uint32_t cpuIdx, uint32_t resetType)
 
                 /* Apply reset to all A55 CPUs */
                 uint32_t lineIdx = RST_LINE_CORTEXAMIX_CORE0;
-                uint32_t lineIdxEnd = RST_LINE_CORTEXAMIX_CORE0 + 
-                                      CPU_IDX_A55C_LAST - CPU_IDX_A55C0;
+                uint32_t lineIdxEnd = RST_LINE_CORTEXAMIX_CORE0 +
+                    CPU_IDX_A55C_LAST - CPU_IDX_A55C0;
                 uint32_t cpuIdxA55 = CPU_IDX_A55C0;
-                while(rc  && (lineIdx <= lineIdxEnd))
+                while (rc  && (lineIdx <= lineIdxEnd))
                 {
                     uint32_t srcMixIdx = s_cpuMgmtInfo[cpuIdxA55].srcMixIdx;
-                    /* Skip unpowered A55 CPUs */                    
+                    /* Skip unpowered A55 CPUs */
                     if (SRC_MixIsPwrSwitchOn(srcMixIdx))
                     {
                         rc = SRC_MixSetResetLine(lineIdx, resetType);
@@ -900,7 +909,7 @@ bool CPU_ResetGet(uint32_t cpuIdx, uint32_t *resetType)
 {
     bool rc = false;
 
-    switch(cpuIdx)
+    switch (cpuIdx)
     {
         case CPU_IDX_M7P:
             rc = SRC_MixGetResetLine(RST_LINE_M7MIX, resetType);
@@ -909,19 +918,19 @@ bool CPU_ResetGet(uint32_t cpuIdx, uint32_t *resetType)
         case CPU_IDX_A55P:
             {
                 /* Get reset status of A55 cluster */
-                rc = SRC_MixGetResetLine(RST_LINE_CORTEXAMIX_PLATFORM, 
-                                         resetType);
+                rc = SRC_MixGetResetLine(RST_LINE_CORTEXAMIX_PLATFORM,
+                    resetType);
 
                 /* Check if reset status of A55 CPUs matches cluster  */
                 uint32_t lineIdx = RST_LINE_CORTEXAMIX_CORE0;
-                uint32_t lineIdxEnd = RST_LINE_CORTEXAMIX_CORE0 + 
-                                      CPU_IDX_A55C_LAST - CPU_IDX_A55C0;
+                uint32_t lineIdxEnd = RST_LINE_CORTEXAMIX_CORE0 +
+                    CPU_IDX_A55C_LAST - CPU_IDX_A55C0;
                 uint32_t cpuIdxA55 = CPU_IDX_A55C0;
-                while(rc  && (lineIdx <= lineIdxEnd) && 
-                      (*resetType != RST_LINE_CTRL_UNKNOWN))
+                while (rc  && (lineIdx <= lineIdxEnd) &&
+                    (*resetType != RST_LINE_CTRL_UNKNOWN))
                 {
                     uint32_t srcMixIdx = s_cpuMgmtInfo[cpuIdxA55].srcMixIdx;
-                    /* Skip unpowered A55 CPUs */                    
+                    /* Skip unpowered A55 CPUs */
                     if (SRC_MixIsPwrSwitchOn(srcMixIdx))
                     {
                         uint32_t resetTypeA55;
@@ -976,7 +985,7 @@ bool CPU_RunModeSet(uint32_t cpuIdx, uint32_t runMode)
     {
         if (CPU_RunModeGet(cpuIdx, &curRunMode))
         {
-            switch(runMode)
+            switch (runMode)
             {
                 case CPU_RUN_MODE_START:
                     /* if CPU stopped, power up respective mix and release */
@@ -1019,7 +1028,7 @@ bool CPU_RunModeSet(uint32_t cpuIdx, uint32_t runMode)
                          *
                          * NOTE:  Current RUN mode for CPU started by ROM
                          *        will be HOLD.  Ensure LPM configuration
-                         *        is done here even though it may be 
+                         *        is done here even though it may be
                          *        redundant for OFF -> HOLD -> START
                          */
                         rc = CPU_LpmConfigInit(cpuIdx);
@@ -1093,7 +1102,7 @@ bool CPU_RunModeSet(uint32_t cpuIdx, uint32_t runMode)
                             /* Perform SW wakeup */
                             rc = CPU_SwMultiWakeup(cpuIdx);
                         }
-                        
+
                         if (rc)
                         {
                             /* Process MIX handshakes until CPU MIX is ready */
@@ -1126,8 +1135,8 @@ bool CPU_RunModeSet(uint32_t cpuIdx, uint32_t runMode)
                         /* Reset WDOGs for this CPU
                          *
                          * NOTE:  WDOGs associated with this CPU will be
-                         *  reset to prevent NVIC of CPU being stopped from 
-                         *  latching a new occurrence of the WDOG IRQ after 
+                         *  reset to prevent NVIC of CPU being stopped from
+                         *  latching a new occurrence of the WDOG IRQ after
                          *  release of CPU reset.
                          */
                         if (rc)
@@ -1225,8 +1234,8 @@ bool CPU_RunModeGet(uint32_t cpuIdx, uint32_t *runMode)
                     }
                 }
                 ++cpuIdxCur;
-            } while (rc && (cpuIdxCur <= cpuIdxEnd) && 
-                    (*runMode == CPU_RUN_MODE_HOLD));
+            } while (rc && (cpuIdxCur <= cpuIdxEnd) &&
+                (*runMode == CPU_RUN_MODE_HOLD));
         }
         else
         {
@@ -1273,7 +1282,7 @@ bool CPU_SleepModeSet(uint32_t cpuIdx, uint32_t sleepMode)
             uint32_t cmcMisc = s_gpcCpuCtrlPtrs[cpuIdx]->CMC_MISC;
             if (sleepMode == CPU_SLEEP_MODE_RUN)
             {
-                 cmcMisc &= ~GPC_CPU_CTRL_CMC_MISC_SLEEP_HOLD_EN_MASK;
+                cmcMisc &= ~GPC_CPU_CTRL_CMC_MISC_SLEEP_HOLD_EN_MASK;
             }
             else
             {
@@ -1324,8 +1333,8 @@ bool CPU_SleepModeGet(uint32_t cpuIdx, uint32_t *sleepMode)
 
     if (cpuIdx < CPU_NUM_IDX)
     {
-        *sleepMode = (s_gpcCpuCtrlPtrs[cpuIdx]->CMC_MODE_CTRL & 
-            GPC_CPU_CTRL_CMC_MODE_CTRL_CPU_MODE_TARGET_MASK) >> 
+        *sleepMode = (s_gpcCpuCtrlPtrs[cpuIdx]->CMC_MODE_CTRL &
+            GPC_CPU_CTRL_CMC_MODE_CTRL_CPU_MODE_TARGET_MASK) >>
             GPC_CPU_CTRL_CMC_MODE_CTRL_CPU_MODE_TARGET_SHIFT;
         rc = true;
     }
@@ -1429,6 +1438,50 @@ bool CPU_SystemSleepGet(uint32_t cpuIdx, uint32_t *sysSleep)
 }
 
 /*--------------------------------------------------------------------------*/
+/* Query if CPU is active                                                   */
+/*--------------------------------------------------------------------------*/
+bool CPU_IsActive(uint32_t cpuIdx)
+{
+    bool isActive = false;
+
+    if (cpuIdx < CPU_NUM_IDX)
+    {
+        /* Check if sleep is forced for the CPU */
+        bool sleepForce;
+        if (CPU_SleepForceGet(cpuIdx, &sleepForce))
+        {
+            /* If sleep is not forced, consider the CPU mode */
+            if (!sleepForce)
+            {
+                /* Assume CPU is active */
+                isActive = true;
+
+                /* Get GPC CPU mode status */
+                uint32_t cpuModeStat =
+                    s_gpcCpuCtrlPtrs[cpuIdx]->CMC_MODE_STAT;
+
+                /* Check if CPU in SLEEPING_IDLE state */
+                if ((cpuModeStat &
+                    GPC_CPU_CTRL_CMC_MODE_STAT_SLEEPING_IDLE_MASK) != 0U)
+                {
+                    /* CPU_MODE_CURRENT reflects active mode */
+                    uint32_t cpuModeCur = (cpuModeStat &
+                        GPC_CPU_CTRL_CMC_MODE_STAT_CPU_MODE_CURRENT_MASK) >>
+                        GPC_CPU_CTRL_CMC_MODE_STAT_CPU_MODE_CURRENT_SHIFT;
+
+                    if (cpuModeCur == CPU_SLEEP_MODE_SUSPEND)
+                    {
+                        isActive = false;
+                    }
+                }
+            }
+        }
+    }
+
+    return isActive;
+}
+
+/*--------------------------------------------------------------------------*/
 /* Get system-level sleep status                                            */
 /*--------------------------------------------------------------------------*/
 bool CPU_SystemSleepStatusGet(uint32_t *sysSleepStat)
@@ -1449,15 +1502,27 @@ bool CPU_SystemSleepStatusGet(uint32_t *sysSleepStat)
                 /* If sleep is not forced, consider the CPU mode */
                 if (!sleepForce)
                 {
+                    /* Get GPC CPU mode status */
                     uint32_t cpuModeStat =
-                        (s_gpcCpuCtrlPtrs[cpuIdx]->CMC_PIN_STAT &
-                        GPC_CPU_CTRL_CMC_PIN_STAT_CPU_MODE_STAT_MASK) >>
-                        GPC_CPU_CTRL_CMC_PIN_STAT_CPU_MODE_STAT_SHIFT;
+                        s_gpcCpuCtrlPtrs[cpuIdx]->CMC_MODE_STAT;
+
+                    /* Default CPU mode as RUN until SLEEPING_IDLE confirmed */
+                    uint32_t cpuModeCur = CPU_SLEEP_MODE_RUN;
+
+                    /* Check if CPU in SLEEPING_IDLE state */
+                    if ((cpuModeStat &
+                        GPC_CPU_CTRL_CMC_MODE_STAT_SLEEPING_IDLE_MASK) != 0U)
+                    {
+                        /* CPU_MODE_CURRENT reflects active mode */
+                        cpuModeCur = (cpuModeStat &
+                            GPC_CPU_CTRL_CMC_MODE_STAT_CPU_MODE_CURRENT_MASK) >>
+                            GPC_CPU_CTRL_CMC_MODE_STAT_CPU_MODE_CURRENT_SHIFT;
+                    }
 
                     /* Keep track of lowest CPU mode (RUN is lowest) */
-                    if (cpuModeStat < *sysSleepStat)
+                    if (cpuModeCur < *sysSleepStat)
                     {
-                        *sysSleepStat = cpuModeStat;
+                        *sysSleepStat = cpuModeCur;
                     }
                 }
             }
@@ -1549,7 +1614,7 @@ bool CPU_IrqWakeSet(uint32_t cpuIdx, uint32_t maskIdx, uint32_t maskVal)
 {
     bool rc = false;
 
-    if ((cpuIdx < CPU_NUM_IDX) && 
+    if ((cpuIdx < CPU_NUM_IDX) &&
         (maskIdx < GPC_CPU_CTRL_CMC_IRQ_WAKEUP_MASK_COUNT))
     {
         s_gpcCpuCtrlPtrs[cpuIdx]->CMC_IRQ_WAKEUP_MASK[maskIdx] = maskVal;
@@ -1566,7 +1631,7 @@ bool CPU_IrqWakeGet(uint32_t cpuIdx, uint32_t maskIdx, uint32_t *maskVal)
 {
     bool rc = false;
 
-    if ((cpuIdx < CPU_NUM_IDX) && 
+    if ((cpuIdx < CPU_NUM_IDX) &&
         (maskIdx < GPC_CPU_CTRL_CMC_IRQ_WAKEUP_MASK_COUNT))
     {
         *maskVal = s_gpcCpuCtrlPtrs[cpuIdx]->CMC_IRQ_WAKEUP_MASK[maskIdx];
@@ -1727,7 +1792,7 @@ bool CPU_LpmConfigSet(uint32_t cpuIdx, uint32_t srcMixIdx,
     {
         if (lpmSetting < CPU_NUM_PD_LPM)
         {
-             rc = SRC_MixCpuLpmSet(srcMixIdx, cpuIdx, lpmSetting);
+            rc = SRC_MixCpuLpmSet(srcMixIdx, cpuIdx, lpmSetting);
         }
 
         if (rc == true)
@@ -1743,7 +1808,7 @@ bool CPU_LpmConfigSet(uint32_t cpuIdx, uint32_t srcMixIdx,
 /* Set CPU MIX-level LPM dependencies                                       */
 /*--------------------------------------------------------------------------*/
 static bool CPU_LpmMixDependSet(uint32_t cpuIdx, uint32_t lpmSetting)
-{    
+{
     bool rc = false;
 
     if (cpuIdx < CPU_NUM_IDX)
@@ -1755,24 +1820,24 @@ static bool CPU_LpmMixDependSet(uint32_t cpuIdx, uint32_t lpmSetting)
         /* Initialize LPM response for dependent MIXes */
         if (rc)
         {
-            rc = SRC_MixCpuLpmSet(PWR_MIX_SLICE_IDX_DDR, cpuIdx, 
+            rc = SRC_MixCpuLpmSet(PWR_MIX_SLICE_IDX_DDR, cpuIdx,
                 lpmSetting);
         }
-        
+
         if (rc)
         {
-            rc = SRC_MixCpuLpmSet(PWR_MIX_SLICE_IDX_NOC, cpuIdx, 
+            rc = SRC_MixCpuLpmSet(PWR_MIX_SLICE_IDX_NOC, cpuIdx,
                 lpmSetting);
         }
-        
+
         if (rc)
         {
-            rc = SRC_MixCpuLpmSet(PWR_MIX_SLICE_IDX_WAKEUP, cpuIdx, 
+            rc = SRC_MixCpuLpmSet(PWR_MIX_SLICE_IDX_WAKEUP, cpuIdx,
                 lpmSetting);
         }
     }
 
-    return rc;   
+    return rc;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -1896,7 +1961,7 @@ static bool CPU_VirtLpcgLpmSet(uint32_t lpcgIdx, uint32_t cpuIdx,
     if (lpcgIdx < CPU_NUM_PER_LPI_IDX)
     {
         uint64_t lpm = (((uint64_t) s_cpuPerLpiLpcg[lpcgIdx].LPM1)
-            << 32U) | ((uint64_t) s_cpuPerLpiLpcg[lpcgIdx].LPM0);
+                << 32U) | ((uint64_t) s_cpuPerLpiLpcg[lpcgIdx].LPM0);
 
         /* Insert new LPM_SETTING for this CPU */
         lpm &= (~(LPMSETTING_MASK(cpuIdx)));
@@ -1923,7 +1988,7 @@ static bool CPU_VirtLpcgLpmGet(uint32_t lpcgIdx, uint32_t cpuIdx,
     {
         uint64_t lpm =
             ((((uint64_t) s_cpuPerLpiLpcg[lpcgIdx].LPM1) << 32U) |
-            ((uint64_t) s_cpuPerLpiLpcg[lpcgIdx].LPM0));
+                ((uint64_t) s_cpuPerLpiLpcg[lpcgIdx].LPM0));
 
         /* Extract LPM_SETTING for this CPU */
         *lpmSetting = (uint32_t) (LPMSETTING_VAL(cpuIdx, lpm)
@@ -2055,7 +2120,7 @@ void CPU_MixPowerUpNotify(uint32_t srcMixIdx)
 {
     uint32_t cpuMixDependMask = 0U;
 
-    switch(srcMixIdx)
+    switch (srcMixIdx)
     {
         case PWR_MIX_SLICE_IDX_DDR:
             cpuMixDependMask = s_cpuDdrMixDependMask;
@@ -2082,16 +2147,15 @@ void CPU_MixPowerUpNotify(uint32_t srcMixIdx)
             ; /* Intentional empty default */
             break;
     }
-    
+
     /* Release CPUs with all dependencies done */
     while (cpuMixDependMask != 0U)
     {
         /* Convert mask into index */
-        uint8_t cpuIdx = 31U - __CLZ(cpuMixDependMask);
-    
+        uint8_t cpuIdx = U8(31U - __CLZ(cpuMixDependMask));
+
         (void) CPU_WaitSet(cpuIdx, false);
-        printf("Release CPU%u from MIX%u PowerUpPost\n", cpuIdx, srcMixIdx);
-    
+
         /* Clear CPU mask bit to mark done */
         cpuMixDependMask &= (~(1UL << (cpuIdx)));
     }
@@ -2104,7 +2168,7 @@ void CPU_MixPowerDownNotify(uint32_t srcMixIdx)
 {
     uint32_t *cpuMixDependMask = NULL;
 
-    switch(srcMixIdx)
+    switch (srcMixIdx)
     {
         case PWR_MIX_SLICE_IDX_DDR:
             cpuMixDependMask = &s_cpuDdrMixDependMask;
@@ -2157,17 +2221,28 @@ bool CPU_ResetVectorSet(uint32_t cpuIdx, uint64_t vector)
         /* Check if CPU has vector */
         if (vectorRegLow != NULL)
         {
+            rc = true;
+
             /* Set lower 32-bit vector */
-            *vectorRegLow = (uint32_t) ((vector & 0xFFFFFFFFULL) >> vectorShift);
+            *vectorRegLow = U32((vector & 0xFFFFFFFFULL) >>
+                vectorShift);
 
             /* Check if CPU has 64-bit vector */
             if (vectorRegHigh != NULL)
             {
-                /* Set upper 32-bit vector */
-                *vectorRegHigh = (uint32_t) (vector >> (32U + vectorShift));
+                /* Check cpuIdxCur doesn't wrap */
+                if (vectorShift <= (UINT64_MAX_SHIFT - 32U))
+                {
+                    /* Set upper 32-bit vector */
+                    *vectorRegHigh = U32(vector >> (32U + vectorShift));
+                    rc = true;
+                }
+                else
+                {
+                    /* Handling for expression wrapping */
+                    rc = false;
+                }
             }
-
-            rc = true;
         }
     }
 
@@ -2194,17 +2269,30 @@ bool CPU_ResetVectorGet(uint32_t cpuIdx, uint64_t *vector)
             /* Check if CPU has 64-bit vector */
             if (vectorRegHigh != NULL)
             {
-                /* Get 64-bit vector */
-                *vector = (((uint64_t) *vectorRegHigh) << (32U + vectorShift))
-                    | (((uint64_t) *vectorRegLow) << vectorShift);
+                /* Check cpuIdxCur doesn't wrap */
+                if (vectorShift <= (UINT64_MAX_SHIFT - 32U))
+                {
+                    /* Get 64-bit vector */
+                    *vector = (((uint64_t) *vectorRegHigh)
+                            << (32U + vectorShift))
+                        | (((uint64_t) *vectorRegLow)
+                                << vectorShift);
+                    rc = true;
+                }
+                else
+                {
+                    /* Handling for expression wrapping */
+                    rc = false;
+                }
             }
             else
             {
+                rc = true;
+
                 /* Get 32-bit vector */
                 *vector = ((uint64_t) *vectorRegLow) << vectorShift;
             }
 
-            rc = true;
         }
     }
 
