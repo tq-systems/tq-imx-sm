@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /*
- * Copyright 2023-2024 NXP
- * Copyright (c) 2024 TQ-Systems GmbH <oss@tq-group.com>, D-82229 Seefeld, Germany.
+ * Copyright 2023-2025 NXP
+ * Copyright (c) 2024-2025 TQ-Systems GmbH <oss@tq-group.com>, D-82229 Seefeld, Germany.
  */
 
 #include "sm.h"
@@ -296,7 +296,7 @@ void BOARD_InitDebugConsole(void)
         lpuart_config.enableTx = true;
         lpuart_config.enableRx = true;
         (void) LPUART_Init(s_uartConfig.base, &lpuart_config,
-            (uint32_t) rate & 0xFFFFFFFFU);
+            U64_U32(rate));
     }
 }
 
@@ -489,7 +489,7 @@ void BOARD_InitSerialBus(void)
     };
     uint32_t clockId = s_i2cClks[BOARD_I2C_INSTANCE];
 
-    uint32_t rate = (uint32_t) CCM_RootGetRate(clockId);
+    uint32_t rate = U64_U32(CCM_RootGetRate(clockId));
 
     LPI2C_MasterGetDefaultConfig(&lpi2cConfig);
 
