@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 ## ###################################################################
 ##
-## Copyright 2023-2024 NXP
+## Copyright 2023-2025 NXP
 ##
 ## Redistribution and use in source and binary forms, with or without modification,
 ## are permitted provided that the following conditions are met:
@@ -44,6 +44,7 @@ use List::Util qw(first);
 sub load_config_files;
 sub load_file;
 sub do_substitutions;
+sub sanity_check;
 sub generate_dox;
 sub generate_mb;
 sub generate_xport;
@@ -73,6 +74,9 @@ sub startstop;
 sub error_line;
 sub get_define;
 
+# Config version
+my $configVer = 2;
+
 my @protocols = ('base', 'pd', 'sys', 'perf', 'clk', 'sensor',
     'rst', 'volt', 'lmm', 'gpr', 'rtc', 'button', 'cpu', 'perlpi',
     'pin', 'daisy', 'ctrl', 'fault', 'fusa');
@@ -83,6 +87,7 @@ my @xportTypes = ('SMT');
 my %makeInclude;
 my %args;
 my $log;
+my $copyright = '';
 
 my $seenvid = 0;
 
@@ -140,6 +145,9 @@ if (! -e $outDir)
 
 # Load config files
 my @cfg = &load_config_files($inputFile); 
+
+# Generate DOX file
+&sanity_check(\@cfg);
 
 # Generate DOX file
 &generate_dox($outDir, \@cfg);
@@ -249,6 +257,7 @@ sub load_config_files
 	}	    
 
     # Replace standard perms
+    s/perm=0\b/perm=0x0000/g for @cfg;
     s/perm=none\b/perm=0x0000/g for @cfg;
     s/perm=sec_r\b/perm=0x4400/g for @cfg;
     s/perm=secpriv_rx\b/perm=0x5000/g for @cfg;
@@ -368,6 +377,18 @@ sub load_file
         # Remove LF
         chomp $_;
 
+		# Get copyright
+		if (/Copyright\s+[0-9]/)
+		{
+			if ($copyright eq '')
+			{
+				$copyright = $_;
+
+			    # Replace hashs
+			    $copyright =~ s/#/*/g;				
+			}
+		}
+
         # Continue line?
         if (/\\$/)
         {
@@ -478,6 +499,111 @@ sub do_substitutions
     }
 
     return $sub;
+}
+
+###############################################################################
+
+sub sanity_check
+{
+    my ($cfgRef) = @_;
+
+	# Get list of LM and agents
+    my @list = grep(/^LM\d*\b/ || /^SCMI_AGENT\d*\b/, @$cfgRef);
+
+    # Loop over the list
+    my $lmCnt = -1;
+    my $agentCnt = -1;
+    foreach my $l (@list)
+    {
+		# Handle LM
+		if ($l =~ /^LM(\d*)\b/)
+		{
+            my $lmIdx = $1;
+            my $lmHandle = 'LM' . $lmIdx;
+
+            # Check LM order
+            $lmCnt++;
+            if ($lmIdx != $lmCnt)
+            {
+			    print STDERR 'error: invalid LM numerical order' . "\n";
+			    exit;
+            }
+
+	        if ((my $parm = &param($l, 'name')) ne '!')
+	        {
+	            $parm =~ s/\"//g;
+
+				# Check SM LM
+				if ($lmHandle eq 'LM0')
+				{
+					if ($parm ne 'SM')
+					{
+					    print STDERR 'error: invalid LM0 name (must be SM)'
+					        . "\n";
+					    exit;
+					}
+				}
+				if ($parm eq 'SM')
+				{
+					if ($lmHandle ne 'LM0')
+					{
+					    print STDERR 'error: invalid SM LM (must be LM0)'
+					        . "\n";
+					    exit;
+					}
+				}
+	        }
+	        if ((my $parm = &param($l, 'did')) ne '!')
+	        {
+				# Check SM DID
+				if ($lmHandle eq 'LM0')
+				{
+					if ($parm ne '2')
+					{
+					    print STDERR 'error: invalid SM/LM0 DID (must be 2)'
+					        . "\n";
+					    exit;
+					}
+				}
+	        }
+	        if ((my $parm = &param($l, 'rpc')) ne '!')
+	        {
+	            my $rpcType = $parm;
+
+				# Check SM info
+				if ($lmHandle eq 'LM0')
+				{
+					if ($parm ne 'none')
+					{
+					    print STDERR 'error: invalid SM/LM0 RPC type (must be none)'
+					        . "\n";
+					    exit;
+					}
+				}
+            }
+	    }
+
+        # Handle agent
+        if ($l =~ /^SCMI_AGENT(\d*)\b/)
+        {
+            my $agentIdx = $1;
+
+            # Check agent order
+            $agentCnt++;
+            if ($agentIdx != $agentCnt)
+            {
+			    print STDERR 'error: invalid agent numerical order' . "\n";
+			    exit;
+            }
+
+            # Check LM defined before agent
+            if ($lmCnt == -1)
+            {
+			    print STDERR 'error: agent before lm' . "\n";
+			    exit;
+            }
+        }
+    }
 }
 
 ###############################################################################
@@ -923,7 +1049,6 @@ sub generate_scmi
 
     print $out '/* Includes */' . "\n\n";
     print $out '#include "config_user.h"' . "\n\n";
-
     print $out '/* Defines */' . "\n\n";
 
     # Loop over the list
@@ -1229,7 +1354,6 @@ sub generate_lmm
 
     print $out '/* Includes */' . "\n\n";
     print $out '#include "config_user.h"' . "\n\n";
-
     print $out '/* Defines */' . "\n\n";
 
 	# Get list of start/stop */
@@ -1402,36 +1526,6 @@ sub generate_lmm
 	        {
 	            $parm =~ s/\"//g;
 	            print $out '        .name = "' . $parm . '", \\' . "\n";
-
-				# Check SM info
-				if ($lm_handle eq 'LM0')
-				{
-					if ($parm ne 'SM')
-					{
-					    print STDERR 'error: invalid LM0 name (must be SM)' . "\n";
-					    exit;
-					}
-				}
-				if ($parm eq 'SM')
-				{
-					if ($lm_handle ne 'LM0')
-					{
-					    print STDERR 'error: invalid SM LM (must be LM0)' . "\n";
-					    exit;
-					}
-				}
-	        }
-	        if ((my $parm = &param($lm, 'did')) ne '!')
-	        {
-				# Check SM info
-				if ($lm_handle eq 'LM0')
-				{
-					if ($parm ne '2')
-					{
-					    print STDERR 'error: invalid SM/LM0 DID (must be 2)' . "\n";
-					    exit;
-					}
-				}
 	        }
 	        if ((my $parm = &param($lm, 'rpc')) ne '!')
 	        {
@@ -1439,16 +1533,6 @@ sub generate_lmm
 	            print $out '        .rpcType = SM_RPC_'
 	                . uc $parm . ', \\' . "\n";
 	            $rpcInst{$parm}++;
-
-				# Check SM info
-				if ($lm_handle eq 'LM0')
-				{
-					if ($parm ne 'none')
-					{
-					    print STDERR 'error: invalid SM/LM0 RPC type (must be none)' . "\n";
-					    exit;
-					}
-				}
 	        }
 			if ($rpcType ne 'none')
 			{
@@ -2018,7 +2102,6 @@ sub generate_test
 
     print $out '/* Includes */' . "\n\n";
     print $out '#include "config_user.h"' . "\n\n";
-
     print $out '/* Defines */' . "\n\n";
 
     # Loop over the LM+MB list
@@ -2213,17 +2296,35 @@ sub generate_make
     # Output copyright
     print $out $cr;
 
+	# Output config version
+    print $out 'GEN_CONFIG_VER ?= ' . $configVer . "U\n";
+
 	# Output board define
     if ((my $parm = &param($make[0], 'board')) ne '!')
     {
-	    print $out 'BOARD ?= ' . $parm . "\n\n";
+	    print $out 'BOARD ?= ' . $parm . "\n";
     }		
 
 	# Output FuSa define
     if ($seenvid != 0)
     {
-	    print $out 'USES_FUSA ?= 1' . "\n\n";
+	    print $out 'USES_FUSA ?= 1' . "\n";
     }		
+
+    # Output any other defines
+    my @words = split(/ /, $make[0]);    
+    foreach my $w (@words)
+    {
+        if ($w =~ /var=(\w+)\|(\w+)/)
+        {
+    	    print $out uc $1 . ' ?= ' . $2 . "\n";
+        }
+        elsif ($w =~ /var=(\w+)/)
+        {
+    	    print $out uc $1 . ' ?= 1' . "\n";
+        }
+    }
+    print $out "\n";
 
 	# Output SoC/board includes
     if ((my $parm = &param($make[0], 'soc')) ne '!')
@@ -2874,6 +2975,26 @@ sub get_trdc
                 $e .= ' big=0';
             }
 
+            # Extract no debug
+            if ($line =~ /\bnodbg /)
+            {
+                $e .= ' nodbg=1';
+            }
+            else
+            {
+                $e .= ' nodbg=0';
+            }
+
+            # Extract regions to clear
+            if ($line =~ /\bclr=(\d+) /)
+            {
+                $e .= ' clr=' . $1;
+            }
+            else
+            {
+                $e .= ' clr=' . 4;
+            }
+
             push @rdc, $e . ' ';
         }
     }
@@ -2888,11 +3009,13 @@ sub get_trdc
         foreach my $m (@rdc)
         {
             if (($m =~ /\bM[BR]C_\w+=/)
-                && ($m =~ /\bdid=\d+ /))
+                && ($m =~ /\bdid=[\d-]+/)
+                && !($m =~ /\bnodbg=1/)
+                && !($m =~ /\bperm=0x0000/))
             {
                 my $a = $m;
-                $a =~ s/\bdid=\d+/did=$debugDid/g;
-                $a =~ s/\bperm=\w+/perm=0x6600/g;
+                $a =~ s/\bdid=[\d-]+/did=$debugDid/g;
+                $a =~ s/\bperm=\w+/perm=0x6666/g;
                 push @debugLines, $a;            
             }
         }
@@ -3096,7 +3219,7 @@ sub get_trdc
 	    }
 
         # Handle MRC
-        if ($m =~ /^MRC_([A-Z]+)(\d+)=(\d+) did=(\d+) begin=(\d+) end=(\d+) nrgns=(\d+) perm=(\d+) big=(\d+)/)
+        if ($m =~ /^MRC_([A-Z]+)(\d+)=(\d+) did=(\d+) begin=(\d+) end=(\d+) nrgns=(\d+) perm=(\d+) big=(\d+) nodbg=(\d+) clr=(\d+)/)
         {
             my $w0;
             my $w1;
@@ -3114,12 +3237,38 @@ sub get_trdc
 
 			my $perm = $8;
 		
-			$m = sprintf("TRDC%s_MRC%d_DOM%d_RGD%d %d, %d = %d, %d",
-				$1, $2, $4, $3, $w0, $w1, $perm, $7);
+			$m = sprintf("TRDC%s_MRC%d_DOM%d_RGD%d %d, %d = %d, %d, %d",
+				$1, $2, $4, $3, $w0, $w1, $perm, $7, $11);
             next;
         }
 		
 	}
+
+	# Collapse MBC
+	my @nRdc;
+	my %h;
+    foreach my $m (@rdc)
+    {
+        # Handle MBC
+        if ($m =~ /(TRDC[A-Z]+_MBC\d+_DOM\d+_MEM\d+_BLK_CFG_W\d+\[\d+\]) = (\d+)/)
+        {
+			my $elm = $1;
+			my $b = $2;
+			
+			$h{$elm} |= ($b + 0);
+		}
+		else
+		{
+			push @nRdc, $m;
+		}
+	}
+    foreach my $key (keys %h)
+    {
+		my $u = sprintf("%s = %d", $key, $h{$key});
+
+		push @nRdc, $u;
+    }
+	@rdc = sort @nRdc;
 
 	# Determine MBC GLBAC and substitute
 	@rdc = sort @rdc;
@@ -3209,29 +3358,36 @@ sub get_trdc
 	my $curr_rgd = '';
 	my $old_elm = '';
 	my $old_rgn = 4;
+	my $maxClr = 0;
     foreach my $m (@rdc)
     {
         # Handle MRC region
-        if ($m =~ /(TRDC[A-Z]+_MRC\d+_DOM\d+_RGD)\d+ (\d+), (\d+) = (\d+), (\d+)/)
+        if ($m =~ /(TRDC[A-Z]+_MRC\d+_DOM\d+_RGD)\d+ (\d+), (\d+) = (\d+), (\d+), (\d+)/)
         {
 			my $elm = $1;
 			my $w0 = $2;
 			my $w1 = $3;
 			my $perm = $4;
 			my $rgn = $5;
+			my $clr = $6;
+
+            if ($maxClr == 0)
+            {
+                $maxClr = $clr;
+            }
 
             if ($w1 != 0)
             {
     			# New MRC
     			if ($curr_rgd ne $elm)
     			{
-					my $clr = 4;
-					if ($old_rgn < $clr)
+					my $nClr = $maxClr;
+					if ($old_rgn < $nClr)
 					{
-						$clr = $old_rgn;
+						$nClr = $old_rgn;
 					}
 
-                    while (($old_elm ne '') && ($rgd < $clr))
+                    while (($old_elm ne '') && ($rgd < $nClr))
                     {
                         my $new_m = sprintf("%s%02d %d, %d = %d", $old_elm, $rgd,
                             0, 0, 0);
@@ -3242,6 +3398,7 @@ sub get_trdc
 
     				$rgd = 0;
     				$curr_rgd = $elm;
+    				$maxClr = $clr;
     			}
 
     			# Check for overflow
@@ -3262,6 +3419,10 @@ sub get_trdc
 
                 $old_elm = $elm;
                 $old_rgn = $rgn;
+    			if ($clr > $maxClr)
+    			{
+    			    $maxClr = $clr;
+    			}
     		}
         }
 
@@ -3336,6 +3497,25 @@ sub get_trdc
 	    }
 	}	
 
+	# Finalize last MRC
+	if ($curr_rgd ne '')
+	{
+		my $clr = $maxClr;
+		if ($old_rgn < $clr)
+		{
+			$clr = $old_rgn;
+		}
+
+        while (($old_elm ne '') && ($rgd < $clr))
+        {
+            my $new_m = sprintf("%s%02d = 0x%08X, 0x%08X",
+                $old_elm, $rgd, 0, 0);
+
+            push @rdc, $new_m;
+            $rgd++;
+        }
+	}
+
 	# Save last MRC GLBAC
 	if ($curr_mrc ne '')
 	{
@@ -3349,7 +3529,7 @@ sub get_trdc
 
 	# Collapse MBC into registers
 	my @reg;
-	my %h;
+	%h = ();
 	my $w = 0;
     foreach my $m (@rdc)
     {
@@ -3491,6 +3671,7 @@ sub convert_trdc
 		}
 		else
 		{
+            print $t . "\n";
            	error_line('unknown TRDC register', $t);
 		}
 	}
@@ -3644,7 +3825,14 @@ sub copyright
     $rtn .= '/*' . "\n";
     $rtn .= '** ###################################################################' . "\n";
     $rtn .= '**' . "\n";
-    $rtn .= '** Copyright 2023-2024 NXP' . "\n";
+	if ($copyright eq '')
+	{
+	    $rtn .= '** Copyright 2023-2025 NXP' . "\n";
+	}
+	else
+	{
+	    $rtn .= $copyright . "\n";
+	}
     $rtn .= '**' . "\n";
     $rtn .= '** Redistribution and use in source and binary forms, with or without modification,' . "\n";
     $rtn .= '** are permitted provided that the following conditions are met:' . "\n";

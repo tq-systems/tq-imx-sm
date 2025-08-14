@@ -1,5 +1,5 @@
 /*
- * Copyright 2023-2024 NXP
+ * Copyright 2023-2025 NXP
  *
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
@@ -29,6 +29,7 @@
 
 /* Includes */
 
+#include "fsl_def.h"
 #include "fsl_ccm.h"
 #include "fsl_cpu.h"
 #include "fsl_power.h"
@@ -233,7 +234,7 @@ static bool SRC_MemRetentionModeInit(uint32_t srcMixIdx)
         while (retainMask != 0U)
         {
             /* Convert mask into index */
-            uint8_t memIdx = 31U - __CLZ(retainMask);
+            uint8_t memIdx = U8(31U - __CLZ(retainMask));
 
             src_mem_slice_t *srcMem = s_srcMemPtrs[memIdx];
             srcMem->MEM_CTRL |= SRC_MEM_MEM_CTRL_MEM_LP_MODE_MASK;
@@ -267,7 +268,7 @@ bool SRC_MemRetentionModeSet(uint32_t srcMixIdx, uint32_t memRetMask)
         while (memMask != 0U)
         {
             /* Convert mask into index */
-            uint8_t memIdx = 31U - __CLZ(memMask);
+            uint8_t memIdx = U8(31U - __CLZ(memMask));
 
             src_mem_slice_t *srcMem = s_srcMemPtrs[memIdx];
             if ((memRetMask & (1UL << memIdx)) != 0U)
@@ -351,7 +352,7 @@ static void SRC_MixSetCpuWait(uint32_t srcMixIdx, bool enableCpuWait)
         while (cpuMask != 0U)
         {
             /* Convert mask into index */
-            uint8_t cpuIdx = 31U - __CLZ(cpuMask);
+            uint8_t cpuIdx = U8(31U - __CLZ(cpuMask));
 
             (void) CPU_WaitSet(cpuIdx, enableCpuWait);
 
@@ -374,7 +375,7 @@ static void SRC_MixSetCpuSleepMode(uint32_t srcMixIdx, uint32_t sleepMode)
         while (cpuMask != 0U)
         {
             /* Convert mask into index */
-            uint8_t cpuIdx = 31U - __CLZ(cpuMask);
+            uint8_t cpuIdx = U8(31U - __CLZ(cpuMask));
 
             (void) CPU_SleepModeSet(cpuIdx, sleepMode);
 
@@ -543,6 +544,35 @@ void SRC_MixSoftPowerDown(uint32_t srcMixIdx)
             /* Request software-controlled power down */
             srcMix->SLICE_SW_CTRL |= SLICE_SW_CTRL_PDN_SOFT_MASK;
 
+#ifdef PWR_MIX_FLAG_QCH_TIMEOUT
+            /* Wait for power down sequence to compete */
+            if ((g_pwrMixMgmtInfo[srcMixIdx].flags & PWR_MIX_FLAG_QCH_TIMEOUT) == 0U)
+            {
+                while (!SRC_MixPowerDownCompleted(srcMixIdx))
+                {
+                    ; /* Intentional empty while */
+                }
+            }
+            else
+            {
+                /* Poll MIX power down complete or timeout reached */
+                if (!SRC_MixPowerDownPoll(srcMixIdx, 100U))
+                {
+                    /* Use LPCG handshake timeout to complete power down */
+                    uint32_t lpcgIdxStart = g_pwrMixMgmtInfo[srcMixIdx].lpcgIdxStart;
+                    uint32_t lpcgIdxEnd = g_pwrMixMgmtInfo[srcMixIdx].lpcgIdxEnd;
+                    for (uint32_t lpcgIdx = lpcgIdxStart; lpcgIdx <= lpcgIdxEnd; lpcgIdx++)
+                    {
+                        (void) CCM_LpcgTimeoutSetEnable(lpcgIdx, true);
+                    }
+                    (void) SRC_MixPowerDownPoll(srcMixIdx, 1U);
+                    for (uint32_t lpcgIdx = lpcgIdxStart; lpcgIdx <= lpcgIdxEnd; lpcgIdx++)
+                    {
+                        (void) CCM_LpcgTimeoutSetEnable(lpcgIdx, false);
+                    }
+                }
+            }
+#else
             /* Wait for power down sequence to compete */
             if ((g_pwrMixMgmtInfo[srcMixIdx].flags & PWR_MIX_FLAG_SSI_TIMEOUT) == 0U)
             {
@@ -563,7 +593,7 @@ void SRC_MixSoftPowerDown(uint32_t srcMixIdx)
                     (void) CCM_LpcgTimeoutSetEnable(lpcgIdx, false);
                 }
             }
-
+#endif
             /* Restore A55 handshake */
             SRC_MixSetA55HdskMode(srcMixIdx, SRC_MIX_A55_HDSK_ACK_WAIT);
 
@@ -697,6 +727,23 @@ bool SRC_MixRstExit(uint32_t srcMixIdx, uint32_t timeoutUsec)
     bool rc = SRC_MixRstExitPoll(srcMixIdx, timeoutUsec);
     if (!rc)
     {
+#ifdef PWR_MIX_FLAG_QCH_TIMEOUT
+        if ((g_pwrMixMgmtInfo[srcMixIdx].flags & PWR_MIX_FLAG_QCH_TIMEOUT) != 0U)
+        {
+            /* Use LPCG handshake timeout to complete reset */
+            uint32_t lpcgIdxStart = g_pwrMixMgmtInfo[srcMixIdx].lpcgIdxStart;
+            uint32_t lpcgIdxEnd = g_pwrMixMgmtInfo[srcMixIdx].lpcgIdxEnd;
+            for (uint32_t lpcgIdx = lpcgIdxStart; lpcgIdx <= lpcgIdxEnd; lpcgIdx++)
+            {
+                (void) CCM_LpcgTimeoutSetEnable(lpcgIdx, true);
+            }
+            rc = SRC_MixRstExitPoll(srcMixIdx, 1U);
+            for (uint32_t lpcgIdx = lpcgIdxStart; lpcgIdx <= lpcgIdxEnd; lpcgIdx++)
+            {
+                (void) CCM_LpcgTimeoutSetEnable(lpcgIdx, false);
+            }
+        }
+#else
         if ((g_pwrMixMgmtInfo[srcMixIdx].flags & PWR_MIX_FLAG_SSI_TIMEOUT) != 0U)
         {
             /* Use LPCG handshake timeout to complete reset exit */
@@ -705,6 +752,7 @@ bool SRC_MixRstExit(uint32_t srcMixIdx, uint32_t timeoutUsec)
             rc = SRC_MixRstExitPoll(srcMixIdx, 1U);
             (void) CCM_LpcgTimeoutSetEnable(lpcgIdx, false);
         }
+#endif
     }
 
     return rc;

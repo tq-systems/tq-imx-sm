@@ -2,8 +2,8 @@
 /*
 ** ###################################################################
 **
-** Copyright 2023-2024 NXP
-** Copyright (c) 2024 TQ-Systems GmbH <oss@tq-group.com>, D-82229 Seefeld, Germany.
+** Copyright 2023-2025 NXP
+** Copyright (c) 2024-2025 TQ-Systems GmbH <oss@tq-group.com>, D-82229 Seefeld, Germany.
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -95,7 +95,7 @@ int32_t BRD_SM_SerialDevicesInit(void)
         g_pf09Dev.devAddr = BOARD_PF09_DEV_ADDR;
         g_pf09Dev.crcEn = true;
 
-        /* Inialize PF09 PMIC */
+        /* Initialize PF09 PMIC */
         if (!PF09_Init(&g_pf09Dev))
         {
             status = SM_ERR_HARDWARE_ERROR;
@@ -151,6 +151,15 @@ int32_t BRD_SM_SerialDevicesInit(void)
             }
         }
 
+        /* Enable the LDO3 in RUN mode */
+        if (status == SM_ERR_SUCCESS)
+        {
+            if (!PF09_PmicWrite(&g_pf09Dev, 0x7DU, 0x20U, 0xFFU))
+            {
+                status = SM_ERR_HARDWARE_ERROR;
+            }
+        }
+
         /* Set the OV debounce to 50us due to errata ER011/12 */
         if (status == SM_ERR_SUCCESS)
         {
@@ -182,7 +191,7 @@ int32_t BRD_SM_SerialDevicesInit(void)
         g_pf5301Dev.i2cBase = s_i2cBases[BOARD_I2C_INSTANCE];
         g_pf5301Dev.devAddr = BOARD_PF5301_DEV_ADDR;
 
-        /* Inialize PF0901 PMIC */
+        /* Initialize PF5301 PMIC */
         if (!PF53_Init(&g_pf5301Dev))
         {
             status = SM_ERR_HARDWARE_ERROR;
@@ -196,7 +205,7 @@ int32_t BRD_SM_SerialDevicesInit(void)
         g_pf5302Dev.i2cBase = s_i2cBases[BOARD_I2C_INSTANCE];
         g_pf5302Dev.devAddr = BOARD_PF5302_DEV_ADDR;
 
-        /* Inialize PF0901 PMIC */
+        /* Initialize PF5302 PMIC */
         if (!PF53_Init(&g_pf5302Dev))
         {
             status = SM_ERR_HARDWARE_ERROR;

@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-**     Copyright 2023-2024 NXP
+**     Copyright 2023-2025 NXP
 **
 **     Redistribution and use in source and binary forms, with or without modification,
 **     are permitted provided that the following conditions are met:
@@ -124,7 +124,7 @@ int32_t DEV_SM_SyslogDump(uint32_t flags)
 uint64_t DEV_SM_Usec64Get(void)
 {
     struct timeval tv = { 0 };
-    int64_t tm;
+    int64_t tm = 0LL;
 
     /* Get time */
     (void) gettimeofday(&tv, NULL);
@@ -132,29 +132,13 @@ uint64_t DEV_SM_Usec64Get(void)
     /* Convert to microseconds */
     tm = (tv.tv_sec * 1000000LL) + tv.tv_usec;
 
+    /* Check for signed bit of the tm */
+    if (!CHECK_I64_POSITIVE(tm))
+    {
+        tm = 0LL;
+    }
+
     return (uint64_t) tm;
-}
-
-/*--------------------------------------------------------------------------*/
-/* Get address of a fuse word                                               */
-/*--------------------------------------------------------------------------*/
-// coverity[misra_c_2012_rule_8_13_violation:FALSE]
-int32_t DEV_SM_FuseInfoGet(uint32_t fuseWord, uint32_t *addr)
-{
-    int32_t status = SM_ERR_SUCCESS;
-
-    if (fuseWord != 50U)
-    {
-        uint32_t val = 0x80008000U + (fuseWord * 4U);
-        *addr = val;
-    }
-    else
-    {
-        status = SM_ERR_INVALID_PARAMETERS;
-    }
-
-    /* Return result */
-    return status;
 }
 
 /*--------------------------------------------------------------------------*/

@@ -32,9 +32,8 @@ The table below lists the release information:
 Highlights {#RN_HIGH}
 ==========
 
-- Added support for dynamic rate adjust of audio and video PLLs
-- Added support for PF09 B0
-- Misc. improvements and bug fixes
+- Added support for i.MX95 B0
+- Toolchain moved to GNU Version 14.2.rel1
 
 Note these are highlights of the original release. These do not cover changes
 in subsequent patch releases.

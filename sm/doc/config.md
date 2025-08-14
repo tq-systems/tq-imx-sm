@@ -395,7 +395,7 @@ Start/stop commands supported are:
 | Command        | Start                            | Stop                     |
 |----------------|----------------------------------|--------------------------|
 | ::LMM_SS_PD    | Power on power domain            | Power off power domain   |
-| ::LMM_SS_PERF  | Set perf level to arg[0]         | Same as start            | 
+| ::LMM_SS_PERF  | Set perf level to arg[0]         | Same as start            |
 | ::LMM_SS_CLK   | Set clock parent to arg[0], rate to arg[1] and enable | Disable clock |
 | ::LMM_SS_CPU   | Start CPU                        | Stop CPU                 |
 | ::LMM_SS_VOLT  | Set voltage mode to arg[0]       | Same as start            |
@@ -682,7 +682,7 @@ resources then apply to that until the next SCMI_AGENTn (or LMn) command.
     Command for agent 1
     Resource assignment for agent 1
     ...
-    
+
     SCMI_AGENT2         name="AP-NS"
 
 Configuration files normally include a device-specific file that then defines peripheral and
@@ -715,6 +715,7 @@ The configtool supports the following commands and key=value pairs in the input 
 | MAKE        | soc      | Build includes ./devices/\<VAL\>/sm/Makefile |
 |             | board    | Build includes ./boards/\<VAL\>/sm/Makefile |
 |             | build    | Build includes ./sm/makefiles/\<VAL\>.mak |
+|             | var      | Define \<VAL\> ?= 1 in config.mak, if a vertical bar spacer in \<VAL\> then set part one equal to part two |
 | DOX         | name     | Define doxygen group CONFIG_\<VAL\>, use group for all config files |
 |             | desc     | Group description, quoted |
 | BOARD       | \<DEF\>  | Define BOARD_\<DEF\> as \<VAL\> in config_board.h |
@@ -829,6 +830,8 @@ Resources support the following key=value pairs.
 |                | end       | End of range to define permissions |
 |                | size      | Alternative to end, size of range to define permissions |
 |                | nrgns     | Number of regions |
+|                | nodbg     | Do not map to DAP DID |
+|                | clr       | Change how many regions will be cleared (default 4) |
 
 Notes:
 
@@ -842,7 +845,7 @@ Notes:
   DID should be able to access. When multiple agents are in the same LM, RDC rights can
   only be divided by secure/non-secure. The RDC programming model assumes anything accessible
   in NS is also accessible in secure. So for example, resources that need to be accessed by
-  both ATF and Linux only need to be listed in the Linux section, but because of the API 
+  both ATF and Linux only need to be listed in the Linux section, but because of the API
   permissions they are often listed in the ATF section also.
 - See the [SCMI config file](@ref SCMI_CONFIG) for a list of protocols and permissions.
   Note only a portion of the protocol and permission is used and is lowercase. For example,
@@ -865,6 +868,8 @@ Notes:
   file (each LMM/agent section): DFMT0 and DFMT1. DFMT0 will be used by the following CPUs
   to apply parameters for the TRDC DAC. DFMT1 will be used by the following non-CPU bus
   masters to apply parameters for their DACs.
+- the ELE can leave MCR memory regions defined. By default 4 are cleared. The clr parameter
+  can be used to increase this if boot containers have a lot more images.
 
 Permissions consist of a 16-bit value, divided into four 4-bit values. Each 4-bit value
 conists of bits for read, write, and execute (0RWX). The four groups are secure-privileged,
@@ -906,25 +911,25 @@ Below is an explanation of each line:
 - **Lines 21-23** - Defines, OWNER and EXEC used below, DFMT0 used in include files for CPU masters
 - **Line 27** - Give LM0 the M33 core. M33P and OWNER are defines and expand to:
 @code
-    DEV_SM_CLK_M33 DEV_SM_CLK_M33SYSTICK DEV_SM_CPU_M33P sa=secure MDAC_A16C=0-2 pd=all clk=all cpu=all 
+    DEV_SM_CLK_M33 DEV_SM_CLK_M33SYSTICK DEV_SM_CPU_M33P sa=secure MDAC_A16C=0-2 pd=all clk=all cpu=all
 @endcode
   This configures the MDACs for secure (DID=2 from LM), ALL perms for the M33 related power
   domain, clocks, and CPU protocols.
 - **Line 27** - Give LM0 LPUART1. LPUART1 and OWNER are defines and expand to:
 @code
-    DEV_SM_CLK_LPUART1 MBC_A0=0.56 perm=0x6600 clk=all 
+    DEV_SM_CLK_LPUART1 MBC_A0=0.56 perm=0x6600 clk=all
 @endcode
   This configures the LPUART1 block of the MBC for secure R/W access for DID=2, and all perms for
   the LPUART clock.
 - **Line 32** - Give LM0 the I2C1_SCL pin. PIN_I2C1_SCL and OWNER are defines and expand to:
 @code
-    DEV_SM_PIN_I2C1_SCL pin=all 
+    DEV_SM_PIN_I2C1_SCL pin=all
 @endcode
   This configures ALL perms for the pinctrl protocol.
 - **Line 36** - Give LM0 access to all of the M33 code TCM. M33_TCM_CODE and EXEC are defines and
   expand to:
 @code
-    MBC_A1=0 origin=0x201C0000 nblks=32 blksize=8K perm=0x7700 begin=0x201C0000 size=256K 
+    MBC_A1=0 origin=0x201C0000 nblks=32 blksize=8K perm=0x7700 begin=0x201C0000 size=256K
 @endcode
   This configures all blocks of the TRDC A MBC1 for secure RWX access by the M33 (DID=2).
 - **Line 37** - Same as line 36 but for the M33 system TCM.
@@ -941,7 +946,7 @@ Below is an explanation of each line:
   and the SCMI channel type is P2A_NOTIFY (platform to agent for notification). The notification
   buffer size for all channels combined is 24 words.
 - **Line 64** - Give LM1 the M7 core. Similar to line 27.
-- **Lines 65** - Give LM1 LPUART2. Similar to line 28. 
+- **Lines 65** - Give LM1 LPUART2. Similar to line 28.
 
 Note no memory was given to the M7 as it always has full access to its TCM.
 
@@ -949,7 +954,7 @@ Configuration Debug {#CONFIG_DEBUG}
 ===================
 
 This section provides suggestions for debugging configuration issues. Most configuration has to do
-with access controls, either API access or TRDC access. 
+with access controls, either API access or TRDC access.
 
 API Access Issues
 -----------------
@@ -996,4 +1001,26 @@ error presented with the "err" command. If this is incorrect, then check the [co
 for correctness. If wrong then debug the cfg file using the configtool log.
 
 If an access causes a client to fault, a message may be output on the SM debug UART. See @ref PORT_NXP_PRINT.
+
+Understanding SM monitor "err" output
+-------------------------------------
+
+As mentioned above, the debug monitor "err" command will list all the API and Hardware access issues reported
+so far, and clear the error log. Only the first error for each agent is logged, until cleared. See below examples
+of the "err" command output, and how to interpret them:
+
+* API access issues: *SCMI err (chn=0): protocolId=0x81, messageId=0xA, status=-3*
+    - chn=0 identifies the SMT channel used. Channels numbers are assigned in their declaration order in the
+      configuration file. chn=0 is the first channel declared. In the `mx95evk.cfg` file, this is the A2P
+      channel in the SCMI_AGENT0: the communication channel from M7 to system manager.
+    - protocolId, messageId and status identify which SCMI access generated the error. As mentioned above,
+      status will always be -3 (ERR_DENIED). The protocol and message IDs are listed in the include files
+      in the `components/scmi` directory in the SM source tree.
+    - The example above will occur when the M7 agent tries and call the BBM_RTC_NOTIFY SCMI RPC.
+* Hardware access issues: *DOM3 ns prv write to 0x2002F914, MBC_A1=1.2, MBC1_DOM3_MEM1_BLK_CFG_W0[2]*
+    - DOM3 identifies the domain ID of the LM or processor performing the incorrect access.
+      For the `mx95evk.cfg` file, this corresponds to did=3, that is the LM2 (A55 processor).
+    - The next part describes the access: here a non-secure privileged write to address 0x2002F914.
+    - The last part shows the corresponding TRDC registers (sometimes this is decoded incorrectly).
+    - The example above will occur when the A55 tries to do a non-secure write to address 0x2002F914.
 

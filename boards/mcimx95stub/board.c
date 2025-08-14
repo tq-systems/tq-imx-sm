@@ -1,5 +1,5 @@
 /*
- * Copyright 2023-2024 NXP
+ * Copyright 2023-2025 NXP
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -244,7 +244,7 @@ void BOARD_ConfigMPU(void)
 /*--------------------------------------------------------------------------*/
 void BOARD_InitClocks(void)
 {
-    uint32_t fuseTrim = FSB->FUSE[FSB_FUSE_ANA_CFG4];
+    uint32_t fuseTrim = DEV_SM_FuseGet(DEV_SM_FUSE_FRO_TRIM);
 
     if (fuseTrim == 0U)
     {
@@ -300,7 +300,7 @@ void BOARD_InitDebugConsole(void)
         lpuart_config.enableTx = true;
         lpuart_config.enableRx = true;
         (void) LPUART_Init(s_uartConfig.base, &lpuart_config,
-            (uint32_t) rate & 0xFFFFFFFFU);
+            U64_U32(rate));
     }
 }
 

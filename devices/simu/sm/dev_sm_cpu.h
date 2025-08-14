@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-**     Copyright 2023-2024 NXP
+**     Copyright 2023-2025 NXP
 **
 **     Redistribution and use in source and binary forms, with or without modification,
 **     are permitted provided that the following conditions are met:
@@ -54,7 +54,7 @@
 /* Defines */
 
 /*! Number of device CPUs */
-#define DEV_SM_NUM_CPU  4U
+#define DEV_SM_NUM_CPU  9U
 
 /*! Number of device peripheral LPIs */
 #define DEV_SM_NUM_PERLPI   1U
@@ -67,6 +67,25 @@
 #define DEV_SM_CPU_1  1U  /*!< CPU 1 */
 #define DEV_SM_CPU_2  2U  /*!< CPU 2 */
 #define DEV_SM_CPU_3  3U  /*!< CPU 3 */
+#define DEV_SM_CPU_4  4U  /*!< CPU 4 */
+#define DEV_SM_CPU_5  5U  /*!< CPU 5 */
+#define DEV_SM_CPU_6  6U  /*!< CPU 6 */
+#define DEV_SM_CPU_7  7U  /*!< CPU 7 */
+#define DEV_SM_CPU_8  8U  /*!< CPU 8 */
+/** @} */
+
+/*!
+ * @name CPU run modes
+ */
+/** @{ */
+/*! On */
+#define DEV_SM_CPU_RUN_MODE_RUN    0U
+/*! Wait mode */
+#define DEV_SM_CPU_RUN_MODE_HOLD   1U
+/*! Stop mode */
+#define DEV_SM_CPU_RUN_MODE_STOP   2U
+/*! Suspend mode */
+#define DEV_SM_CPU_RUN_MODE_SLEEP  3U
 /** @} */
 
 /*!
@@ -74,20 +93,20 @@
  */
 /** @{ */
 /*! On */
-#define DEV_SM_CPU_SLEEP_MODE_RUN        0U
+#define DEV_SM_CPU_SLEEP_MODE_RUN      0U
 /*! Wait mode */
-#define DEV_SM_CPU_SLEEP_MODE_WAIT       1U
+#define DEV_SM_CPU_SLEEP_MODE_WAIT     1U
 /*! Stop mode */
-#define DEV_SM_CPU_SLEEP_MODE_STOP       2U
+#define DEV_SM_CPU_SLEEP_MODE_STOP     2U
 /*! Suspend mode */
-#define DEV_SM_CPU_SLEEP_MODE_SUSPEND    3U
+#define DEV_SM_CPU_SLEEP_MODE_SUSPEND  3U
 /** @} */
 
 /*!
  * @name Device peripheral LPI indexes
  */
 /** @{ */
-#define DEV_SM_PERLPI_RESV      0U   /*!< 0: Test */
+#define DEV_SM_PERLPI_RESV  0U   /*!< 0: Test */
 /** @} */
 
 /* Types */

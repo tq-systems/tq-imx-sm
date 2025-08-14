@@ -1,7 +1,7 @@
 /*
 ** ###################################################################
 **
-** Copyright 2023-2024 NXP
+** Copyright 2023-2025 NXP
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -84,7 +84,6 @@
         .lmmPerms[2] = SM_SCMI_PERM_ALL, \
         .pdPerms[DEV_SM_PD_M7] = SM_SCMI_PERM_ALL, \
         .perfPerms[DEV_SM_PERF_M7] = SM_SCMI_PERM_ALL, \
-        .perlpiPerms[DEV_SM_PERLPI_LPUART3] = SM_SCMI_PERM_ALL, \
         .perlpiPerms[DEV_SM_PERLPI_WDOG5] = SM_SCMI_PERM_ALL, \
         .sensorPerms[BRD_SM_SENSOR_TEMP_PF09] = SM_SCMI_PERM_SET, \
         .sensorPerms[BRD_SM_SENSOR_TEMP_PF5301] = SM_SCMI_PERM_SET, \
@@ -171,12 +170,6 @@
         .faultPerms[DEV_SM_FAULT_SW2] = SM_SCMI_PERM_ALL, \
         .faultPerms[DEV_SM_FAULT_WDOG3] = SM_SCMI_PERM_ALL, \
         .faultPerms[DEV_SM_FAULT_WDOG4] = SM_SCMI_PERM_ALL, \
-        .pdPerms[DEV_SM_PD_A55C0] = SM_SCMI_PERM_ALL, \
-        .pdPerms[DEV_SM_PD_A55C1] = SM_SCMI_PERM_ALL, \
-        .pdPerms[DEV_SM_PD_A55C2] = SM_SCMI_PERM_ALL, \
-        .pdPerms[DEV_SM_PD_A55C3] = SM_SCMI_PERM_ALL, \
-        .pdPerms[DEV_SM_PD_A55C4] = SM_SCMI_PERM_ALL, \
-        .pdPerms[DEV_SM_PD_A55C5] = SM_SCMI_PERM_ALL, \
         .pdPerms[DEV_SM_PD_A55P] = SM_SCMI_PERM_ALL, \
         .perfPerms[DEV_SM_PERF_A55] = SM_SCMI_PERM_ALL, \
         .perfPerms[DEV_SM_PERF_DRAM] = SM_SCMI_PERM_ALL, \
