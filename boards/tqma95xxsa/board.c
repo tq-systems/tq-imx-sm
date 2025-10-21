@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /*
  * Copyright 2023-2025 NXP
- * Copyright (c) 2024-2025 TQ-Systems GmbH <oss@tq-group.com>, D-82229 Seefeld, Germany.
+ * Copyright (c) 2024-2025 TQ-Systems GmbH <oss@ew.tq-group.com>, D-82229 Seefeld, Germany.
  */
 
 #include "sm.h"
