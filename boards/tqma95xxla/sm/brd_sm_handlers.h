@@ -3,7 +3,7 @@
 ** ###################################################################
 **
 ** Copyright 2023-2024 NXP
-** Copyright (c) 2024 TQ-Systems GmbH <oss@ew.tq-group.com>, D-82229 Seefeld, Germany.
+** Copyright (c) 2024-2025 TQ-Systems GmbH <oss@ew.tq-group.com>, D-82229 Seefeld, Germany.
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -34,68 +34,72 @@
 ** ###################################################################
 */
 
-#ifndef BRD_SM_H
-#define BRD_SM_H
+#ifndef BRD_SM_HANDLERS_H
+#define BRD_SM_HANDLERS_H
 
 /*==========================================================================*/
 /*!
- * @addtogroup BRD_SM_TQMA95XXSA
+ * @addtogroup BRD_SM_TQMA95XXLA
  * @{
  *
  * @file
  * @brief
  *
- * Header file containing the API for the SM abstraction of the board.
+ * Header file containing the implementation of interrupt handlers for the
+ * board.
  */
 /*==========================================================================*/
 
 /* Includes */
 
 #include "sm.h"
-#include "brd_sm_handlers.h"
-#include "brd_sm_control.h"
-#include "brd_sm_sensor.h"
-#include "brd_sm_voltage.h"
-#include "board.h"
-#include "brd_sm_api.h"
+#include "dev_sm.h"
+#include "fsl_pf09.h"
+#include "fsl_pf53.h"
 
 /* Defines */
 
-/*! Board name string */
-#define BRD_SM_NAME  "i.MX95 TQMa95xxSA"
 
-/*! Board attributes */
-#define BRD_SM_ATTR  0x0
+/*! Number of board IRQs participating dynamic prioritization */
+#define BOARD_NUM_IRQ_PRIO_IDX                 1U
 
-/*! Perf voltage drop */
-#define BOARD_PERF_VDROP  20000
-
-/*!
- * @name Board redirection defines
- * @{
- */
-#define SM_SYSTEMRESET  BRD_SM_SystemReset       /*!< Reset */
-/** @} */
+/*! Dynamic IRQ priority table index for GPIO1 */
+#define BOARD_IRQ_PRIO_IDX_GPIO1_0             0U
 
 /* Types */
 
 /* External variables */
 
+/*! Handle to access PF09 */
+extern PF09_Type g_pf09Dev;
+
+/*! Handle to access PF5301 */
+extern PF53_Type g_pf5301Dev;
+
+/*! Handle to access PF5302 */
+extern PF53_Type g_pf5302Dev;
+
+/*! Array of dynamic priority info for board IRQs */
+extern irq_prio_info_t g_brdIrqPrioInfo[BOARD_NUM_IRQ_PRIO_IDX];
+
+/*! Fault flags from the PMICs */
+extern uint32_t g_pmicFaultFlags;
+
 /* Functions */
 
 /*!
- * Reset the system.
- *
- * Redirect to just spin.
+ * Init serial devices.
  *
  * @return Returns the status (::SM_ERR_SUCCESS = success).
- *
- * Return errors (see @ref STATUS "SM error codes"):
- * - ::SM_ERR_SUCCESS
  */
-int32_t BRD_SM_SystemReset(void);
+int32_t BRD_SM_SerialDevicesInit(void);
+
+/*!
+ * GPIO 1 interrupt 0 handler.
+ */
+void GPIO1_0_IRQHandler(void);
 
 /** @} */
 
-#endif /* BRD_SM_H */
+#endif /* BRD_SM_HANDLERS_H */
 

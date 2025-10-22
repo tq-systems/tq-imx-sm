@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /*
  * Copyright 2023-2024 NXP
- * Copyright (c) 2024 TQ-Systems GmbH <oss@ew.tq-group.com>, D-82229 Seefeld, Germany.
+ * Copyright (c) 2024-2025 TQ-Systems GmbH <oss@ew.tq-group.com>, D-82229 Seefeld, Germany.
  */
 
 #ifndef BOARD_H
@@ -12,7 +12,7 @@
 #include "dev_sm.h"
 
 /*!
- * @addtogroup BRD_SM_TQMA95XXSA
+ * @addtogroup BRD_SM_TQMA95XXLA
  * @{
  *
  * @file

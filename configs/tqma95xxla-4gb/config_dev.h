@@ -1,9 +1,7 @@
-// SPDX-License-Identifier: BSD-3-Clause
 /*
 ** ###################################################################
 **
-** Copyright 2023-2024 NXP
-** Copyright (c) 2024 TQ-Systems GmbH <oss@ew.tq-group.com>, D-82229 Seefeld, Germany.
+** Copyright 2023-2025 NXP
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -34,68 +32,34 @@
 ** ###################################################################
 */
 
-#ifndef BRD_SM_H
-#define BRD_SM_H
-
 /*==========================================================================*/
 /*!
- * @addtogroup BRD_SM_TQMA95XXSA
+ * @addtogroup CONFIG_TQMA95XXLA_4GB
  * @{
  *
  * @file
  * @brief
  *
- * Header file containing the API for the SM abstraction of the board.
+ * Header file containing configuration info for the device abstraction.
  */
 /*==========================================================================*/
 
+#ifndef CONFIG_DEV_H
+#define CONFIG_DEV_H
+
 /* Includes */
 
-#include "sm.h"
-#include "brd_sm_handlers.h"
-#include "brd_sm_control.h"
-#include "brd_sm_sensor.h"
-#include "brd_sm_voltage.h"
-#include "board.h"
-#include "brd_sm_api.h"
+#include "config_user.h"
 
 /* Defines */
 
-/*! Board name string */
-#define BRD_SM_NAME  "i.MX95 TQMa95xxSA"
+/*! Config for device */
+#define SM_DEV_CONFIG_DATA \
+    { \
+        .cpuSemaAddr[DEV_SM_CPU_A55P] = 0x442313F8U, \
+    }
 
-/*! Board attributes */
-#define BRD_SM_ATTR  0x0
-
-/*! Perf voltage drop */
-#define BOARD_PERF_VDROP  20000
-
-/*!
- * @name Board redirection defines
- * @{
- */
-#define SM_SYSTEMRESET  BRD_SM_SystemReset       /*!< Reset */
-/** @} */
-
-/* Types */
-
-/* External variables */
-
-/* Functions */
-
-/*!
- * Reset the system.
- *
- * Redirect to just spin.
- *
- * @return Returns the status (::SM_ERR_SUCCESS = success).
- *
- * Return errors (see @ref STATUS "SM error codes"):
- * - ::SM_ERR_SUCCESS
- */
-int32_t BRD_SM_SystemReset(void);
+#endif /* CONFIG_DEV_H */
 
 /** @} */
-
-#endif /* BRD_SM_H */
 

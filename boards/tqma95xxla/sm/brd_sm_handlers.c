@@ -54,7 +54,9 @@
 #define BOARD_PF5302_DEV_ADDR       0x29U
 
 /* GPIO1 IRQ for PMIC */
-#define BOARD_PF09_GPIO1_IRQNUM     14U
+#define BOARD_PF09_GPIO1_IRQNUM     8U
+/* GPIO1 IRQ for port expander (mainboard) */
+#define BOARD_EXP_GPIO1_IRQNUM     14U
 
 /* Local types */
 
@@ -90,6 +92,8 @@ int32_t BRD_SM_SerialDevicesInit(void)
 {
     int32_t status = SM_ERR_SUCCESS;
     LPI2C_Type *const s_i2cBases[] = LPI2C_BASE_PTRS;
+
+    /* TODO: Port Expander */
 
     if (status == SM_ERR_SUCCESS)
     {
@@ -227,6 +231,12 @@ int32_t BRD_SM_SerialDevicesInit(void)
         RGPIO_PinInit(GPIO1, BOARD_PF09_GPIO1_IRQNUM, &gpioConfig);
         RGPIO_SetPinInterruptConfig(GPIO1, BOARD_PF09_GPIO1_IRQNUM, kRGPIO_InterruptOutput0,
             kRGPIO_InterruptLogicZero);
+/* TODO: Expander IRQ */
+/*
+        RGPIO_PinInit(GPIO1, 14U, &gpioConfig);
+        RGPIO_SetPinInterruptConfig(GPIO1, 14U, kRGPIO_InterruptOutput0,
+            kRGPIO_InterruptLogicZero);
+*/
     }
 
     /* Return status */
@@ -255,6 +265,19 @@ void GPIO1_0_IRQHandler(void)
             BRD_SM_Pf09Handler();
         }
     }
+
+    /* TODO: */
+#if 0
+    /* Handle PEX_INT interrupt */
+    if ((flags & (0x1U << BOARD_EXP_GPIO1_IRQNUM)) != 0U)
+    {
+        /* Asserts low */
+        if (RGPIO_PinRead(GPIO1, BOARD_EXP_GPIO1_IRQNUM) == 0U)
+        {
+            /* TODO: */
+        }
+    }
+#endif
 
     /* Handle controls interrupts */
     BRD_SM_ControlHandler(status, val);

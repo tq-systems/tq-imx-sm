@@ -2,8 +2,8 @@
 /*
 ** ###################################################################
 **
-** Copyright 2023-2024 NXP
-** Copyright (c) 2024 TQ-Systems GmbH <oss@ew.tq-group.com>, D-82229 Seefeld, Germany.
+** Copyright 2023 NXP
+** Copyright (c) 2024-2025 TQ-Systems GmbH <oss@ew.tq-group.com>, D-82229 Seefeld, Germany.
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -34,68 +34,24 @@
 ** ###################################################################
 */
 
-#ifndef BRD_SM_H
-#define BRD_SM_H
-
-/*==========================================================================*/
 /*!
- * @addtogroup BRD_SM_TQMA95XXSA
- * @{
- *
- * @file
- * @brief
- *
- * Header file containing the API for the SM abstraction of the board.
- */
-/*==========================================================================*/
-
-/* Includes */
-
-#include "sm.h"
-#include "brd_sm_handlers.h"
-#include "brd_sm_control.h"
-#include "brd_sm_sensor.h"
-#include "brd_sm_voltage.h"
-#include "board.h"
-#include "brd_sm_api.h"
-
-/* Defines */
-
-/*! Board name string */
-#define BRD_SM_NAME  "i.MX95 TQMa95xxSA"
-
-/*! Board attributes */
-#define BRD_SM_ATTR  0x0
-
-/*! Perf voltage drop */
-#define BOARD_PERF_VDROP  20000
-
-/*!
- * @name Board redirection defines
+ * @addtogroup BRD_SM
  * @{
  */
-#define SM_SYSTEMRESET  BRD_SM_SystemReset       /*!< Reset */
-/** @} */
-
-/* Types */
-
-/* External variables */
-
-/* Functions */
 
 /*!
- * Reset the system.
- *
- * Redirect to just spin.
- *
- * @return Returns the status (::SM_ERR_SUCCESS = success).
- *
- * Return errors (see @ref STATUS "SM error codes"):
- * - ::SM_ERR_SUCCESS
- */
-int32_t BRD_SM_SystemReset(void);
+
+@defgroup BRD_SM_TQMA95XXLA BOARD_TQMA95XXLA: i.MX95 TQMA95xxLA SM Implementation
+
+@brief Module for the i.MX95 TQMA95xxLA for the SM.
+
+Board Module
+============
+
+This port supports i.MX95 on TQMa95xxSA SoMs. See
+the @ref PORT_TQMA95XXLA section for more information.
+
+*/
 
 /** @} */
-
-#endif /* BRD_SM_H */
 

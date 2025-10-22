@@ -1,9 +1,7 @@
-// SPDX-License-Identifier: BSD-3-Clause
 /*
 ** ###################################################################
 **
-** Copyright 2023-2024 NXP
-** Copyright (c) 2024 TQ-Systems GmbH <oss@ew.tq-group.com>, D-82229 Seefeld, Germany.
+** Copyright 2023-2025 NXP
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -34,68 +32,69 @@
 ** ###################################################################
 */
 
-#ifndef BRD_SM_H
-#define BRD_SM_H
-
 /*==========================================================================*/
 /*!
- * @addtogroup BRD_SM_TQMA95XXSA
+ * @addtogroup CONFIG_TQMA95XXLA_4GB
  * @{
  *
  * @file
  * @brief
  *
- * Header file containing the API for the SM abstraction of the board.
+ * Header file containing configuration info for the device block controls.
  */
 /*==========================================================================*/
 
+#ifndef CONFIG_BCTRL_H
+#define CONFIG_BCTRL_H
+
 /* Includes */
 
-#include "sm.h"
-#include "brd_sm_handlers.h"
-#include "brd_sm_control.h"
-#include "brd_sm_sensor.h"
-#include "brd_sm_voltage.h"
-#include "board.h"
-#include "brd_sm_api.h"
+#include "config_user.h"
 
 /* Defines */
 
-/*! Board name string */
-#define BRD_SM_NAME  "i.MX95 TQMa95xxSA"
+/*--------------------------------------------------------------------------*/
+/* BCTRL A Config                                                           */
+/*--------------------------------------------------------------------------*/
 
-/*! Board attributes */
-#define BRD_SM_ATTR  0x0
+/*! Config for BCTRL A */
+#define SM_BCTRL_A_CONFIG \
+    { \
+        SM_CFG_W1(0x00000008U), 0x00001804U, \
+        SM_CFG_W1(0x0000000CU), 0x0000E56BU, \
+        SM_CFG_W1(0x00000010U), 0x0000E56BU, \
+        SM_CFG_W1(0x00000014U), 0x0000E56BU, \
+        SM_CFG_W1(0x00000018U), 0x0000E56BU, \
+        SM_CFG_W1(0x0000001CU), 0x0000E56BU, \
+        SM_CFG_W1(0x00000020U), 0x0000E56BU, \
+        SM_CFG_W1(0x00000024U), 0x00000290U, \
+        SM_CFG_END \
+    }
 
-/*! Perf voltage drop */
-#define BOARD_PERF_VDROP  20000
+/*--------------------------------------------------------------------------*/
+/* BCTRL W Config                                                           */
+/*--------------------------------------------------------------------------*/
 
-/*!
- * @name Board redirection defines
- * @{
- */
-#define SM_SYSTEMRESET  BRD_SM_SystemReset       /*!< Reset */
+/*! Config for BCTRL W */
+#define SM_BCTRL_W_CONFIG \
+    { \
+        SM_CFG_W1(0x00000030U), 0xFBF7FFFFU, \
+        SM_CFG_W1(0x00000034U), 0xFBF7FFFFU, \
+        SM_CFG_W1(0x00000038U), 0xFBF7FFFFU, \
+        SM_CFG_W1(0x0000003CU), 0xFBF7FFFFU, \
+        SM_CFG_W1(0x00000040U), 0xFBF7FFFFU, \
+        SM_CFG_W1(0x00000044U), 0xFBF7FFFFU, \
+        SM_CFG_W1(0x00000048U), 0x04080000U, \
+        SM_CFG_W1(0x00000050U), 0x00000001U, \
+        SM_CFG_W1(0x00000054U), 0x00000001U, \
+        SM_CFG_W1(0x00000058U), 0x00000001U, \
+        SM_CFG_W1(0x0000005CU), 0x00000001U, \
+        SM_CFG_W1(0x00000060U), 0x00000001U, \
+        SM_CFG_W1(0x00000064U), 0x00000001U, \
+        SM_CFG_END \
+    }
+
+#endif /* CONFIG_BCTRL_H */
+
 /** @} */
-
-/* Types */
-
-/* External variables */
-
-/* Functions */
-
-/*!
- * Reset the system.
- *
- * Redirect to just spin.
- *
- * @return Returns the status (::SM_ERR_SUCCESS = success).
- *
- * Return errors (see @ref STATUS "SM error codes"):
- * - ::SM_ERR_SUCCESS
- */
-int32_t BRD_SM_SystemReset(void);
-
-/** @} */
-
-#endif /* BRD_SM_H */
 

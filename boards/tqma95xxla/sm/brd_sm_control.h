@@ -3,7 +3,7 @@
 ** ###################################################################
 **
 **     Copyright 2023-2024 NXP
-**     Copyright (c) 2024 TQ-Systems GmbH <oss@ew.tq-group.com>, D-82229 Seefeld, Germany.
+**     Copyright (c) 2024-2025 TQ-Systems GmbH <oss@ew.tq-group.com>, D-82229 Seefeld, Germany.
 **
 **     Redistribution and use in source and binary forms, with or without modification,
 **     are permitted provided that the following conditions are met:
@@ -36,7 +36,7 @@
 
 /*==========================================================================*/
 /*!
- * @addtogroup BRD_SM_TQMA95XXSA
+ * @addtogroup BRD_SM_TQMA95XXLA
  * @{
  *
  * @file
@@ -68,7 +68,7 @@
 /** @} */
 
 /*! Number of board controls */
-#define BRD_SM_NUM_CTRL  1UL
+#define BRD_SM_NUM_CTRL  9UL
 
 /*! Total number of controls */
 #define SM_NUM_CTRL  (DEV_SM_NUM_CTRL + BRD_SM_NUM_CTRL)
@@ -77,7 +77,15 @@
  * @name BRD_SM control domain indexes
  */
 /** @{ */
-#define BRD_SM_CTRL_TEST    (DEV_SM_NUM_CTRL + 0U)  /*!< Test */
+#define BRD_SM_CTRL_BUTTON       (DEV_SM_NUM_CTRL + 0U)  /*!< PCA9538-0 */
+#define BRD_SM_CTRL_TEMPEVT      (DEV_SM_NUM_CTRL + 1U)  /*!< PCA9538-1 */
+#define BRD_SM_CTRL_GYROEVT      (DEV_SM_NUM_CTRL + 2U)  /*!< PCA9538-2 */
+#define BRD_SM_CTRL_SDIO_WAKE    (DEV_SM_NUM_CTRL + 3U)  /*!< PCA9538-3 */
+#define BRD_SM_CTRL_M2KE_BT_WAKE (DEV_SM_NUM_CTRL + 4U)  /*!< PCA9538-4 */
+#define BRD_SM_CTRL_M2KE_PE_WAKE (DEV_SM_NUM_CTRL + 5U)  /*!< PCA9538-5 */
+#define BRD_SM_CTRL_M2KB_PE_WAKE (DEV_SM_NUM_CTRL + 6U)  /*!< PCA9538-6 */
+#define BRD_SM_CTRL_M2KB_WOWWAN  (DEV_SM_NUM_CTRL + 7U)  /*!< PCA9538-7 */
+#define BRD_SM_CTRL_TEST         (DEV_SM_NUM_CTRL + 8U)  /*!< PCA9538-7 */
 /** @} */
 
 /* Types */

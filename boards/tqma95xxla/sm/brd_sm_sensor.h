@@ -2,7 +2,7 @@
 ** ###################################################################
 **
 ** Copyright 2023 NXP
-** Copyright (c) 2024 TQ-Systems GmbH <oss@ew.tq-group.com>, D-82229 Seefeld, Germany.
+** Copyright (c) 2024-2025 TQ-Systems GmbH <oss@ew.tq-group.com>, D-82229 Seefeld, Germany.
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -35,7 +35,7 @@
 
 /*==========================================================================*/
 /*!
- * @addtogroup BRD_SM_TQMA95XXSA
+ * @addtogroup BRD_SM_TQMA95XXLA
  * @{
  *
  * @file
@@ -80,6 +80,8 @@
 #define BRD_SM_SENSOR_TEMP_PF09    (DEV_SM_NUM_SENSOR + 0U)  /*!< PF09 temp sensor */
 #define BRD_SM_SENSOR_TEMP_PF5302  (DEV_SM_NUM_SENSOR + 1U)  /*!< PF5302 temp sensor */
 #define BRD_SM_SENSOR_TEMP_PF5301  (DEV_SM_NUM_SENSOR + 2U)  /*!< PF5301 temp sensor */
+
+/* TODO: Module sensor */
 /** @} */
 
 /* Types */

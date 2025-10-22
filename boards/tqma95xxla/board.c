@@ -27,6 +27,9 @@
 /* External board-level clock rates */
 #define BOARD_EXT_CLK_RATE          25000000UL  /* 25MHz */
 
+/* ADC clck rate */
+#define BOARD_ADC_CLK_RATE          80000000UL  /* 80MHz */
+
 /* SM SysTick parameters */
 #define BOARD_SYSTICK_CLKSRC    0U                      /* 0 = external ref  */
 #define BOARD_SYSTICK_CLK_ROOT  CLOCK_ROOT_M33SYSTICK   /* Dedicated CCM root */
@@ -265,7 +268,10 @@ void BOARD_InitClocks(void)
     /* Configure default EXT_CLK1 rate tied to XTAL_OUT/EXT_CLK pin */
     (void) CLOCK_SourceSetRate(CLOCK_SRC_EXT1, BOARD_EXT_CLK_RATE, 0U);
 
-    /* ADC not available on TQMa95xxSA */
+    /* Configure ADC clock */
+    (void) CCM_RootSetParent(CLOCK_ROOT_ADC, CLOCK_SRC_SYSPLL1_PFD1_DIV2);
+    (void) CCM_RootSetRate(CLOCK_ROOT_ADC, BOARD_ADC_CLK_RATE,
+        CLOCK_ROUND_RULE_CEILING);
 }
 
 /*--------------------------------------------------------------------------*/
@@ -520,12 +526,10 @@ void BOARD_SystemSleepPrepare(uint32_t sleepMode, uint32_t sleepFlags)
         (void) CPU_PerLpiConfigSet(CPU_IDX_M33P, s_uartConfig.perLpiId,
             CPU_PER_LPI_ON_RUN_WAIT_STOP);
     }
-    // TODO:
-#if 0
+
     /* Configure LPI for GPIO1 */
     (void) CPU_PerLpiConfigSet(CPU_IDX_M33P, CPU_PER_LPI_IDX_GPIO1,
         CPU_PER_LPI_ON_RUN_WAIT_STOP);
-#endif
 }
 
 /*--------------------------------------------------------------------------*/

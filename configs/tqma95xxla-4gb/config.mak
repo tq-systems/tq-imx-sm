@@ -1,8 +1,6 @@
-## SPDX-License-Identifier: BSD-3-Clause
 ## ###################################################################
 ##
-## Copyright 2023 NXP
-## Copyright (c) 2024 TQ-Systems GmbH <oss@ew.tq-group.com>, D-82229 Seefeld, Germany.
+## Copyright 2023-2025 NXP
 ##
 ## Redistribution and use in source and binary forms, with or without modification,
 ## are permitted provided that the following conditions are met:
@@ -32,34 +30,15 @@
 ##
 ## ###################################################################
 
-BOARD ?= tqma95xxsa
-BRD_SM_API_DIR = $(ROOT_DIR)/sm/brd
-BOARDS_DIR = $(ROOT_DIR)/boards
-BOARD_DIR = $(BOARDS_DIR)/$(BOARD)
+GEN_CONFIG_VER ?= 2U
+BOARD ?= tqma95xxla
+USES_FUSA ?= 1
 
-INCLUDE +=  \
-	-I$(BRD_SM_API_DIR)  \
-	-I$(BOARDS_DIR)  \
-	-I$(BOARD_DIR)  \
-	-I$(BOARD_DIR)/sm \
-	-I$(COMPONENTS_DIR)/pf09  \
-	-I$(COMPONENTS_DIR)/pf53
-
-VPATH +=  \
-	$(BRD_SM_API_DIR)  \
-	$(BOARDS_DIR)  \
-	$(BOARD_DIR)  \
-	$(BOARD_DIR)/sm  \
-	$(COMPONENTS_DIR)/pf09  \
-	$(COMPONENTS_DIR)/pf53
-
-OBJS += \
-	$(OUT)/board.o  \
-	$(OUT)/brd_sm.o  \
-	$(OUT)/brd_sm_handlers.o  \
-	$(OUT)/brd_sm_control.o  \
-	$(OUT)/brd_sm_sensor.o  \
-	$(OUT)/brd_sm_voltage.o  \
-	$(OUT)/fsl_pf09.o  \
-	$(OUT)/fsl_pf53.o
+include ./devices/MIMX95/sm/Makefile
+include ./boards/$(BOARD)/sm/Makefile
+include ./sm/lmm/Makefile
+include ./sm/rpc/mb_mu/Makefile
+include ./sm/rpc/scmi/Makefile
+include ./sm/rpc/smt/Makefile
+include ./sm/makefiles/gcc_cross.mak
 

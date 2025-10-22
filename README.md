@@ -99,12 +99,13 @@ Then copy the resulting binary image file, *build/tqma95xxsa-2gb/m33_image.bin*,
 it to the boot device, and boot the board. The SM will display a debug monitor prompt on the M33 debug
 UART.
 
-The above config is for Linux system testing on SoM with 2GB RAM.
+(The above used config is for Linux system testing on SoM with 2GB RAM.)
 
 Following configurations are supported in this release:
 
 | name               | purpose                                            |
 | :----------------- | : -----------------------------------------------: |
+| tqma95xxla-4gb     | TQMa95xxLA 4 GiB LPDDR5, only Cortex-A55 supported |
 | tqma95xxsa-2gb     | TQMa95xxSA 2 GiB LPDDR5, only Cortex-A55 supported |
 | tqma95xxsa-2gb-m7  | TQMa95xxSA 2 GiB LPDDR5, Cortex-A + Cortex-M7      |
 | tqma95xxsa-4gb     | TQMa95xxSA 4 GiB LPDDR5, only Cortex-A55 supported |
