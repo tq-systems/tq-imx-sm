@@ -143,12 +143,11 @@
 /*--------------------------------------------------------------------------*/
 
 /*! Config for number of tests */
-#define SM_SCMI_NUM_TEST  39U
+#define SM_SCMI_NUM_TEST  38U
 
 /*! Config data array for tests */
 #define SM_SCMI_TEST_CONFIG_DATA \
     {.testId = TEST_CLK, .channel = 0U, .rsrc = DEV_SM_CLK_LPUART5}, \
-    {.testId = TEST_CLK, .channel = 5U, .rsrc = DEV_SM_CLK_DISPOCRAM}, \
     {.testId = TEST_CLK, .channel = 5U, .rsrc = DEV_SM_CLK_ENETREF}, \
     {.testId = TEST_CLK, .channel = 5U, .rsrc = DEV_SM_CLK_ENETTIMER1}, \
     {.testId = TEST_CLK, .channel = 5U, .rsrc = DEV_SM_CLK_LPUART8}, \
