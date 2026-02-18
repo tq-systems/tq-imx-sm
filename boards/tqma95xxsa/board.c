@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /*
  * Copyright 2023-2025 NXP
- * Copyright (c) 2024-2025 TQ-Systems GmbH <oss@ew.tq-group.com>, D-82229 Seefeld, Germany.
+ * Copyright (c) 2024-2026 TQ-Systems GmbH <oss@ew.tq-group.com>, D-82229 Seefeld, Germany.
  */
 
 #include "sm.h"
@@ -243,27 +243,31 @@ void BOARD_ConfigMPU(void)
 /*--------------------------------------------------------------------------*/
 void BOARD_InitClocks(void)
 {
+    bool rc;
     uint32_t fuseTrim = DEV_SM_FuseGet(DEV_SM_FUSE_FRO_TRIM);
 
     if (fuseTrim == 0U)
     {
         /* Enable the FRO clock with default value */
-        (void) FRO_SetEnable(true);
+        rc = FRO_SetEnable(true);
     }
     else
     {
         /* Set the Trim value read from the fuses */
-        bool status = FRO_SetTrim(fuseTrim);
+        rc = FRO_SetTrim(fuseTrim);
 
-        if (status)
+        if (rc)
         {
             /* Enable the FRO clock with default value */
-            (void) FRO_SetEnable(true);
+            rc = FRO_SetEnable(true);
         }
     }
 
     /* Configure default EXT_CLK1 rate tied to XTAL_OUT/EXT_CLK pin */
-    (void) CLOCK_SourceSetRate(CLOCK_SRC_EXT1, BOARD_EXT_CLK_RATE, 0U);
+    if (rc)
+    {
+        rc = CLOCK_SourceSetRate(CLOCK_SRC_EXT1, BOARD_EXT_CLK_RATE, 0U);
+    }
 
     /* ADC not available on TQMa95xxSA */
 }
@@ -295,8 +299,11 @@ void BOARD_InitDebugConsole(void)
             FSL_FEATURE_LPUART_FIFO_SIZEn(s_uartConfig.base)) - 1U;
         lpuart_config.enableTx = true;
         lpuart_config.enableRx = true;
-        (void) LPUART_Init(s_uartConfig.base, &lpuart_config,
-            U64_U32(rate));
+        if (LPUART_Init(s_uartConfig.base, &lpuart_config,
+            U64_U32(rate)) != kStatus_Success)
+        {
+            DEV_SM_ErrorLog(DEV_SM_ERR_INITCONSOLE);
+        }
     }
 }
 
