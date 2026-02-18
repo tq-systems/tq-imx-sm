@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /*
  * Copyright 2023-2024 NXP
- * Copyright (c) 2024-2025 TQ-Systems GmbH <oss@ew.tq-group.com>, D-82229 Seefeld, Germany.
+ * Copyright (c) 2024-2026 TQ-Systems GmbH <oss@ew.tq-group.com>, D-82229 Seefeld, Germany.
  */
 
 #ifndef BOARD_H
@@ -30,7 +30,7 @@
  */
 /** @{ */
 #define BOARD_TICK_PERIOD_MSEC  10U                       /*!< Tick period */
-#define BOARD_SWI_IRQn          Reserved110_IRQn          /*!< SWI IRQ */
+#define BOARD_SWI_IRQn          SWI_0_IRQn                /*!< SWI IRQ */
 #define BOARD_HAS_WDOG                                    /*!< Has a watchdog */
 #define BOARD_HAS_PMIC                                    /*!< Has a PMIC */
 #define BOARD_PMIC_RESUME_TICKS ((20U * 32768U) / 10000U) /*!< 2ms in 32K ticks */
