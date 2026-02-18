@@ -79,6 +79,7 @@
  */
 /** @{ */
 #define BRD_SM_CTRL_TEST    (DEV_SM_NUM_CTRL + 0U)  /*!< Test */
+#define BRD_SM_CTRL_TEST_A  (DEV_SM_NUM_CTRL + 1U)  /*!< Test action */
 /** @} */
 
 /* Types */

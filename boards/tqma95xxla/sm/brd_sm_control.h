@@ -86,7 +86,8 @@
 #define BRD_SM_CTRL_M2KE_PE_WAKE (DEV_SM_NUM_CTRL + 5U)  /*!< PCA9538-5 */
 #define BRD_SM_CTRL_M2KB_PE_WAKE (DEV_SM_NUM_CTRL + 6U)  /*!< PCA9538-6 */
 #define BRD_SM_CTRL_M2KB_WOWWAN  (DEV_SM_NUM_CTRL + 7U)  /*!< PCA9538-7 */
-#define BRD_SM_CTRL_TEST         (DEV_SM_NUM_CTRL + 8U)  /*!< PCA9538-7 */
+#define BRD_SM_CTRL_TEST        (DEV_SM_NUM_CTRL + 8U)  /*!< PCA9538-7 */
+#define BRD_SM_CTRL_TEST_A      (DEV_SM_NUM_CTRL + 9U)  /*!< Test action */
 /** @} */
 
 /* Types */
