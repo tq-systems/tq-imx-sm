@@ -95,6 +95,8 @@ To get started with the SM you need to [download](#download-from-github) the sou
 To compile, see the following example to be executed from the top directory of the code base.
 Use the right configuration for your SoM and use case:
 
+`make config=tqma95xxsa-2gb cfg`  (optional if the associated tqma95xxsa-2gb.cfg file has been changed)
+
 `make config=tqma95xxsa-2gb all`
 
 Then copy the resulting binary image file, *build/tqma95xxsa-2gb/m33_image.bin*, to the iMX95 directory of the
