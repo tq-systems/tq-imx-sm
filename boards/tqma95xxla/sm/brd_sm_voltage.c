@@ -3,7 +3,7 @@
 ** ###################################################################
 **
 **     Copyright 2023-2025 NXP
-**     Copyright (c) 2024-2025 TQ-Systems GmbH <oss@ew.tq-group.com>, D-82229 Seefeld, Germany.
+**     Copyright (c) 2024-2026 TQ-Systems GmbH <oss@ew.tq-group.com>, D-82229 Seefeld, Germany.
 **
 **     Redistribution and use in source and binary forms, with or without modification,
 **     are permitted provided that the following conditions are met:
@@ -563,5 +563,14 @@ void BRD_SM_VoltageRestore(void)
         /* Restore voltage as enable resets the PF53 */
         (void) BRD_SM_VoltageLevelSet(DEV_SM_VOLT_ARM, s_levelArm);
     }
+}
+
+/*--------------------------------------------------------------------------*/
+/* Return the ARM volt mode                                                 */
+/*--------------------------------------------------------------------------*/
+uint32_t BRD_SM_ArmVoltModeGet(void)
+{
+    /* Return status */
+    return s_modeArm;
 }
 

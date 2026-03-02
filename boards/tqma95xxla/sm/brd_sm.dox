@@ -48,7 +48,7 @@
 Board Module
 ============
 
-This port supports i.MX95 on TQMa95xxSA SoMs. See
+This port supports i.MX95 on TQMa95xxLA SoMs. See
 the @ref PORT_TQMA95XXLA section for more information.
 
 */
