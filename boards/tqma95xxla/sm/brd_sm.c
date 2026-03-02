@@ -3,7 +3,7 @@
 ** ###################################################################
 **
 ** Copyright 2023-2025 NXP
-** Copyright (c) 2024-2025 TQ-Systems GmbH <oss@ew.tq-group.com>, D-82229 Seefeld, Germany.
+** Copyright (c) 2024-2026 TQ-Systems GmbH <oss@ew.tq-group.com>, D-82229 Seefeld, Germany.
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -51,7 +51,7 @@
 
 /* Local defines */
 
-#define BRD_SM_RST_REC_FIRST  4U     /* First GPR for shutdown record */
+#define BRD_SM_RST_REC_FIRST  0U     /* First GPR for shutdown record */
 #define BRD_SM_RST_REC_NUM    4U     /* Number of GPR for shutdown record */
 
 /* Defines to encode the reason */
@@ -126,7 +126,7 @@ static int32_t BRD_SM_InitComplete(uint32_t mSel);
 /*--------------------------------------------------------------------------*/
 /* Init board                                                               */
 /*--------------------------------------------------------------------------*/
-// coverity[misra_c_2012_directive_4_6_violation:FALSE]
+// coverity[misra_c_2012_directive_4_6_violation]
 int32_t BRD_SM_Init(int argc, const char * const argv[], uint32_t *mSel)
 {
     int32_t status;
@@ -169,7 +169,6 @@ int32_t BRD_SM_Init(int argc, const char * const argv[], uint32_t *mSel)
         BOARD_WdogModeSet(BOARD_WDOG_MODE_FCCU);
     }
 
-    /* TODO: Remove when A0 support dropped */
     /* Configure ISO controls based on feature fuses */
     uint32_t ipIsoMask = 0U;
 
@@ -207,12 +206,12 @@ _Noreturn void BRD_SM_Exit(int32_t status, uint32_t pc)
     BOARD_WdogModeSet(BOARD_WDOG_MODE_OFF);
 #else
     SM_SYSTEMERROR(status, pc);
-    // coverity[misra_c_2012_rule_2_2_violation:FALSE]
+    // coverity[misra_c_2012_rule_2_2_violation]
     SystemExit();
 #endif
 
     /* Hang */
-    // coverity[infinite_loop:FALSE]
+    // coverity[infinite_loop]
     while (true)
     {
         ; /* Intentional empty while */
@@ -240,7 +239,7 @@ int32_t BRD_SM_Custom(int32_t argc, const char * const argv[])
 /* Get fault reaction                                                       */
 /*--------------------------------------------------------------------------*/
 int32_t BRD_SM_FaultReactionGet(dev_sm_rst_rec_t resetRec,
-    // coverity[misra_c_2012_rule_8_13_violation:FALSE]
+    // coverity[misra_c_2012_rule_8_13_violation]
     uint32_t *reaction, uint32_t *lm)
 {
     int32_t status = SM_ERR_SUCCESS;
