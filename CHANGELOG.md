@@ -14,12 +14,23 @@ Releases are named with the following scheme:
 
 ### Added
 
+* initial Support for TQMa94xxLA with 2 GB RAM
+
+### Changed
+
+* integrate NXP changes from lf-6.12.49-2.2.0
+
+## BSP release scarthgap.TQMa95xx.IBPQ.SW.0006
+
+### Added
+
 * support for 4GiB RAM variant of TQMa95xxLA
 * support for 4GiB RAM variant of TQMa95xxSA
 * support to build multiple RAM configurations for TQMa95xxSA
 
 ### Changed
 
+* integrate NXP changes from lf-6.12.49-2.2.0
 * TQMa95xxSA: use define instead of magic number for PMIC IRQ
 * integrate updates from NXP version lf-6.6.52-2.2.0
 * Makefile: support building documentation from top level dir
