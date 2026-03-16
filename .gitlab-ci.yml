@@ -19,7 +19,9 @@ compile:
   parallel:
     matrix:
       - MACHINE:
+        - mx94evk
         - mx95evk
+        - tqma94xxla-2gb
         - tqma95xxla-4gb
         - tqma95xxsa-2gb
         - tqma95xxsa-2gb-m7

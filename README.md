@@ -104,19 +104,20 @@ Then copy the resulting binary image file, *build/tqma95xxsa-2gb/m33_image.bin*,
 it to the boot device, and boot the board. The SM will display a debug monitor prompt on the M33 debug
 UART.
 
-(The above used config is for Linux system testing on SoM with 2GB RAM.)
+(The above used config is for Linux system testing on TQMa95xxSA SoM with 2GB RAM.)
 
 Following configurations are supported in this release:
 
 | name               | purpose                                            |
 | :----------------- | : -----------------------------------------------: |
+| tqma94xxla-2gb     | TQMa94xxLA 2 GiB LPDDR4, only Cortex-A55 supported |
 | tqma95xxla-4gb     | TQMa95xxLA 4 GiB LPDDR5, only Cortex-A55 supported |
 | tqma95xxsa-2gb     | TQMa95xxSA 2 GiB LPDDR5, only Cortex-A55 supported |
 | tqma95xxsa-2gb-m7  | TQMa95xxSA 2 GiB LPDDR5, Cortex-A + Cortex-M7      |
 | tqma95xxsa-4gb     | TQMa95xxSA 4 GiB LPDDR5, only Cortex-A55 supported |
 
 Customers will usually need to create their own config that partitions resources between
-the AP (Cortex-A55) and Cortex-M7 for their use case.
+the AP (Cortex-A55) and Cortex-M instance(s) for their exact use case.
 
 Complete documentation on compiling the SM, building a boot image, and programming the boot image is
 contained in the *Developer's Guide* section of the full doxygen-based RM described above.
