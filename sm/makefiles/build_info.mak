@@ -1,6 +1,6 @@
 ## ###################################################################
 ##
-## Copyright 2023-2025 NXP
+## Copyright 2023-2026 NXP
 ##
 ## Redistribution and use in source and binary forms, with or without modification,
 ## are permitted provided that the following conditions are met:
@@ -30,15 +30,15 @@
 ##
 ## ###################################################################
 
-SM_VERSION = imx_sm_2025q4
-SM_PREV_VER = imx_sm_2025q3
+SM_VERSION = imx_sm_2026q1
+SM_PREV_VER = imx_sm_2025q4
 SM_SNAP = 0
 
-SM_DEVICES = i.MX95 (B0), i.MX94 (A0)
-SM_ELE_VER = 2.0.4
+SM_DEVICES = i.MX95 (B0), i.MX94 (A0), i.MX952 (A0)
+SM_ELE_VER = 2.0.5
 
-MKIMAGE_BRANCH = lf-6.12.49_2.2.0
-MKIMAGE_BUILD = Linux_IMX_6.12.49_2.2.0_RC2
+MKIMAGE_BRANCH = lf-6.18.2_1.0.0
+MKIMAGE_BUILD = Linux_IMX_6.18.2_1.0.0_RC2
 MKIMAGE_N = latest
 
 GIT_EXISTS=$(shell (git rev-parse --show-cdup 2>/dev/null) && echo 1 || echo 0)

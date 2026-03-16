@@ -1,6 +1,8 @@
 Introduction {#mainpage}
 ============
 
+**Note this is an engineering release. It is not suitable for production!**
+
 This document contains release notes for the i.MX9 System Manager (SM). This includes:
 
 - [Highlights](@ref RN_HIGH)
@@ -27,20 +29,16 @@ The table below lists the release information:
 | Tested Linux      | #MKIMAGE_BUILD              |
 
 <br>
-<br>
 
 Highlights {#RN_HIGH}
 ==========
 
-Removed:
-
-- **Support for i.MX95 A0/1**
-
 Added:
 
-- Support for sending frequency/voltage change messages to ELE
-- Misc controls for motor control BLK_CTRL registers on i.MX94
-- Support for DDR ECC multi-bit errors to generate a system/LM reset
+- **Support for i.MX952 A0**
+- **Support for the i.MX952 EVK**
+- Support for the i.MX95 Freedom Pro board
+- Support for configuring the video PLL when setting the display pixel clock
 
 Note these are highlights of the original release. These do not cover changes
 in subsequent patch releases.

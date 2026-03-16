@@ -57,8 +57,14 @@ int32_t DEV_SM_Init(uint32_t bootPerfLevel, uint32_t runPerfLevel)
     int32_t status;
     const rom_passover_t *romPassover = NULL;
 
+    /* Init the fuses */
+    status = DEV_SM_FuseInit();
+
     /* Init the system */
-    status = DEV_SM_SystemInit();
+    if (status == SM_ERR_SUCCESS)
+    {
+        status = DEV_SM_SystemInit();
+    }
 
     /* Init the memory */
     if (status == SM_ERR_SUCCESS)
@@ -218,6 +224,8 @@ void DEV_SM_LmmInitGet(uint32_t *numClock, const uint32_t **clockList)
 /*--------------------------------------------------------------------------*/
 /* Power domain postamble for power-up                                      */
 /*--------------------------------------------------------------------------*/
+/* Just one switch */
+/* coverity[ccm] */
 int32_t DEV_SM_PowerUpPost(uint32_t domainId)
 {
     int32_t status = SM_ERR_SUCCESS;
