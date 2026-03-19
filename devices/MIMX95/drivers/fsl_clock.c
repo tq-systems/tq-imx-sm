@@ -301,7 +301,7 @@ const uint8_t g_clockRootMux[CLOCK_NUM_ROOT][CLOCK_NUM_ROOT_MUX_SEL] =
 
     [CLOCK_ROOT_DRAMAPB][0] = CLOCK_SRC_OSC24M,
     [CLOCK_ROOT_DRAMAPB][1] = CLOCK_SRC_SYSPLL1_PFD0_DIV2,
-    [CLOCK_ROOT_DRAMAPB][2] = CLOCK_SRC_SYSPLL1_PFD1_DIV2,
+    [CLOCK_ROOT_DRAMAPB][2] = CLOCK_SRC_SYSPLL1_PFD1,
     [CLOCK_ROOT_DRAMAPB][3] = CLOCK_SRC_FRO,
 
     [CLOCK_ROOT_DISPAPB][0] = CLOCK_SRC_OSC24M,
@@ -323,16 +323,6 @@ const uint8_t g_clockRootMux[CLOCK_NUM_ROOT][CLOCK_NUM_ROOT_MUX_SEL] =
     [CLOCK_ROOT_DISP1PIX][1] = CLOCK_SRC_AUDIOPLL1,
     [CLOCK_ROOT_DISP1PIX][2] = CLOCK_SRC_VIDEOPLL1,
     [CLOCK_ROOT_DISP1PIX][3] = CLOCK_SRC_VIDEOPLL1,
-
-    [CLOCK_ROOT_DISP2PIX][0] = CLOCK_SRC_OSC24M,
-    [CLOCK_ROOT_DISP2PIX][1] = CLOCK_SRC_AUDIOPLL1,
-    [CLOCK_ROOT_DISP2PIX][2] = CLOCK_SRC_RESERVED21,
-    [CLOCK_ROOT_DISP2PIX][3] = CLOCK_SRC_SYSPLL1_PFD2,
-
-    [CLOCK_ROOT_DISP3PIX][0] = CLOCK_SRC_OSC24M,
-    [CLOCK_ROOT_DISP3PIX][1] = CLOCK_SRC_AUDIOPLL1,
-    [CLOCK_ROOT_DISP3PIX][2] = CLOCK_SRC_RESERVED23,
-    [CLOCK_ROOT_DISP3PIX][3] = CLOCK_SRC_SYSPLL1_PFD2,
 
     [CLOCK_ROOT_GPUAPB][0] = CLOCK_SRC_OSC24M,
     [CLOCK_ROOT_GPUAPB][1] = CLOCK_SRC_SYSPLL1_PFD0_DIV2,
@@ -895,6 +885,8 @@ static bool CLOCK_SourcePdIsOn(uint32_t sourceIdx)
 /*--------------------------------------------------------------------------*/
 /* Get CCM clock source enable status                                       */
 /*--------------------------------------------------------------------------*/
+/* Just one switch */
+/* coverity[ccm] */
 bool CLOCK_SourceGetEnable(uint32_t sourceIdx)
 {
     bool clkEnable = false;
@@ -1090,6 +1082,8 @@ bool CLOCK_SourceGetEnable(uint32_t sourceIdx)
 /*--------------------------------------------------------------------------*/
 /* Set CCM clock source enable                                              */
 /*--------------------------------------------------------------------------*/
+/* Just one switch */
+/* coverity[ccm] */
 bool CLOCK_SourceSetEnable(uint32_t sourceIdx, bool enable)
 {
     bool updateEnable = false;
@@ -1305,6 +1299,8 @@ bool CLOCK_SourceSetBypass(uint32_t sourceIdx, bool bypass)
 /*--------------------------------------------------------------------------*/
 /* Get CCM clock source rate                                                */
 /*--------------------------------------------------------------------------*/
+/* Just one switch */
+/* coverity[ccm] */
 uint64_t CLOCK_SourceGetRate(uint32_t sourceIdx)
 {
     uint64_t rate = 0UL;
@@ -1466,6 +1462,8 @@ uint64_t CLOCK_SourceGetRate(uint32_t sourceIdx)
 /*--------------------------------------------------------------------------*/
 /* Set CCM clock source rate                                                */
 /*--------------------------------------------------------------------------*/
+/* Just one switch */
+/* coverity[ccm] */
 bool CLOCK_SourceSetRate(uint32_t sourceIdx, uint64_t rate,
     uint32_t roundRule)
 {

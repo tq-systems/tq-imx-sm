@@ -18,6 +18,7 @@ Releases are named with the following scheme:
 
 ### Changed
 
+* integrate NXP changes from lf-6.18.2-1.0.0
 * integrate NXP changes from lf-6.12.49-2.2.0
 
 ## BSP release scarthgap.TQMa95xx.IBPQ.SW.0006

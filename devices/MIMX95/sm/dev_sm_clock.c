@@ -40,12 +40,21 @@
 
 #include "sm.h"
 #include "dev_sm.h"
+#include "fsl_fract_pll.h"
 
 /* Local defines */
 
 /* Local types */
 
 /* Local variables */
+
+/* Extended clock attribute info */
+static uint32_t s_extConfigValueDisp1Pix = 0U;
+
+/* Local functions */
+
+static void DEV_SM_ClockSourcePrepare(uint32_t clockId, uint64_t clockRate,
+    uint32_t *roundParm);
 
 /*--------------------------------------------------------------------------*/
 /* Return clock name                                                        */
@@ -134,8 +143,6 @@ int32_t DEV_SM_ClockNameGet(uint32_t clockId, string *clockNameAddr,
         [DEV_SM_CLK_DISPAXI] =              "dispaxi",
         [DEV_SM_CLK_DISPOCRAM] =            "dispocram",
         [DEV_SM_CLK_DISP1PIX] =             "disp1pix",
-        [DEV_SM_CLK_DISP2PIX] =             "disp2pix",
-        [DEV_SM_CLK_DISP3PIX] =             "disp3pix",
         [DEV_SM_CLK_GPUAPB] =               "gpuapb",
         [DEV_SM_CLK_GPU] =                  "gpu",
         [DEV_SM_CLK_HSIOACSCAN480M] =       "hsioacscan480m",
@@ -236,7 +243,7 @@ int32_t DEV_SM_ClockNameGet(uint32_t clockId, string *clockNameAddr,
     DEV_SM_MaxStringGet(len, &s_maxLen, s_name, DEV_SM_NUM_CLOCK);
 
     /* Check clock */
-    if ((clockId < DEV_SM_NUM_CLOCK) && (!DEV_SM_ClockIsReserved(clockId)))
+    if (!DEV_SM_ClockIsReserved(clockId))
     {
         /* Return pointer to name */
         *clockNameAddr = s_name[clockId];
@@ -278,10 +285,6 @@ int32_t DEV_SM_ClockDescribe(uint32_t clockId,
         [DEV_SM_CLK_AUDIOPLL2] =            ES_MAX_HZ_AUDIOPLL,
         [DEV_SM_CLK_VIDEOPLL1_VCO] =        ES_MAX_HZ_PLLVCO,
         [DEV_SM_CLK_VIDEOPLL1] =            ES_MAX_HZ_VIDEOPLL,
-        [DEV_SM_CLK_RESERVED20] =           ES_MAX_HZ_GND,
-        [DEV_SM_CLK_RESERVED21] =           ES_MAX_HZ_GND,
-        [DEV_SM_CLK_RESERVED22] =           ES_MAX_HZ_GND,
-        [DEV_SM_CLK_RESERVED23] =           ES_MAX_HZ_GND,
         [DEV_SM_CLK_ARMPLL_VCO] =           ES_MAX_HZ_PLLVCO,
         [DEV_SM_CLK_ARMPLL_PFD0_UNGATED] =  ES_MAX_HZ_PFD,
         [DEV_SM_CLK_ARMPLL_PFD0] =          ES_MAX_HZ_PFD,
@@ -336,12 +339,8 @@ int32_t DEV_SM_ClockDescribe(uint32_t clockId,
         [DEV_SM_CLK_DRAMAPB] =              ES_MAX_HZ_DRAMAPB,
         [DEV_SM_CLK_DISPAPB] =              ES_MAX_HZ_DISPAPB,
         [DEV_SM_CLK_DISPAXI] =              ES_MAX_HZ_DISPAXI,
-        [DEV_SM_CLK_RESERVED77] =           ES_MAX_HZ_GND,
         [DEV_SM_CLK_DISPOCRAM] =            ES_MAX_HZ_DISPOCRAM,
-        [DEV_SM_CLK_RESERVED79] =           ES_MAX_HZ_GND,
         [DEV_SM_CLK_DISP1PIX] =             ES_MAX_HZ_DISP1PIX,
-        [DEV_SM_CLK_DISP2PIX] =             ES_MAX_HZ_DISP2PIX,
-        [DEV_SM_CLK_DISP3PIX] =             ES_MAX_HZ_DISP3PIX,
         [DEV_SM_CLK_GPUAPB] =               ES_MAX_HZ_GPUAPB,
         [DEV_SM_CLK_GPU] =                  ES_MAX_HZ_GPU,
         [DEV_SM_CLK_HSIOACSCAN480M] =       ES_MAX_HZ_HSIOACSCAN480M,
@@ -460,10 +459,6 @@ int32_t DEV_SM_ClockDescribe(uint32_t clockId,
         [DEV_SM_CLK_AUDIOPLL2] =            ES_MIN_HZ_AUDIOPLL,
         [DEV_SM_CLK_VIDEOPLL1_VCO] =        ES_MIN_HZ_PLLVCO,
         [DEV_SM_CLK_VIDEOPLL1] =            ES_MIN_HZ_VIDEOPLL,
-        [DEV_SM_CLK_RESERVED20] =           ES_MIN_HZ_GND,
-        [DEV_SM_CLK_RESERVED21] =           ES_MIN_HZ_GND,
-        [DEV_SM_CLK_RESERVED22] =           ES_MIN_HZ_GND,
-        [DEV_SM_CLK_RESERVED23] =           ES_MIN_HZ_GND,
         [DEV_SM_CLK_ARMPLL_VCO] =           ES_MIN_HZ_PLLVCO,
         [DEV_SM_CLK_ARMPLL_PFD0_UNGATED] =  ES_MIN_HZ_PFD,
         [DEV_SM_CLK_ARMPLL_PFD0] =          ES_MIN_HZ_PFD,
@@ -518,12 +513,8 @@ int32_t DEV_SM_ClockDescribe(uint32_t clockId,
         [DEV_SM_CLK_DRAMAPB] =              ES_MIN_HZ_DRAMAPB,
         [DEV_SM_CLK_DISPAPB] =              ES_MIN_HZ_DISPAPB,
         [DEV_SM_CLK_DISPAXI] =              ES_MIN_HZ_DISPAXI,
-        [DEV_SM_CLK_RESERVED77] =           ES_MIN_HZ_GND,
         [DEV_SM_CLK_DISPOCRAM] =            ES_MIN_HZ_DISPOCRAM,
-        [DEV_SM_CLK_RESERVED79] =           ES_MIN_HZ_GND,
         [DEV_SM_CLK_DISP1PIX] =             ES_MIN_HZ_DISP1PIX,
-        [DEV_SM_CLK_DISP2PIX] =             ES_MIN_HZ_DISP2PIX,
-        [DEV_SM_CLK_DISP3PIX] =             ES_MIN_HZ_DISP3PIX,
         [DEV_SM_CLK_GPUAPB] =               ES_MIN_HZ_GPUAPB,
         [DEV_SM_CLK_GPU] =                  ES_MIN_HZ_GPU,
         [DEV_SM_CLK_HSIOACSCAN480M] =       ES_MIN_HZ_HSIOACSCAN480M,
@@ -621,7 +612,7 @@ int32_t DEV_SM_ClockDescribe(uint32_t clockId,
     };
 
     /* Check clock */
-    if ((clockId < DEV_SM_NUM_CLOCK) && (!DEV_SM_ClockIsReserved(clockId)))
+    if (!DEV_SM_ClockIsReserved(clockId))
     {
         /* Return range */
         range->lowestRate = s_lowestRateHz[clockId];
@@ -816,7 +807,13 @@ int32_t DEV_SM_ClockRateSet(uint32_t clockId, uint64_t rate,
 
         if (clockIndex < CLOCK_NUM_ROOT)
         {
-            switch (roundSel)
+            /* Allow board-level code to override rounding rule */
+            uint32_t roundParm = roundSel;
+
+            /* Allow configuration of clock sources for root set rate */
+            DEV_SM_ClockSourcePrepare(clockId, rate, &roundParm);
+
+            switch (roundParm)
             {
                 case DEV_SM_CLOCK_ROUND_DOWN:
                     if (!CCM_RootSetRate(clockIndex, rate,
@@ -1208,13 +1205,21 @@ int32_t DEV_SM_ClockExtendedInfo(uint32_t clockId, bool *supported)
     }
     else
     {
-        uint32_t spreadPercent = 0U;
-        uint32_t modFreq = 0U;
-        uint32_t enable = 0U;
+        if (clockId == DEV_SM_CLK_DISP1PIX)
+        {
+            /* DISP1PIX supports SRCPRE clock attribute */
+            *supported = true;
+        }
+        else
+        {
+            uint32_t spreadPercent = 0U;
+            uint32_t modFreq = 0U;
+            uint32_t enable = 0U;
 
-        /* Check if SCC is supported */
-        *supported = CLOCK_SourceGetSsc(clockId, &spreadPercent, &modFreq,
-            &enable);
+            /* Check if SCC is supported */
+            *supported = CLOCK_SourceGetSsc(clockId, &spreadPercent, &modFreq,
+                &enable);
+        }
     }
 
     /* Return status */
@@ -1273,6 +1278,18 @@ int32_t DEV_SM_ClockExtendedSet(uint32_t clockId, uint32_t extId,
                 }
                 break;
 
+            /* Clock source prepare */
+            case DEV_SM_CLOCK_EXT_SRCPRE:
+                if (clockId == DEV_SM_CLK_DISP1PIX)
+                {
+                    s_extConfigValueDisp1Pix = extConfigValue;
+                }
+                else
+                {
+                    status = SM_ERR_INVALID_PARAMETERS;
+                }
+                break;
+
             default:
                 status = SM_ERR_NOT_FOUND;
                 break;
@@ -1322,6 +1339,18 @@ int32_t DEV_SM_ClockExtendedGet(uint32_t clockId, uint32_t extId,
                 }
                 break;
 
+            /* Clock source prepare */
+            case DEV_SM_CLOCK_EXT_SRCPRE:
+                if (clockId == DEV_SM_CLK_DISP1PIX)
+                {
+                    *extConfigValue = s_extConfigValueDisp1Pix;
+                }
+                else
+                {
+                    status = SM_ERR_INVALID_PARAMETERS;
+                }
+                break;
+
             default:
                 status = SM_ERR_NOT_FOUND;
                 break;
@@ -1338,6 +1367,8 @@ int32_t DEV_SM_ClockExtendedGet(uint32_t clockId, uint32_t extId,
 bool DEV_SM_ClockIsReserved(uint32_t clockId)
 {
     bool rc = false;
+    uint32_t pwrDomainId = DEV_SM_NUM_POWER;
+
     static bool const s_clockIsReserved[DEV_SM_NUM_CLOCK] =
     {
         [DEV_SM_CLK_RESERVED20] = true,
@@ -1345,15 +1376,241 @@ bool DEV_SM_ClockIsReserved(uint32_t clockId)
         [DEV_SM_CLK_RESERVED22] = true,
         [DEV_SM_CLK_RESERVED23] = true,
         [DEV_SM_CLK_RESERVED77] = true,
-        [DEV_SM_CLK_RESERVED79] = true
+        [DEV_SM_CLK_RESERVED79] = true,
+        [DEV_SM_CLK_RESERVED81] = true,
+        [DEV_SM_CLK_RESERVED82] = true
     };
 
-    if (clockId < DEV_SM_NUM_CLOCK)
+    switch (clockId)
     {
-        rc = s_clockIsReserved[clockId];
+        case DEV_SM_CLK_A55C2_GPR_SEL:
+            pwrDomainId = DEV_SM_PD_A55C2;
+            break;
+
+        case DEV_SM_CLK_A55C3_GPR_SEL:
+            pwrDomainId = DEV_SM_PD_A55C3;
+            break;
+
+        case DEV_SM_CLK_A55C4_GPR_SEL:
+            pwrDomainId = DEV_SM_PD_A55C4;
+            break;
+
+        case DEV_SM_CLK_A55C5_GPR_SEL:
+            pwrDomainId = DEV_SM_PD_A55C5;
+            break;
+
+        case DEV_SM_CLK_DISP1PIX:
+        case DEV_SM_CLK_DISPAPB:
+        case DEV_SM_CLK_DISPAXI:
+        case DEV_SM_CLK_DISPOCRAM:
+            pwrDomainId = DEV_SM_PD_DISPLAY;
+            break;
+
+        case DEV_SM_CLK_GPU:
+        case DEV_SM_CLK_GPUAPB:
+        case DEV_SM_CLK_GPU_CGC:
+            pwrDomainId = DEV_SM_PD_GPU;
+            break;
+
+        case DEV_SM_CLK_VPU:
+        case DEV_SM_CLK_VPUAPB:
+        case DEV_SM_CLK_VPUDSP:
+        case DEV_SM_CLK_VPUJPEG:
+            pwrDomainId = DEV_SM_PD_VPU;
+            break;
+
+        case DEV_SM_CLK_BUSNETCMIX:
+        case DEV_SM_CLK_ENETPHYTEST200M:
+        case DEV_SM_CLK_ENETPHYTEST500M:
+        case DEV_SM_CLK_ENETPHYTEST667M:
+        case DEV_SM_CLK_ENETREF:
+        case DEV_SM_CLK_ENETTIMER1:
+        case DEV_SM_CLK_MQS2:
+            pwrDomainId = DEV_SM_PD_NETC;
+            break;
+
+        default:
+            ; /* Intentional empty default */
+            break;
+    }
+
+    if (clockId >= DEV_SM_NUM_CLOCK)
+    {
+        rc = true;
+    }
+    else
+    {
+        if (pwrDomainId < DEV_SM_NUM_POWER)
+        {
+            /* Check fuse state of power domain */
+            if (DEV_SM_FusePdDisabled(pwrDomainId))
+            {
+                rc = true;
+            }
+        }
+        else
+        {
+            rc = s_clockIsReserved[clockId];
+        }
     }
 
     /* Return status */
     return rc;
+}
+
+/*==========================================================================*/
+
+/*--------------------------------------------------------------------------*/
+/* Prepare clock sources for CCM root rate set                              */
+/*--------------------------------------------------------------------------*/
+static void DEV_SM_ClockSourcePrepare(uint32_t clockId, uint64_t clockRate,
+    uint32_t *roundParm)
+{
+    if ((clockId == DEV_SM_CLK_DISP1PIX) && (s_extConfigValueDisp1Pix != 0U))
+    {
+        bool rateMatch;
+        uint32_t mfi;
+        uint32_t mfn;
+        uint32_t odiv;
+
+        switch (clockRate)
+        {
+            case 297000000UL:
+                /* VCO = 24MHz * (111 + 3/8) = 2673000000Hz
+                 * PLL_OUT = VCO / 9 = 297000000Hz
+                 */
+                mfi = 111U;
+                mfn = ((((uint32_t)(CLOCK_PLL_MFD & 0xFFFFFFFFU)) * 3U)
+                    / 8U);
+                odiv = 9U;
+                rateMatch = true;
+                break;
+
+            case 296703000UL:
+            case 148352000UL:
+            case 74176000UL:
+                /* VCO = 24MHz * (136) = 3264000000Hz
+                 * PLL_OUT = VCO / 11 = 296727272Hz
+                 */
+                mfi = 136U;
+                mfn = 0U;
+                odiv = 11U;
+                rateMatch = true;
+                break;
+
+            case 241500000UL:
+                /* VCO = 24MHz * (110 + 2/3) = 2656000000Hz
+                 * PLL_OUT = VCO / 11 = 241454545
+                 */
+                mfi = 110U;
+                mfn = ((((uint32_t)(CLOCK_PLL_MFD & 0xFFFFFFFFU)) * 2U)
+                    / 3U);
+                odiv = 11U;
+                rateMatch = true;
+                break;
+
+            case 148500000UL:
+            case  74250000UL:
+                /* VCO = 24MHz * (167) = 4008000000Hz
+                 * PLL_OUT = VCO / 9 = 445333333Hz
+                 */
+                mfi = 167U;
+                mfn = 0U;
+                odiv = 9U;
+                rateMatch = true;
+                break;
+
+            case 108108000UL:
+            case 108000000UL:
+            case  27027000UL:
+            case  27000000UL:
+                /* VCO = 24MHz * (126) = 3024000000Hz
+                 * PLL_OUT = VCO / 14 = 216000000Hz
+                 */
+                mfi = 126U;
+                mfn = 0U;
+                odiv = 14U;
+                rateMatch = true;
+                break;
+
+            case 71000000UL:
+                /* VCO = 24MHz * (130 + 1/6) = 3124000000Hz
+                 * PLL_OUT = VCO / 11 = 284000000Hz
+                 */
+                mfi = 130U;
+                mfn = ((((uint32_t)(CLOCK_PLL_MFD & 0xFFFFFFFFU)) * 1U)
+                    / 6U);
+                odiv = 11U;
+                rateMatch = true;
+                break;
+
+            case 65000000UL:
+                /* VCO = 24MHz * (130) = 3120000000Hz
+                 * PLL_OUT = VCO / 12 = 260000000Hz
+                 */
+                mfi = 130U;
+                mfn = 0U;
+                odiv = 12U;
+                rateMatch = true;
+                break;
+
+            case 54054000UL:
+            case 54000000UL:
+                /* VCO = 24MHz * (135) = 3240000000Hz
+                 * PLL_OUT = VCO / 12 = 270000000Hz
+                 */
+                mfi = 135U;
+                mfn = 0U;
+                odiv = 12U;
+                rateMatch = true;
+                break;
+
+            case 40000000UL:
+                /* VCO = 24MHz * (130) = 3120000000Hz
+                 * PLL_OUT = VCO / 13 = 240000000Hz
+                 */
+                mfi = 130U;
+                mfn = 0U;
+                odiv = 13U;
+                rateMatch = true;
+                break;
+
+            case 25200000UL:
+                /* VCO = 24MHz * (126) = 3024000000Hz
+                 * PLL_OUT = VCO / 15 = 201600000Hz
+                 */
+                mfi = 126U;
+                mfn = 0U;
+                odiv = 15U;
+                rateMatch = true;
+                break;
+
+            case 25175000UL:
+                /* VCO = 24MHz * (115 + 5/12) = 2770000000Hz
+                 * PLL_OUT = VCO / 10 = 277000000Hz
+                 */
+                mfi = 115U;
+                mfn = ((((uint32_t)(CLOCK_PLL_MFD & 0xFFFFFFFFU)) * 5U)
+                    / 12U);
+                odiv = 10U;
+                rateMatch = true;
+                break;
+
+            default:
+                rateMatch = false;
+                break;
+        };
+
+        /* Check if DISP1PIX rate match found */
+        if (rateMatch)
+        {
+            /* Configure video PLL based on requested DISP1PIX rate */
+            (void) FRACTPLL_UpdateRate(CLOCK_PLL_VIDEO1, mfi, mfn, odiv,
+                false);
+
+            /* Force rounding rule auto/closest */
+            *roundParm = DEV_SM_CLOCK_ROUND_AUTO;
+        }
+    }
 }
 
