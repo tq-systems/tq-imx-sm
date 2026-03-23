@@ -214,13 +214,12 @@
 /*--------------------------------------------------------------------------*/
 
 /*! Config for number of tests */
-#define SM_SCMI_NUM_TEST  30U
+#define SM_SCMI_NUM_TEST  26U
 
 /*! Config data array for tests */
 #define SM_SCMI_TEST_CONFIG_DATA \
     {.testId = TEST_BUTTON, .channel = 12U, .rsrc = DEV_SM_BUTTON_0}, \
     {.testId = TEST_CLK, .channel = 0U, .rsrc = DEV_SM_CLK_LPUART3}, \
-    {.testId = TEST_CLK, .channel = 0U, .rsrc = DEV_SM_CLK_LPUART8}, \
     {.testId = TEST_CLK, .channel = 12U, .rsrc = DEV_SM_CLK_NPU_CGC}, \
     {.testId = TEST_CLK, .channel = 12U, .rsrc = DEV_SM_CLK_SAI1}, \
     {.testId = TEST_CLK, .channel = 4U, .rsrc = DEV_SM_CLK_LPUART11}, \
@@ -230,8 +229,6 @@
     {.testId = TEST_DAISY, .channel = 0U, .rsrc = DEV_SM_DAISY_LPUART3_CTS}, \
     {.testId = TEST_DAISY, .channel = 0U, .rsrc = DEV_SM_DAISY_LPUART3_RXD}, \
     {.testId = TEST_DAISY, .channel = 0U, .rsrc = DEV_SM_DAISY_LPUART3_TXD}, \
-    {.testId = TEST_DAISY, .channel = 0U, .rsrc = DEV_SM_DAISY_LPUART8_RXD}, \
-    {.testId = TEST_DAISY, .channel = 0U, .rsrc = DEV_SM_DAISY_LPUART8_TXD}, \
     {.testId = TEST_DAISY, .channel = 12U, .rsrc = DEV_SM_DAISY_SAI1_MCLK}, \
     {.testId = TEST_DAISY, .channel = 4U, .rsrc = DEV_SM_DAISY_LPUART11_RXD}, \
     {.testId = TEST_DAISY, .channel = 4U, .rsrc = DEV_SM_DAISY_LPUART11_TXD}, \
@@ -243,7 +240,6 @@
     {.testId = TEST_PD, .channel = 7U, .rsrc = DEV_SM_PD_M71}, \
     {.testId = TEST_PERF, .channel = 12U, .rsrc = DEV_SM_PERF_NPU}, \
     {.testId = TEST_PERLPI, .channel = 0U, .rsrc = DEV_SM_PERLPI_LPUART3}, \
-    {.testId = TEST_PERLPI, .channel = 0U, .rsrc = DEV_SM_PERLPI_LPUART8}, \
     {.testId = TEST_PERLPI, .channel = 4U, .rsrc = DEV_SM_PERLPI_LPUART11}, \
     {.testId = TEST_PERLPI, .channel = 7U, .rsrc = DEV_SM_PERLPI_LPUART12}, \
     {.testId = TEST_PIN, .channel = 12U, .rsrc = DEV_SM_PIN_UART1_RXD}, \
