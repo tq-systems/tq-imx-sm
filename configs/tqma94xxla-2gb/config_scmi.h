@@ -191,7 +191,6 @@
         .clkPerms[DEV_SM_CLK_HIPERFACE2] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_LPTMR1] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_LPTMR2] = SM_SCMI_PERM_ALL, \
-        .clkPerms[DEV_SM_CLK_LPUART11] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_M70SYSTICK] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_TPM4] = SM_SCMI_PERM_ALL, \
         .cpuPerms[DEV_SM_CPU_M7P0] = SM_SCMI_PERM_ALL, \
@@ -245,8 +244,6 @@
         .daisyPerms[DEV_SM_DAISY_LPTMR2_0] = SM_SCMI_PERM_ALL, \
         .daisyPerms[DEV_SM_DAISY_LPTMR2_1] = SM_SCMI_PERM_ALL, \
         .daisyPerms[DEV_SM_DAISY_LPTMR2_2] = SM_SCMI_PERM_ALL, \
-        .daisyPerms[DEV_SM_DAISY_LPUART11_RXD] = SM_SCMI_PERM_ALL, \
-        .daisyPerms[DEV_SM_DAISY_LPUART11_TXD] = SM_SCMI_PERM_ALL, \
         .daisyPerms[DEV_SM_DAISY_SINC4_EMBIT_0] = SM_SCMI_PERM_ALL, \
         .daisyPerms[DEV_SM_DAISY_SINC4_EMBIT_1] = SM_SCMI_PERM_ALL, \
         .daisyPerms[DEV_SM_DAISY_SINC4_EMBIT_2] = SM_SCMI_PERM_ALL, \
@@ -302,10 +299,7 @@
         .pdPerms[DEV_SM_PD_NETC] = SM_SCMI_PERM_ALL, \
         .perfPerms[DEV_SM_PERF_M70] = SM_SCMI_PERM_ALL, \
         .perlpiPerms[DEV_SM_PERLPI_CAN1] = SM_SCMI_PERM_ALL, \
-        .perlpiPerms[DEV_SM_PERLPI_LPUART11] = SM_SCMI_PERM_ALL, \
         .perlpiPerms[DEV_SM_PERLPI_WDOG5] = SM_SCMI_PERM_ALL, \
-        .pinPerms[DEV_SM_PIN_GPIO_IO24] = SM_SCMI_PERM_ALL, \
-        .pinPerms[DEV_SM_PIN_GPIO_IO25] = SM_SCMI_PERM_ALL, \
         .rtcPerms[DEV_SM_RTC_BBNSM] = SM_SCMI_PERM_PRIV, \
         .sensorPerms[BRD_SM_SENSOR_TEMP_PF09] = SM_SCMI_PERM_SET, \
         .sensorPerms[BRD_SM_SENSOR_TEMP_PF53] = SM_SCMI_PERM_SET, \
@@ -494,6 +488,7 @@
         .perlpiPerms[DEV_SM_PERLPI_GPIO6] = SM_SCMI_PERM_ALL, \
         .perlpiPerms[DEV_SM_PERLPI_GPIO7] = SM_SCMI_PERM_ALL, \
         .perlpiPerms[DEV_SM_PERLPI_LPUART10] = SM_SCMI_PERM_ALL, \
+        .perlpiPerms[DEV_SM_PERLPI_LPUART11] = SM_SCMI_PERM_ALL, \
         .perlpiPerms[DEV_SM_PERLPI_LPUART12] = SM_SCMI_PERM_ALL, \
         .perlpiPerms[DEV_SM_PERLPI_LPUART1] = SM_SCMI_PERM_ALL, \
         .perlpiPerms[DEV_SM_PERLPI_LPUART3] = SM_SCMI_PERM_ALL, \
@@ -585,6 +580,7 @@
         .clkPerms[DEV_SM_CLK_LPSPI7] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_LPSPI8] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_LPUART10] = SM_SCMI_PERM_ALL, \
+        .clkPerms[DEV_SM_CLK_LPUART11] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_LPUART12] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_LPUART1] = SM_SCMI_PERM_ALL, \
         .clkPerms[DEV_SM_CLK_LPUART3] = SM_SCMI_PERM_ALL, \
@@ -663,6 +659,8 @@
         .daisyPerms[DEV_SM_DAISY_LPUART10_CTS] = SM_SCMI_PERM_ALL, \
         .daisyPerms[DEV_SM_DAISY_LPUART10_RXD] = SM_SCMI_PERM_ALL, \
         .daisyPerms[DEV_SM_DAISY_LPUART10_TXD] = SM_SCMI_PERM_ALL, \
+        .daisyPerms[DEV_SM_DAISY_LPUART11_RXD] = SM_SCMI_PERM_ALL, \
+        .daisyPerms[DEV_SM_DAISY_LPUART11_TXD] = SM_SCMI_PERM_ALL, \
         .daisyPerms[DEV_SM_DAISY_LPUART3_CTS] = SM_SCMI_PERM_ALL, \
         .daisyPerms[DEV_SM_DAISY_LPUART3_RXD] = SM_SCMI_PERM_ALL, \
         .daisyPerms[DEV_SM_DAISY_LPUART3_TXD] = SM_SCMI_PERM_ALL, \
@@ -742,6 +740,7 @@
         .perlpiPerms[DEV_SM_PERLPI_GPIO6] = SM_SCMI_PERM_ALL, \
         .perlpiPerms[DEV_SM_PERLPI_GPIO7] = SM_SCMI_PERM_ALL, \
         .perlpiPerms[DEV_SM_PERLPI_LPUART10] = SM_SCMI_PERM_ALL, \
+        .perlpiPerms[DEV_SM_PERLPI_LPUART11] = SM_SCMI_PERM_ALL, \
         .perlpiPerms[DEV_SM_PERLPI_LPUART12] = SM_SCMI_PERM_ALL, \
         .perlpiPerms[DEV_SM_PERLPI_LPUART1] = SM_SCMI_PERM_ALL, \
         .perlpiPerms[DEV_SM_PERLPI_LPUART3] = SM_SCMI_PERM_ALL, \
@@ -860,6 +859,8 @@
         .pinPerms[DEV_SM_PIN_GPIO_IO21] = SM_SCMI_PERM_ALL, \
         .pinPerms[DEV_SM_PIN_GPIO_IO22] = SM_SCMI_PERM_ALL, \
         .pinPerms[DEV_SM_PIN_GPIO_IO23] = SM_SCMI_PERM_ALL, \
+        .pinPerms[DEV_SM_PIN_GPIO_IO24] = SM_SCMI_PERM_ALL, \
+        .pinPerms[DEV_SM_PIN_GPIO_IO25] = SM_SCMI_PERM_ALL, \
         .pinPerms[DEV_SM_PIN_GPIO_IO26] = SM_SCMI_PERM_ALL, \
         .pinPerms[DEV_SM_PIN_GPIO_IO27] = SM_SCMI_PERM_ALL, \
         .pinPerms[DEV_SM_PIN_GPIO_IO28] = SM_SCMI_PERM_ALL, \
