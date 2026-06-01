@@ -12,6 +12,20 @@ Releases are named with the following scheme:
 
 ## [Unreleased]
 
+### Fixed
+
+* TQMa94xxLA/TQMa95xxLA/TQMa95xxSA: incomplete port of V2X fasthash patch to TQ-Systems hardware.
+* TQMa94xxLA:
+  * add LPAURT 3/8/11/12 and its pins to Cortex-A55 NS domain
+
+    default BSP manages most features with Linux. Remove the UARTs from the various Cortex-M
+  * add CAN1 to Cortex-A55 NS domain
+
+    default BSP manages most features with Linux. Remove the CAN1 from Cortex-M
+
+
+## BSP release scarthgap.TQ.ARM.BSP.0008
+
 ### Added
 
 * initial Support for TQMa94xxLA with 2 GB RAM
