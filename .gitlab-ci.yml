@@ -26,6 +26,11 @@ compile:
         - tqma95xxsa-2gb
         - tqma95xxsa-2gb-m7
         - tqma95xxsa-4gb
+        - tqm943l02g0c000
+        - tqm95_l04g0c000
+        - tqm95_s02g0c000
+        - tqm95_s02g0c001
+        - tqm95_s04g0c000
         CONFIG: ["t=all m=0", "m=1", "m=0 c=1", "m=0 c=0" ]
   script:
     - echo "Building ${MACHINE} with ${CONFIG}"
