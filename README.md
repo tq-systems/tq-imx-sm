@@ -106,19 +106,7 @@ UART.
 
 (The above used config is for Linux system testing on TQMa95xxSA SoM with 2GB RAM.)
 
-Following configurations are supported in this release:
-
-Old naming scheme:
-
-| name               | purpose                                            |
-| :----------------- | : -----------------------------------------------: |
-| tqma94xxla-2gb     | TQMa94xxLA 2 GiB LPDDR4, only Cortex-A55 supported |
-| tqma95xxla-4gb     | TQMa95xxLA 4 GiB LPDDR5, only Cortex-A55 supported |
-| tqma95xxsa-2gb     | TQMa95xxSA 2 GiB LPDDR5, only Cortex-A55 supported |
-| tqma95xxsa-2gb-m7  | TQMa95xxSA 2 GiB LPDDR5, Cortex-A + Cortex-M7      |
-| tqma95xxsa-4gb     | TQMa95xxSA 4 GiB LPDDR5, only Cortex-A55 supported |
-
-Naming scheme:
+Following configurations are supported in this release with the following naming scheme:
 
 Configuration names have a fixed length: tqm<nnn><f><mm>g[0,5]c<vvv>, where
 
