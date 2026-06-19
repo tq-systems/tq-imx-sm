@@ -12,11 +12,6 @@ Releases are named with the following scheme:
 
 ## [Unreleased]
 
-### Deprecated
-
-* old configuration names starting with `tqma` will be removed when BSP uses the new naming
-  scheme.
-
 ### Changed
 
 * CI: use new container with updated toolchain.
@@ -33,6 +28,9 @@ Releases are named with the following scheme:
 
     default BSP manages most features with Linux. Remove the CAN1 from Cortex-M
 
+### Removed
+
+* old configuration names starting with `tqma`
 
 ## BSP release scarthgap.TQ.ARM.BSP.0008
 
