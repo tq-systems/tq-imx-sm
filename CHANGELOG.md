@@ -12,6 +12,15 @@ Releases are named with the following scheme:
 
 ## [Unreleased]
 
+### Deprecated
+
+* old configuration names starting with `tqma` will be removed when BSP uses the new naming
+  scheme.
+
+### Changed
+
+* Unify naming conventions for TQ-Systems board configurations
+
 ### Fixed
 
 * TQMa94xxLA/TQMa95xxLA/TQMa95xxSA: incomplete port of V2X fasthash patch to TQ-Systems hardware.
