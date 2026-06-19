@@ -19,6 +19,7 @@ Releases are named with the following scheme:
 
 ### Changed
 
+* CI: use new container with updated toolchain.
 * Unify naming conventions for TQ-Systems board configurations
 
 ### Fixed
